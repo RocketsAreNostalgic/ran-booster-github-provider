@@ -1,0 +1,52 @@
+name: Temporary Phase 3 PHPCS diagnostics
+
+on:
+  push:
+    branches:
+      - refactor/migrate-github-implementation
+    paths:
+      - .github/workflows/diagnose-phase3-phpcs.yml
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: ${{ github.ref == 'refs/heads/refactor/migrate-github-implementation' }}
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+    steps:
+      - name: Check out Phase 3 branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refactor/migrate-github-implementation
+          fetch-depth: 0
+
+      - name: Set up PHP 8.2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install locked dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Report exact Phase 3 warning sources
+        continue-on-error: true
+        run: |
+          vendor/bin/phpcs -s --standard=.phpcs.xml \
+            src/RepositoryBrowser.php \
+            tests/Booster/GitHub/bootstrap.php \
+            tests/Booster/GitHub/PublicReleaseResultMappingTest.php \
+            tests/Booster/GitHub/RepositoryResolverTest.php \
+            tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceTestBootstrap.php \
+            tests/Support/NeutralReleaseUpdaterWordPressFunctions.php
+
+      - name: Remove temporary diagnostic workflow
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/diagnose-phase3-phpcs.yml
+          git commit -m 'chore: remove Phase 3 PHPCS diagnostic'
+          git push origin HEAD:refactor/migrate-github-implementation
