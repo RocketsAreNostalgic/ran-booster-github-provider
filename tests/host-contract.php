@@ -30,7 +30,22 @@ if ( RepositoryReleaseArtifactCustody::class !== (string) $handoff->getReturnTyp
 	throw new RuntimeException( 'Release artifact handoff is not provider-neutral.' );
 }
 
+if ( 2 !== RepositoryReleaseWorkflowManagementV2::RELEASE_WORKFLOW_API_VERSION ) {
+	throw new RuntimeException( 'Release workflow host contract version is unexpected.' );
+}
+
 $workflowMethods = get_class_methods( RepositoryReleaseWorkflowManagementV2::class );
-if ( ! in_array( 'previewReleaseWorkflow', $workflowMethods, true ) || ! in_array( 'applyReleaseWorkflow', $workflowMethods, true ) ) {
-	throw new RuntimeException( 'Release workflow V2 host contract is incomplete.' );
+sort( $workflowMethods );
+$expectedWorkflowMethods = array(
+	'workflowInspect',
+	'workflowInspectUpdate',
+	'workflowOutcome',
+	'workflowPreview',
+	'workflowSetup',
+	'workflowSetupUpdate',
+	'workflowStatus',
+);
+sort( $expectedWorkflowMethods );
+if ( $expectedWorkflowMethods !== $workflowMethods ) {
+	throw new RuntimeException( 'Release workflow V2 host contract is incomplete or unexpected.' );
 }
