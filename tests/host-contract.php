@@ -67,13 +67,13 @@ function ran_booster_github_provider_assert_method( string $interfaceName, strin
 }
 
 $contracts = array(
-	RepositoryProvider::class => array(
+	RepositoryProvider::class                    => array(
 		'getMetadata'            => array( array(), ProviderMetadata::class ),
 		'getProviderDiagnostics' => array( array(), ProviderDiagnostics::class ),
 		'resolveRepository'      => array( array( array( 'request', RepositoryLookupRequest::class ) ), RepositoryDescriptor::class ),
 		'prepareArchive'         => array( array( array( 'request', ArchiveRequest::class ) ), PreparedArchive::class ),
 	),
-	RepositoryReleaseArtifact::class => array(
+	RepositoryReleaseArtifact::class             => array(
 		'discard'       => array( array(), 'bool' ),
 		'handoffToCore' => array( array(), RepositoryReleaseArtifactCustody::class ),
 		'version'       => array( array(), 'string' ),
@@ -81,7 +81,7 @@ $contracts = array(
 		'mainFile'      => array( array(), 'string' ),
 		'identifier'    => array( array( array( 'packageType', 'string' ) ), 'string' ),
 	),
-	RepositoryReleaseArtifactCustody::class => array(
+	RepositoryReleaseArtifactCustody::class      => array(
 		'inspect'     => array( array( array( 'inspection', 'callable' ) ), 'mixed' ),
 		'discard'     => array( array(), 'bool' ),
 		'resolvedRef' => array( array(), 'string' ),

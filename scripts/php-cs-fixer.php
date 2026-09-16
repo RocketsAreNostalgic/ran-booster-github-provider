@@ -33,13 +33,13 @@ return $ran_booster_github_provider_config
 			'concat_space'                        => array( 'spacing' => 'one' ),
 			'braces'                              => array(
 				'position_after_functions_and_oop_constructs' => 'same',
-				'position_after_control_structures'           => 'same',
-				'position_after_anonymous_constructs'         => 'same',
+				'position_after_control_structures'   => 'same',
+				'position_after_anonymous_constructs' => 'same',
 			),
-			'method_chaining_indentation'          => false,
-			'statement_indentation'                => false,
-			'array_indentation'                    => false,
-			'indentation_type'                     => false,
+			'method_chaining_indentation'         => false,
+			'statement_indentation'               => false,
+			'array_indentation'                   => false,
+			'indentation_type'                    => false,
 		)
 	)
 	->setIndent( "\t" )
