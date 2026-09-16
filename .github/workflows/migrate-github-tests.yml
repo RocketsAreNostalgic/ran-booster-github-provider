@@ -1,0 +1,199 @@
+name: Temporary GitHub test migration
+
+on:
+  push:
+    branches:
+      - refactor/migrate-github-implementation
+    paths:
+      - .github/workflows/migrate-github-tests.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: ${{ github.ref == 'refs/heads/refactor/migrate-github-implementation' }}
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+    steps:
+      - name: Check out provider branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refactor/migrate-github-implementation
+          fetch-depth: 0
+
+      - name: Check out exact Booster source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: RocketsAreNostalgic/ran-booster
+          ref: 52305d0f394c4b6447015da206ddc0f622ff39e8
+          persist-credentials: false
+          path: .source/booster
+
+      - name: Verify exact revisions
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/refactor/migrate-github-implementation)"
+          test "$(git -C .source/booster rev-parse HEAD)" = 52305d0f394c4b6447015da206ddc0f622ff39e8
+
+      - name: Copy and mechanically transform provider-owned tests
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          source_root = Path('.source/booster/tests/Booster/GitHub')
+          target_root = Path('tests/Booster/GitHub')
+          old = b'RAN\\Booster\\GitHub'
+          new = b'RAN\\BoosterGitHubProvider\\V1'
+          files = [
+              'ArchiveLimitBoundaryTest.php',
+              'CredentialExpiryValidationTest.php',
+              'CredentialPolicyTest.php',
+              'DiagnosticsTest.php',
+              'GitHubProviderMetadataTest.php',
+              'GitHubProviderWebhookManagementTest.php',
+              'ModuleDependencyBoundaryTest.php',
+              'NativeTargetsTest.php',
+              'PublicReleaseResultMappingTest.php',
+              'ReleaseAcquisitionTest.php',
+              'ReleaseArtifactClaimLifetimeTest.php',
+              'ReleaseArtifactFilesystemFunctions.php',
+              'ReleaseCandidateListingTest.php',
+              'ReleaseInspectionTest.php',
+              'RepositoryResolverTest.php',
+              'RepositoryWebhookClientTest.php',
+              'VendorConformanceTest.php',
+              'WebhookNormalizerTest.php',
+              'bootstrap.php',
+              'Support/EmptyAuthenticatedWebhookDeliveryEvidenceReader.php',
+              'Support/RepositoryResolverSecretsStub.php',
+              'Support/RepositoryResolverWordPressFunctions.php',
+              'Support/RepositoryResolverWpError.php',
+              'Support/WebhookProfileReaderStub.php',
+              'ReleaseDeployments/WorkflowAssistance/D23ApplicationTransport.php',
+              'ReleaseDeployments/WorkflowAssistance/D23GitHubTransport.php',
+              'ReleaseDeployments/WorkflowAssistance/D23ReleaseFacade.php',
+              'ReleaseDeployments/WorkflowAssistance/GitHubRepositoryClientTest.php',
+              'ReleaseDeployments/WorkflowAssistance/GitHubRepositoryReleaseWorkflowTest.php',
+              'ReleaseDeployments/WorkflowAssistance/ManagedReleaseBundleTest.php',
+              'ReleaseDeployments/WorkflowAssistance/RepositorySnapshotTest.php',
+              'ReleaseDeployments/WorkflowAssistance/SetupRecordStoreTest.php',
+              'ReleaseDeployments/WorkflowAssistance/SourceReadyAssessorTest.php',
+              'ReleaseDeployments/WorkflowAssistance/TemplatePackApi2ContractTest.php',
+              'ReleaseDeployments/WorkflowAssistance/TemplatePackRepositoryClientTest.php',
+              'ReleaseDeployments/WorkflowAssistance/TemplatePackScriptedTransport.php',
+              'ReleaseDeployments/WorkflowAssistance/WorkflowApplicationCoordinatorTest.php',
+              'ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceTestBootstrap.php',
+              'ReleaseDeployments/WorkflowAssistance/Support/TemplatePackApi2Fixture.php',
+              'ReleaseDeployments/WorkflowAssistance/Support/WorkflowCredentialStore.php',
+              'ReleaseDeployments/WorkflowAssistance/Support/WorkflowProviderFixtures.php',
+          ]
+          architectural = {
+              'bootstrap.php',
+              'ModuleDependencyBoundaryTest.php',
+              'ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceTestBootstrap.php',
+          }
+
+          actual_source = sorted(
+              str(path.relative_to(source_root))
+              for path in source_root.rglob('*.php')
+              if not str(path.relative_to(source_root)).startswith('WebhookManagement/')
+          )
+          if actual_source != sorted(files):
+              raise SystemExit(f'source manifest mismatch\nexpected={sorted(files)}\nactual={actual_source}')
+
+          for relative in files:
+              source = source_root / relative
+              target = target_root / relative
+              raw = source.read_bytes()
+              transformed = raw.replace(old, new)
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(transformed)
+              if relative not in architectural and target.read_bytes() != raw.replace(old, new):
+                  raise SystemExit(f'mechanical equivalence failed: {relative}')
+
+          bootstrap = target_root / 'bootstrap.php'
+          text = bootstrap.read_text()
+          expected = '$ranBoosterRoot = dirname( __DIR__, 3 );'
+          replacement = '''$ranProviderRoot = dirname( __DIR__, 3 );
+          $ranBoosterRoot  = getenv( 'RAN_BOOSTER_CORE_PATH' );
+          if ( ! is_string( $ranBoosterRoot ) || '' === trim( $ranBoosterRoot ) ) {
+          \tthrow new LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for the extracted GitHub suite.' );
+          }
+          $ranBoosterRoot = rtrim( $ranBoosterRoot, '/\\\\' );'''
+          if text.count(expected) != 1:
+              raise SystemExit('root bootstrap host-root marker mismatch')
+          text = text.replace(expected, replacement)
+          old_closure = 'static function ( string $class ) use ( $ranBoosterRoot ): void {'
+          new_closure = 'static function ( string $class ) use ( $ranProviderRoot, $ranBoosterRoot ): void {'
+          if text.count(old_closure) != 1:
+              raise SystemExit('root bootstrap closure marker mismatch')
+          text = text.replace(old_closure, new_closure)
+          old_provider = "'RAN\\\\BoosterGitHubProvider\\\\V1\\\\' => $ranBoosterRoot . '/RAN/Booster/GitHub/',"
+          new_provider = "'RAN\\\\BoosterGitHubProvider\\\\V1\\\\' => $ranProviderRoot . '/src/',"
+          if text.count(old_provider) != 1:
+              raise SystemExit('provider autoload marker mismatch')
+          text = text.replace(old_provider, new_provider)
+          old_support = "'RAN\\\\UpdaterSupport\\\\V1\\\\'       => $ranBoosterRoot . '/vendor/ran/updater-support/src/',"
+          new_support = "'RAN\\\\UpdaterSupport\\\\V1\\\\'       => $ranProviderRoot . '/vendor/ran/updater-support/src/',"
+          if text.count(old_support) != 1:
+              raise SystemExit('updater-support autoload marker mismatch')
+          text = text.replace(old_support, new_support)
+          bootstrap.write_text(text)
+
+          boundary = target_root / 'ModuleDependencyBoundaryTest.php'
+          text = boundary.read_text()
+          old_module = "$module        = dirname( __DIR__, 3 ) . '/RAN/Booster/GitHub';"
+          new_module = "$module        = dirname( __DIR__, 3 ) . '/src';"
+          if text.count(old_module) != 1:
+              raise SystemExit('module boundary path marker mismatch')
+          boundary.write_text(text.replace(old_module, new_module))
+
+          workflow_bootstrap = target_root / 'ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceTestBootstrap.php'
+          text = workflow_bootstrap.read_text()
+          old_root = '$ranBoosterRoot = dirname( __DIR__, 5 );'
+          new_root = '''$ranBoosterRoot = getenv( 'RAN_BOOSTER_CORE_PATH' );
+          if ( ! is_string( $ranBoosterRoot ) || '' === trim( $ranBoosterRoot ) ) {
+          \tthrow new \\LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for workflow-assistance tests.' );
+          }
+          $ranBoosterRoot = rtrim( $ranBoosterRoot, '/\\\\' );'''
+          if text.count(old_root) != 1:
+              raise SystemExit('workflow bootstrap host-root marker mismatch')
+          workflow_bootstrap.write_text(text.replace(old_root, new_root))
+
+          final = sorted(str(path.relative_to(target_root)) for path in target_root.rglob('*.php'))
+          if final != sorted(files):
+              raise SystemExit(f'target manifest mismatch\nexpected={sorted(files)}\nactual={final}')
+          if (target_root / 'WebhookManagement').exists():
+              raise SystemExit('Booster-owned legacy WebhookManagement presentation tests must not migrate')
+
+          for relative in files:
+              data = (target_root / relative).read_bytes()
+              if old in data:
+                  raise SystemExit(f'old production namespace remains: {relative}')
+
+          print(f'migrated_test_files={len(files)}')
+          print(f'mechanical_files={len(files) - len(architectural)}')
+          print(f'architectural_harness_edits={len(architectural)}')
+          PY
+
+      - name: Verify staged test tree
+        run: |
+          set -euo pipefail
+          test ! -e tests/Booster/GitHub/WebhookManagement
+          test -z "$(grep -R -l -F 'RAN\Booster\GitHub' tests/Booster/GitHub --include='*.php' || true)"
+          find tests/Booster/GitHub -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          git diff --check
+          git diff --stat -- tests/Booster/GitHub
+
+      - name: Commit migrated tests and remove temporary workflow
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/Booster/GitHub
+          git rm .github/workflows/migrate-github-tests.yml
+          git diff --cached --check
+          git commit -m 'test: migrate GitHub provider implementation suite'
+          git push origin HEAD:refactor/migrate-github-implementation
