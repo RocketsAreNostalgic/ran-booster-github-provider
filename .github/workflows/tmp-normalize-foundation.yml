@@ -63,3 +63,5 @@ jobs:
           git add -A
           git commit -m "chore: normalize RAN quality foundation"
           git push origin HEAD:chore/package-foundation
+
+# Retry after narrowing PHP CS Fixer to non-overlapping WordPress formatting rules.
