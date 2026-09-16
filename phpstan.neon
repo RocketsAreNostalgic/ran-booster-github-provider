@@ -1,0 +1,11 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	# Match Booster's current extracted source baseline during the behaviour-preserving move.
+	# Raising analysis strictness belongs in a separate typed-contract change after extraction parity.
+	level: 1
+	treatPhpDocTypesAsCertain: false
+	paths:
+		- src
+		- tests/foundation-contract.php
