@@ -111,12 +111,14 @@ jobs:
                       raise SystemExit(f'private Booster implementation dependency {prefix!r} in {relative}')
 
           store = (target_root / 'ReleaseDeployments/WorkflowAssistance/SetupRecordStore.php').read_bytes()
-          for option_name in (
-              b'ran_booster_github_release_workflow_setup_records_v1',
-              b'ran_booster_github_release_workflow_setup_records_v1_lock',
+          for compatibility_marker in (
+              b'ran_booster_release_deployments_setup_records',
+              b'ran_booster_release_deployments_assessment_observations',
+              b'ran_booster_release_deployments_failure_history',
+              b'ran_booster_release_workflow_',
           ):
-              if option_name not in store:
-                  raise SystemExit(f'missing stored-option compatibility marker: {option_name!r}')
+              if compatibility_marker not in store:
+                  raise SystemExit(f'missing setup-store compatibility marker: {compatibility_marker!r}')
 
           print(f'migrated_files={len(files)}')
           print(f'namespace_replacements={total_replacements}')
