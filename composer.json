@@ -1,0 +1,61 @@
+{
+  "name": "ran/booster-github-provider",
+  "description": "First-party GitHub provider implementation for RAN Booster.",
+  "type": "library",
+  "license": "GPL-2.0-or-later",
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/RocketsAreNostalgic/ran-updater-support.git"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/RocketsAreNostalgic/ran-coding-standards.git"
+    }
+  ],
+  "require": {
+    "php": "^8.2",
+    "ran/updater-support": "0.1.0-beta.3"
+  },
+  "require-dev": {
+    "phpcompatibility/php-compatibility": "10.0.0-alpha2",
+    "phpcompatibility/phpcompatibility-paragonie": "2.0.0-alpha2",
+    "phpcompatibility/phpcompatibility-wp": "3.0.0-alpha2",
+    "phpstan/phpstan": "^2.1",
+    "ran/coding-standards": "dev-main"
+  },
+  "autoload": {
+    "psr-4": {
+      "RAN\\BoosterGitHubProvider\\V1\\": "src/"
+    }
+  },
+  "scripts": {
+    "validate:strict": "composer validate --strict --no-check-publish",
+    "test:foundation": "@php tests/foundation-contract.php",
+    "lint:php": "find tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l",
+    "standards": "phpcs --standard=.phpcs.xml -s",
+    "standards:fix": "phpcbf --standard=.phpcs.xml --report=summary",
+    "analyze": "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M",
+    "check": [
+      "@validate:strict",
+      "@standards",
+      "@analyze",
+      "@test:foundation",
+      "@lint:php"
+    ]
+  },
+  "config": {
+    "platform": {
+      "php": "8.2.0"
+    },
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "sort-packages": true
+  },
+  "support": {
+    "issues": "https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues",
+    "security": "https://github.com/RocketsAreNostalgic/ran-booster-github-provider/security/advisories/new",
+    "source": "https://github.com/RocketsAreNostalgic/ran-booster-github-provider"
+  }
+}

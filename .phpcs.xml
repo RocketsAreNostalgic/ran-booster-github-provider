@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<ruleset name="RAN Booster GitHub Provider Coding Standards">
+	<description>RAN WordPress-library coding and PHP compatibility baseline for the GitHub provider package.</description>
+
+	<config name="testVersion" value="8.2-"/>
+
+	<file>.</file>
+	<exclude-pattern>/vendor/</exclude-pattern>
+
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="4"/>
+	<arg value="sp"/>
+
+	<rule ref="RANWordPressLibrary"/>
+
+	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
+		<severity>0</severity>
+	</rule>
+	<rule ref="WordPress.NamingConventions.ValidVariableName">
+		<severity>0</severity>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>/tests/</exclude-pattern>
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="ran_booster_github_provider"/>
+				<element value="RAN\BoosterGitHubProvider\V1"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

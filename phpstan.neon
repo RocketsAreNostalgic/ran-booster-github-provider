@@ -1,0 +1,8 @@
+parameters:
+	level: 8
+	treatPhpDocTypesAsCertain: false
+	paths:
+		- tests/foundation-contract.php
+	excludePaths:
+		analyse:
+			- tests/host-contract.php
