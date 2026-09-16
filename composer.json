@@ -10,12 +10,17 @@
     },
     {
       "type": "vcs",
+      "url": "https://github.com/RocketsAreNostalgic/ran-wp-release-updater.git"
+    },
+    {
+      "type": "vcs",
       "url": "https://github.com/RocketsAreNostalgic/ran-coding-standards.git"
     }
   ],
   "require": {
     "php": "^8.2",
-    "ran/updater-support": "0.1.0-beta.3"
+    "ran/updater-support": "0.1.0-beta.3",
+    "ran/wp-release-updater": "0.1.0-beta.4"
   },
   "require-dev": {
     "php-stubs/wordpress-stubs": "7.0.*",
@@ -23,6 +28,7 @@
     "phpcompatibility/phpcompatibility-paragonie": "2.0.0-alpha2",
     "phpcompatibility/phpcompatibility-wp": "3.0.0-alpha2",
     "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^11.0",
     "ran/coding-standards": "dev-main",
     "szepeviktor/phpstan-wordpress": "^2.0"
   },
@@ -31,16 +37,21 @@
       "RAN\\BoosterGitHubProvider\\V1\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
   "scripts": {
     "check": [
       "@validate:strict",
       "@lint:syntax",
       "@lint:php",
-      "@analyze",
       "@test:foundation"
     ],
     "validate:strict": "composer validate --strict --no-check-publish",
     "test:foundation": "@php tests/foundation-contract.php",
+    "test:implementation": "phpunit --configuration phpunit.xml --fail-on-phpunit-deprecation",
     "lint:syntax": "find src tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l",
     "lint:php": "phpcs --standard=.phpcs.xml --report=summary",
     "format:php": "phpcbf --standard=.phpcs.xml --report=summary",
