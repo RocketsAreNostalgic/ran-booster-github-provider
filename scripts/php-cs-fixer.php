@@ -12,15 +12,15 @@ declare(strict_types=1);
 
 use PhpCsFixer\Runner\Parallel\ParallelConfigFactory;
 
-$finder = PhpCsFixer\Finder::create()
+$ran_booster_github_provider_finder = PhpCsFixer\Finder::create()
 	->exclude( 'vendor' )
 	->in( dirname( __DIR__ ) );
 
-$config          = new PhpCsFixer\Config();
-$parallel_config = ParallelConfigFactory::detect();
+$ran_booster_github_provider_config          = new PhpCsFixer\Config();
+$ran_booster_github_provider_parallel_config = ParallelConfigFactory::detect();
 
-return $config
-	->setParallelConfig( $parallel_config )
+return $ran_booster_github_provider_config
+	->setParallelConfig( $ran_booster_github_provider_parallel_config )
 	->setRules(
 		array(
 			'line_ending'                         => true,
@@ -45,4 +45,4 @@ return $config
 	->setIndent( "\t" )
 	->setLineEnding( "\n" )
 	->setUsingCache( false )
-	->setFinder( $finder );
+	->setFinder( $ran_booster_github_provider_finder );
