@@ -46,131 +46,83 @@ jobs:
           target_root = Path('tests/Booster/GitHub')
           old = b'RAN\\Booster\\GitHub'
           new = b'RAN\\BoosterGitHubProvider\\V1'
-          files = [
-              'ArchiveLimitBoundaryTest.php',
-              'CredentialExpiryValidationTest.php',
-              'CredentialPolicyTest.php',
-              'DiagnosticsTest.php',
-              'GitHubProviderMetadataTest.php',
-              'GitHubProviderWebhookManagementTest.php',
-              'ModuleDependencyBoundaryTest.php',
-              'NativeTargetsTest.php',
-              'PublicReleaseResultMappingTest.php',
-              'ReleaseAcquisitionTest.php',
-              'ReleaseArtifactClaimLifetimeTest.php',
-              'ReleaseArtifactFilesystemFunctions.php',
-              'ReleaseCandidateListingTest.php',
-              'ReleaseInspectionTest.php',
-              'RepositoryResolverTest.php',
-              'RepositoryWebhookClientTest.php',
-              'VendorConformanceTest.php',
-              'WebhookNormalizerTest.php',
-              'bootstrap.php',
-              'Support/EmptyAuthenticatedWebhookDeliveryEvidenceReader.php',
-              'Support/RepositoryResolverSecretsStub.php',
-              'Support/RepositoryResolverWordPressFunctions.php',
-              'Support/RepositoryResolverWpError.php',
-              'Support/WebhookProfileReaderStub.php',
-              'ReleaseDeployments/WorkflowAssistance/D23ApplicationTransport.php',
-              'ReleaseDeployments/WorkflowAssistance/D23GitHubTransport.php',
-              'ReleaseDeployments/WorkflowAssistance/D23ReleaseFacade.php',
-              'ReleaseDeployments/WorkflowAssistance/GitHubRepositoryClientTest.php',
-              'ReleaseDeployments/WorkflowAssistance/GitHubRepositoryReleaseWorkflowTest.php',
-              'ReleaseDeployments/WorkflowAssistance/ManagedReleaseBundleTest.php',
-              'ReleaseDeployments/WorkflowAssistance/RepositorySnapshotTest.php',
-              'ReleaseDeployments/WorkflowAssistance/SetupRecordStoreTest.php',
-              'ReleaseDeployments/WorkflowAssistance/SourceReadyAssessorTest.php',
-              'ReleaseDeployments/WorkflowAssistance/TemplatePackApi2ContractTest.php',
-              'ReleaseDeployments/WorkflowAssistance/TemplatePackRepositoryClientTest.php',
-              'ReleaseDeployments/WorkflowAssistance/TemplatePackScriptedTransport.php',
-              'ReleaseDeployments/WorkflowAssistance/WorkflowApplicationCoordinatorTest.php',
-              'ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceTestBootstrap.php',
-              'ReleaseDeployments/WorkflowAssistance/Support/TemplatePackApi2Fixture.php',
-              'ReleaseDeployments/WorkflowAssistance/Support/WorkflowCredentialStore.php',
-              'ReleaseDeployments/WorkflowAssistance/Support/WorkflowProviderFixtures.php',
-          ]
+          excluded = {
+              'WebhookManagement/GitHubLegacyAssistedHooksRetirementTest.php',
+              'WebhookManagement/GitHubProviderLegacyWordPressFunctions.php',
+          }
           architectural = {
               'bootstrap.php',
               'ModuleDependencyBoundaryTest.php',
               'ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceTestBootstrap.php',
           }
 
-          actual_source = sorted(
-              str(path.relative_to(source_root))
-              for path in source_root.rglob('*.php')
-              if not str(path.relative_to(source_root)).startswith('WebhookManagement/')
-          )
-          if actual_source != sorted(files):
-              raise SystemExit(f'source manifest mismatch\nexpected={sorted(files)}\nactual={actual_source}')
+          all_files = sorted(str(path.relative_to(source_root)) for path in source_root.rglob('*.php'))
+          if len(all_files) != 43:
+              raise SystemExit(f'unexpected exact-source GitHub test count: {len(all_files)}')
+          if not excluded.issubset(all_files):
+              raise SystemExit(f'expected Booster-owned presentation exclusions missing: {sorted(excluded - set(all_files))}')
+          files = [relative for relative in all_files if relative not in excluded]
+          if len(files) != 41:
+              raise SystemExit(f'unexpected provider-owned GitHub test count: {len(files)}')
 
           for relative in files:
               source = source_root / relative
               target = target_root / relative
               raw = source.read_bytes()
-              transformed = raw.replace(old, new)
               target.parent.mkdir(parents=True, exist_ok=True)
-              target.write_bytes(transformed)
+              target.write_bytes(raw.replace(old, new))
               if relative not in architectural and target.read_bytes() != raw.replace(old, new):
                   raise SystemExit(f'mechanical equivalence failed: {relative}')
 
           bootstrap = target_root / 'bootstrap.php'
           text = bootstrap.read_text()
-          expected = '$ranBoosterRoot = dirname( __DIR__, 3 );'
-          replacement = '''$ranProviderRoot = dirname( __DIR__, 3 );
-          $ranBoosterRoot  = getenv( 'RAN_BOOSTER_CORE_PATH' );
-          if ( ! is_string( $ranBoosterRoot ) || '' === trim( $ranBoosterRoot ) ) {
-          \tthrow new LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for the extracted GitHub suite.' );
-          }
-          $ranBoosterRoot = rtrim( $ranBoosterRoot, '/\\\\' );'''
-          if text.count(expected) != 1:
-              raise SystemExit('root bootstrap host-root marker mismatch')
-          text = text.replace(expected, replacement)
-          old_closure = 'static function ( string $class ) use ( $ranBoosterRoot ): void {'
-          new_closure = 'static function ( string $class ) use ( $ranProviderRoot, $ranBoosterRoot ): void {'
-          if text.count(old_closure) != 1:
-              raise SystemExit('root bootstrap closure marker mismatch')
-          text = text.replace(old_closure, new_closure)
-          old_provider = "'RAN\\\\BoosterGitHubProvider\\\\V1\\\\' => $ranBoosterRoot . '/RAN/Booster/GitHub/',"
-          new_provider = "'RAN\\\\BoosterGitHubProvider\\\\V1\\\\' => $ranProviderRoot . '/src/',"
-          if text.count(old_provider) != 1:
-              raise SystemExit('provider autoload marker mismatch')
-          text = text.replace(old_provider, new_provider)
-          old_support = "'RAN\\\\UpdaterSupport\\\\V1\\\\'       => $ranBoosterRoot . '/vendor/ran/updater-support/src/',"
-          new_support = "'RAN\\\\UpdaterSupport\\\\V1\\\\'       => $ranProviderRoot . '/vendor/ran/updater-support/src/',"
-          if text.count(old_support) != 1:
-              raise SystemExit('updater-support autoload marker mismatch')
-          text = text.replace(old_support, new_support)
+          substitutions = [
+              (
+                  '$ranBoosterRoot = dirname( __DIR__, 3 );',
+                  "$ranProviderRoot = dirname( __DIR__, 3 );\n$ranBoosterRoot  = getenv( 'RAN_BOOSTER_CORE_PATH' );\nif ( ! is_string( $ranBoosterRoot ) || '' === trim( $ranBoosterRoot ) ) {\n\tthrow new LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for the extracted GitHub suite.' );\n}\n$ranBoosterRoot = rtrim( $ranBoosterRoot, '/\\\\' );",
+              ),
+              (
+                  'static function ( string $class ) use ( $ranBoosterRoot ): void {',
+                  'static function ( string $class ) use ( $ranProviderRoot, $ranBoosterRoot ): void {',
+              ),
+              (
+                  "$ranBoosterRoot . '/RAN/Booster/GitHub/'",
+                  "$ranProviderRoot . '/src/'",
+              ),
+              (
+                  "$ranBoosterRoot . '/vendor/ran/updater-support/src/'",
+                  "$ranProviderRoot . '/vendor/ran/updater-support/src/'",
+              ),
+          ]
+          for before, after in substitutions:
+              if text.count(before) != 1:
+                  raise SystemExit(f'root bootstrap rewrite marker mismatch: {before}')
+              text = text.replace(before, after)
           bootstrap.write_text(text)
 
           boundary = target_root / 'ModuleDependencyBoundaryTest.php'
           text = boundary.read_text()
-          old_module = "$module        = dirname( __DIR__, 3 ) . '/RAN/Booster/GitHub';"
-          new_module = "$module        = dirname( __DIR__, 3 ) . '/src';"
-          if text.count(old_module) != 1:
+          before = "$module        = dirname( __DIR__, 3 ) . '/RAN/Booster/GitHub';"
+          after = "$module        = dirname( __DIR__, 3 ) . '/src';"
+          if text.count(before) != 1:
               raise SystemExit('module boundary path marker mismatch')
-          boundary.write_text(text.replace(old_module, new_module))
+          boundary.write_text(text.replace(before, after))
 
           workflow_bootstrap = target_root / 'ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceTestBootstrap.php'
           text = workflow_bootstrap.read_text()
-          old_root = '$ranBoosterRoot = dirname( __DIR__, 5 );'
-          new_root = '''$ranBoosterRoot = getenv( 'RAN_BOOSTER_CORE_PATH' );
-          if ( ! is_string( $ranBoosterRoot ) || '' === trim( $ranBoosterRoot ) ) {
-          \tthrow new \\LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for workflow-assistance tests.' );
-          }
-          $ranBoosterRoot = rtrim( $ranBoosterRoot, '/\\\\' );'''
-          if text.count(old_root) != 1:
+          before = '$ranBoosterRoot = dirname( __DIR__, 5 );'
+          after = "$ranBoosterRoot = getenv( 'RAN_BOOSTER_CORE_PATH' );\nif ( ! is_string( $ranBoosterRoot ) || '' === trim( $ranBoosterRoot ) ) {\n\tthrow new \\LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for workflow-assistance tests.' );\n}\n$ranBoosterRoot = rtrim( $ranBoosterRoot, '/\\\\' );"
+          if text.count(before) != 1:
               raise SystemExit('workflow bootstrap host-root marker mismatch')
-          workflow_bootstrap.write_text(text.replace(old_root, new_root))
+          workflow_bootstrap.write_text(text.replace(before, after))
 
           final = sorted(str(path.relative_to(target_root)) for path in target_root.rglob('*.php'))
-          if final != sorted(files):
-              raise SystemExit(f'target manifest mismatch\nexpected={sorted(files)}\nactual={final}')
+          if final != files:
+              raise SystemExit(f'target manifest mismatch\nexpected={files}\nactual={final}')
           if (target_root / 'WebhookManagement').exists():
               raise SystemExit('Booster-owned legacy WebhookManagement presentation tests must not migrate')
-
           for relative in files:
-              data = (target_root / relative).read_bytes()
-              if old in data:
+              if old in (target_root / relative).read_bytes():
                   raise SystemExit(f'old production namespace remains: {relative}')
 
           print(f'migrated_test_files={len(files)}')
