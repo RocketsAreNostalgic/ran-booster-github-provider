@@ -49,7 +49,7 @@ $requiredDevDependencies = array(
 	'ran/coding-standards',
 	'szepeviktor/phpstan-wordpress',
 );
-$requireDev = $composer['require-dev'] ?? null;
+$requireDev              = $composer['require-dev'] ?? null;
 if ( ! is_array( $requireDev ) ) {
 	throw new RuntimeException( 'The development quality dependency set is missing.' );
 }
