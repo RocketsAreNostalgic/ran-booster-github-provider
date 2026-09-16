@@ -39,7 +39,7 @@ jobs:
           set -euo pipefail
           composer update ran/wp-release-updater phpunit/phpunit --with-all-dependencies --no-interaction --prefer-dist --no-audit
           composer validate --strict --no-check-publish
-          composer install --no-interaction --prefer-dist --no-audit
+          composer install --no-interaction --prefer-dist
           if grep -F '"name": "ran/booster"' composer.lock; then
             echo 'composer.lock must not acquire a production dependency on ran/booster' >&2
             exit 1
