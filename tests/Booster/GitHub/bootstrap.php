@@ -12,7 +12,7 @@ $ranBoosterRoot = rtrim( $ranBoosterRoot, '/\\' );
 spl_autoload_register(
 	static function ( string $class ) use ( $ranProviderRoot, $ranBoosterRoot ): void {
 		$prefixes = array(
-			'RAN\\Booster\\GitHub\\'          => $ranProviderRoot . '/src/',
+			'RAN\\BoosterGitHubProvider\\V1\\' => $ranProviderRoot . '/src/',
 			'RAN\\RepositoryProvider\\'       => $ranBoosterRoot . '/RAN/RepositoryProvider/',
 			'RAN\\AddOn\\WebhookAssistance\\' => $ranBoosterRoot . '/RAN/AddOn/WebhookAssistance/',
 			'RAN\\Admin\\Interaction\\'       => $ranBoosterRoot . '/RAN/Admin/Interaction/',
