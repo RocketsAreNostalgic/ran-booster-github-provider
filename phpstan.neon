@@ -8,6 +8,4 @@ parameters:
 	treatPhpDocTypesAsCertain: false
 	paths:
 		- src
-	excludePaths:
-		analyse:
-			- tests
+		- tests/foundation-contract.php
