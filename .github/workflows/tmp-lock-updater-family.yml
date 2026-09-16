@@ -47,13 +47,13 @@ jobs:
         env:
           RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster-host
         run: php tests/host-contract.php
-      - name: Commit normalized lock and remove temporary workflow
+      - name: Commit normalized lock and remove temporary workflows
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/tmp-lock-updater-family.yml
+          git rm .github/workflows/tmp-lock-updater-family.yml .github/workflows/tmp-phpcs-diagnostic.yml
           git add composer.lock tests
           git commit -m "chore: lock updater-family quality toolchain"
           git push origin HEAD:chore/package-foundation
