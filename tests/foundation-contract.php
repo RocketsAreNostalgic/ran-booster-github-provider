@@ -59,10 +59,10 @@ foreach ( $requiredDevDependencies as $dependency ) {
 }
 
 $scripts = $composer['scripts'] ?? null;
+if ( ! is_array( $scripts ) ) {
+	throw new RuntimeException( 'The Composer quality command contract is missing.' );
+}
 foreach ( array( 'check', 'format', 'cs:check', 'standards:full', 'analyze', 'lint:php' ) as $script ) {
-	if ( ! is_array( $scripts ) && ! isset( $scripts[ $script ] ) ) {
-		throw new RuntimeException( 'The Composer quality command contract is incomplete.' );
-	}
 	if ( ! array_key_exists( $script, $scripts ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
 		throw new RuntimeException( "Required Composer script is missing: {$script}." );
