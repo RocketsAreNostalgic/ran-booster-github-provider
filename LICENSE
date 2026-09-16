@@ -12,10 +12,11 @@
 freedom to share and change it.  By contrast, the GNU General Public
 License is intended to guarantee your freedom to share and change free
 software--to make sure the software is free for all its users.  This
-General Public License applies to most Free Software Foundation's software
-and to any other program whose authors commit to using it.  (Some other
-Free Software Foundation software is covered by the GNU Lesser General
-Public License instead.)  You can apply it to your programs, too.
+General Public License applies to most of the Free Software
+Foundation's software and to any other program whose authors commit to
+using it.  (Some other Free Software Foundation software is covered by
+the GNU Lesser General Public License instead.)  You can apply it to
+your programs, too.
 
   When we speak of free software, we are referring to freedom, not
 price.  Our General Public Licenses are designed to make sure that you
@@ -108,7 +109,7 @@ above, provided that you also meet all of these conditions:
     these conditions, and telling the user how to view a copy of this
     License.  (Exception: if the Program itself is interactive but
     does not normally print such an announcement, your work based on
-    the Program is not required to print such an announcement.)
+    the Program is not required to print an announcement.)
 
 These requirements apply to the modified work as a whole.  If
 identifiable sections of that work are not derived from the Program,
@@ -139,17 +140,17 @@ Sections 1 and 2 above provided that you also do one of the following:
     1 and 2 above on a medium customarily used for software interchange; or,
 
     b) Accompany it with a written offer, valid for at least three
-years, to give any third party, for a charge no more than your
-cost of physically performing source distribution, a complete
-machine-readable copy of the corresponding source code, to be
-distributed under the terms of Sections 1 and 2 above on a medium
-customarily used for software interchange; or,
+    years, to give any third party, for a charge no more than your
+    cost of physically performing source distribution, a complete
+    machine-readable copy of the corresponding source code, to be
+    distributed under the terms of Sections 1 and 2 above on a medium
+    customarily used for software interchange; or,
 
     c) Accompany it with the information you received as to the offer
-to distribute corresponding source code.  (This alternative is
-allowed only for noncommercial distribution and only if you
-received the program in object code or executable form with such
-an offer, in accord with Subsection b above.)
+    to distribute corresponding source code.  (This alternative is
+    allowed only for noncommercial distribution and only if you
+    received the program in object code or executable form with such
+    an offer, in accord with Subsection b above.)
 
 The source code for a work means the preferred form of the work for
 making modifications to it.  For an executable work, complete source
@@ -173,7 +174,7 @@ except as expressly provided under this License.  Any attempt
 otherwise to copy, modify, sublicense or distribute the Program is
 void, and will automatically terminate your rights under this License.
 However, parties who have received copies, or rights, from you under
-this License will not have their licenses terminated so long as such
+the License will not have their licenses terminated so long as such
 parties remain in full compliance.
 
   5. You are not required to accept this License, since you have not
@@ -191,7 +192,7 @@ original licensor to copy, distribute or modify the Program subject to
 these terms and conditions.  You may not impose any further
 restrictions on the recipients' exercise of the rights granted herein.
 You are not responsible for enforcing compliance by third parties to
-the License.
+this License.
 
   7. If, as a consequence of a court judgment or allegation of patent
 infringement or for any other reason (not limited to patent issues),
@@ -212,7 +213,7 @@ apply and the section as a whole is intended to apply in other
 circumstances.
 
 It is not the purpose of this section to induce you to infringe any
-patents or other property right claims or to contest validity of any
+patents or other property right claims or to contest validity or any
 such claims; this section has the sole purpose of protecting the
 integrity of the free software distribution system, which is
 implemented by public license practices.  Many people have made
@@ -243,7 +244,7 @@ specifies a version number of this License which applies to it and "any
 later version", you have the option of following the terms and conditions
 either of that version or of any later version published by the Free
 Software Foundation.  If the Program does not specify a version number of
-the License, you may choose any version ever published by the Free Software
+this License, you may choose any version ever published by the Free Software
 Foundation.
 
   10. If you wish to incorporate parts of the Program into other free
@@ -316,8 +317,8 @@ when it starts in an interactive mode:
     under certain conditions; type `show c' for details.
 
 The hypothetical commands `show w' and `show c' should show the appropriate
-parts of the General Public License.  Of course, the commands you use may be
-called something other than `show w' and `show c'; they could even be
+parts of the General Public License.  Of course, the commands you use may
+be called something other than `show w' and `show c'; they could even be
 mouse-clicks or menu items--whatever suits your program.
 
 You should also get your employer (if you work as a programmer) or your
