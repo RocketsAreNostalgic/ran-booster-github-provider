@@ -69,9 +69,9 @@ foreach ( array( 'check', 'format', 'cs:check', 'standards:full', 'analyze', 'li
 	}
 }
 
-foreach ( array( '.editorconfig', '.phpcs.xml', 'phpstan.neon', 'scripts/php-cs-fixer.php', '.github/workflows/quality.yml', 'composer.lock' ) as $path ) {
-	if ( ! is_file( $root . '/' . $path ) ) {
+foreach ( array( '.editorconfig', '.phpcs.xml', 'phpstan.neon', 'scripts/php-cs-fixer.php', '.github/workflows/quality.yml', 'composer.lock' ) as $requiredPath ) {
+	if ( ! is_file( $root . '/' . $requiredPath ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
-		throw new RuntimeException( "Required package-foundation file is missing: {$path}." );
+		throw new RuntimeException( "Required package-foundation file is missing: {$requiredPath}." );
 	}
 }
