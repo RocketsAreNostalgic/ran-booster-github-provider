@@ -1,5 +1,7 @@
 /vendor/
 /.phpstan/
 /.phpunit.cache/
+/.php-cs-fixer.cache
+/.dex/
 .DS_Store
 composer.phar

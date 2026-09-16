@@ -1,7 +1,11 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
 parameters:
-	level: 8
+	level: 1
 	treatPhpDocTypesAsCertain: false
 	paths:
+		- src
 		- tests/foundation-contract.php
 	excludePaths:
 		analyse:

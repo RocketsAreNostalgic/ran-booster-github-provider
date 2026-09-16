@@ -2,10 +2,13 @@
 <ruleset name="RAN Booster GitHub Provider Coding Standards">
 	<description>RAN WordPress-library coding and PHP compatibility baseline for the GitHub provider package.</description>
 
+	<config name="minimum_wp_version" value="7.0"/>
 	<config name="testVersion" value="8.2-"/>
 
 	<file>.</file>
 	<exclude-pattern>/vendor/</exclude-pattern>
+	<exclude-pattern>/.phpstan/</exclude-pattern>
+	<exclude-pattern>/.phpunit.cache/</exclude-pattern>
 
 	<arg name="basepath" value="."/>
 	<arg name="colors"/>
@@ -15,10 +18,16 @@
 
 	<rule ref="RANWordPressLibrary"/>
 
+	<!-- Preserve the inherited camelCase provider API and implementation locals during extraction. -->
 	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
 		<severity>0</severity>
 	</rule>
 	<rule ref="WordPress.NamingConventions.ValidVariableName">
+		<severity>0</severity>
+	</rule>
+
+	<!-- Yoda rewrites would create a broad migration-only semantic diff in the inherited implementation. -->
+	<rule ref="WordPress.PHP.YodaConditions">
 		<severity>0</severity>
 	</rule>
 
