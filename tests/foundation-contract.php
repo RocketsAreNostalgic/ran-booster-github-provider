@@ -12,9 +12,9 @@ if ( ! is_string( $composerJson ) ) {
 $composer = json_decode( $composerJson, true, 512, JSON_THROW_ON_ERROR );
 
 $required = array(
-	'name'        => 'ran/booster-github-provider',
-	'type'        => 'library',
-	'license'     => 'GPL-2.0-or-later',
+	'name'    => 'ran/booster-github-provider',
+	'type'    => 'library',
+	'license' => 'GPL-2.0-or-later',
 );
 foreach ( $required as $key => $expected ) {
 	if ( ( $composer[ $key ] ?? null ) !== $expected ) {
