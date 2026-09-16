@@ -16,9 +16,11 @@ The package may depend on explicit shared libraries where the dependency is genu
 
 The repository profile is `php-library`, using the current organisation `quality-php-library-v2.yml` provider at an immutable reviewed SHA.
 
+For package conventions, prefer the closest maintained Booster support libraries as references: `ran/updater-support`, `ran/wp-branch-updater`, and `ran/wp-release-updater`. Use Booster and `ran-starter-plugin` for stronger transferable guarantees and repository ergonomics, but do not copy plugin-only runtime, archive, frontend or publication machinery into this library without an applicable source/product requirement.
+
 The extracted implementation currently has no maintained JavaScript, TypeScript, CSS or SCSS source. Do not add Node, pnpm, ESLint, Prettier or Stylelint merely for symmetry. If maintained frontend source is introduced later, reclassify the quality surface deliberately and adopt the applicable shared `@rocketsarenostalgic/quality-config` entry points at that time.
 
-PHP quality derives from `ran/coding-standards` through `RANWordPressLibrary`, with support range, namespace/prefix and extraction-specific exceptions kept local. PHPStan is WordPress-aware because provider implementation code uses WordPress APIs.
+PHP quality derives from `ran/coding-standards` through `RANWordPressLibrary`, with support range, namespace/prefix and extraction-specific exceptions kept local. PHPCS is the authoritative style check, PHPCBF is the formatter, and PHPStan is WordPress-aware because provider implementation code uses WordPress APIs. Do not introduce a second PHP formatter merely to mirror a plugin repository.
 
 The ordinary deterministic local gate is:
 
@@ -27,11 +29,11 @@ composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-`composer check` must cover strict Composer validation, PHP formatting, PHPCS/WPCS/PHPCompatibility, static analysis, foundation/contract tests and syntax validation. CI adds the exact Booster host-contract proof and a terminal `quality` fan-in.
+Use `composer format` to apply PHPCBF. `composer check` must cover strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, static analysis and package-owned deterministic contract tests. CI adds the exact Booster host-contract proof and a terminal `quality` fan-in.
 
 ## Review and merge discipline
 
-Review evidence is revision-specific. Every inline review finding must receive a written disposition and be explicitly resolved, including stale, superseded or not-applicable comments. Do not merge without explicit owner authorization.
+Review evidence is revision-specific. Every inline review finding must receive a written disposition and be explicitly resolved, including stale, superseded or not-applicable comments. Review-summary findings without inline threads must still receive an explicit PR-conversation disposition before merge. Do not merge without explicit owner authorization.
 
 Use Conventional Commits. Release Please metadata is present for the future beta series, but no privileged publisher should be enabled until release work is ready. When publication is enabled, reconcile the repository with the current organisation release-trust/classification/workflow-run workstreams in `RocketsAreNostalgic/.github` rather than copying an older publisher blindly.
 

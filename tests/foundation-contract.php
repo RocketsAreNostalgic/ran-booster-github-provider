@@ -41,13 +41,15 @@ if ( ! is_array( $autoload ) || 'src/' !== ( $autoload['RAN\\BoosterGitHubProvid
 }
 
 $requiredDevDependencies = array(
-	'friendsofphp/php-cs-fixer',
 	'php-stubs/wordpress-stubs',
+	'phpcompatibility/php-compatibility',
+	'phpcompatibility/phpcompatibility-paragonie',
+	'phpcompatibility/phpcompatibility-wp',
 	'phpstan/phpstan',
 	'ran/coding-standards',
 	'szepeviktor/phpstan-wordpress',
 );
-$requireDev              = $composer['require-dev'] ?? null;
+$requireDev = $composer['require-dev'] ?? null;
 if ( ! is_array( $requireDev ) ) {
 	throw new RuntimeException( 'The development quality dependency set is missing.' );
 }
@@ -62,16 +64,16 @@ $scripts = $composer['scripts'] ?? null;
 if ( ! is_array( $scripts ) ) {
 	throw new RuntimeException( 'The Composer quality command contract is missing.' );
 }
-foreach ( array( 'check', 'format', 'cs:check', 'standards:full', 'analyze', 'lint:php' ) as $script ) {
+foreach ( array( 'check', 'format', 'format:php', 'lint:php', 'lint:syntax', 'analyze', 'test:foundation' ) as $script ) {
 	if ( ! array_key_exists( $script, $scripts ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
 		throw new RuntimeException( "Required Composer script is missing: {$script}." );
 	}
 }
 
-foreach ( array( '.editorconfig', '.phpcs.xml', 'phpstan.neon', 'scripts/php-cs-fixer.php', '.github/workflows/quality.yml', 'composer.lock' ) as $requiredPath ) {
-	if ( ! is_file( $root . '/' . $requiredPath ) ) {
+foreach ( array( '.editorconfig', '.phpcs.xml', 'phpstan.neon', '.github/workflows/ci.yml', 'composer.lock' ) as $path ) {
+	if ( ! is_file( $root . '/' . $path ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
-		throw new RuntimeException( "Required package-foundation file is missing: {$requiredPath}." );
+		throw new RuntimeException( "Required package-foundation file is missing: {$path}." );
 	}
 }

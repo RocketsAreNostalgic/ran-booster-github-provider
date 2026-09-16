@@ -16,11 +16,11 @@ The current provider contract is pre-release. The package targets the current Bo
 
 ## Quality profile
 
-This repository uses the RAN `php-library` profile and the current immutable `quality-php-library-v2.yml` provider. The implementation being extracted is PHP-only, so Node is deliberately disabled rather than adding a synthetic frontend toolchain.
+This repository follows the same PHP-library family as `ran/updater-support`, `ran/wp-branch-updater`, and `ran/wp-release-updater`: `composer check` is the ordinary deterministic package gate; PHPCS/PHPCBF own PHP style and formatting; PHPCompatibility and WordPress-aware PHPStan cover the supported runtime surface; CI consumes the immutable organisation PHP-v2 reusable workflow and adds package-specific evidence.
 
-PHP source quality derives from `ran/coding-standards` (`RANWordPressLibrary`), PHP CS Fixer, PHPCompatibility and WordPress-aware PHPStan. Repository-local configuration retains the actual PHP/WordPress support range, namespace and extraction-specific exceptions.
+The implementation being extracted is PHP-only, so Node is deliberately disabled rather than adding a synthetic frontend toolchain. Starter remains a useful repository-ergonomics reference, but its ESLint/Prettier/Stylelint surface applies only when maintained frontend source exists.
 
-If maintained JavaScript, TypeScript, CSS or SCSS source is introduced later, the frontend quality surface must be adopted deliberately through the shared RAN quality configuration; this foundation does not add ESLint/Prettier/Stylelint when there is no frontend source to check.
+If maintained JavaScript, TypeScript, CSS or SCSS source is introduced later, the frontend quality surface must be adopted deliberately through the shared RAN quality configuration.
 
 ## Development
 
@@ -29,6 +29,6 @@ composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-`composer check` validates Composer metadata, formatter parity, PHPCS/WPCS/PHPCompatibility, static analysis, the package-foundation contract and PHP syntax. CI additionally checks the exact current Booster host-contract signatures and exposes one terminal `quality` fan-in.
+Use `composer format` to apply the repository PHPCBF formatter. `composer check` validates Composer metadata, PHP syntax, PHPCS/WPCS/PHPCompatibility, static analysis and the package-foundation contract. CI additionally checks the exact current Booster host-contract signatures and exposes one terminal `quality` fan-in.
 
 Organization quality policy and reusable-workflow lifecycle are tracked in `RocketsAreNostalgic/.github#7`, `#15` and `#12`; release-publisher trust/classification is separate and will be adopted when package publishing is enabled.

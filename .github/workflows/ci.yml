@@ -1,14 +1,13 @@
-name: Quality
+name: CI
 
 on:
   workflow_dispatch:
   pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -25,7 +24,7 @@ jobs:
 
   host-contract:
     name: Booster host contract
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
     steps:
       - name: Check out exact package revision
@@ -71,7 +70,7 @@ jobs:
     needs:
       - baseline
       - host-contract
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - name: Require all quality lanes
         env:
@@ -79,6 +78,5 @@ jobs:
           HOST_CONTRACT_RESULT: ${{ needs.host-contract.result }}
         run: |
           printf 'baseline=%s\nhost-contract=%s\n' "$BASELINE_RESULT" "$HOST_CONTRACT_RESULT"
-          if [ "$BASELINE_RESULT" != success ] || [ "$HOST_CONTRACT_RESULT" != success ]; then
-            exit 1
-          fi
+          test "$BASELINE_RESULT" = success
+          test "$HOST_CONTRACT_RESULT" = success
