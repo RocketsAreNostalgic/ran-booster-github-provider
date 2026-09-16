@@ -34,6 +34,11 @@ spl_autoload_register(
 			return;
 		}
 
+		if ( 'RAN\\AssistedHooks\\Plugin' === $class ) {
+			// The retired add-on is external to Booster. Production checks it with
+			// class_exists(..., false), so the certified host intentionally lacks it.
+			return;
+		}
 		if ( 'RAN\\Provider\\ProviderCapability' === $class ) {
 			require $ranBoosterRoot . '/RAN/Provider/ProviderCapability.php';
 			return;
