@@ -66,7 +66,7 @@ export function verifyReleaseDelta(parent, candidate) {
     ? /^## \[Unreleased\]\n/m
     : new RegExp(`^## (?:${escapedBefore} ${date}|\\[${escapedBefore}\\]\\(https://github\\.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v[^)\\s]+\\.\\.\\.v${escapedBefore}\\) ${date})\\n`, "m");
   const candidateHeading = before === UNRELEASED
-    ? new RegExp(`^## ${escapedAfter} ${date}\\n`, "m")
+    ? new RegExp(`^## (?:${escapedAfter} ${date}|\\[${escapedAfter}\\]\\(https://github\\.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v[^)\\s]+\\.\\.\\.v${escapedAfter}\\) ${date})\\n`, "m")
     : new RegExp(`^## \\[${escapedAfter}\\]\\(https://github\\.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v${escapedBefore}\\.\\.\\.v${escapedAfter}\\) ${date}\\n`, "m");
   const parentMatch = parentHeading.exec(parent.changelog);
   const candidateMatch = candidateHeading.exec(candidate.changelog);
