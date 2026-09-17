@@ -8,6 +8,14 @@ use PHPUnit\Framework\TestCase;
 
 final class ModuleDependencyBoundaryTest extends TestCase {
 
+	private const FORBIDDEN_LEGACY_RUNTIME_IDENTIFIERS = array(
+		'legacyAssistedHooksAddOnIsActive',
+		'registerLegacyAssistedHooksAddOnNotice',
+		'RAN_BOOSTER_ASSISTED_HOOKS_RETIREMENT_BRIDGE_VERSION',
+		'RAN\\AssistedHooks\\Plugin',
+		'pre-retirement RAN Booster Assisted Hooks',
+	);
+
 	private const FORBIDDEN_CORE_NAMESPACES = array(
 		'RAN\\Admin\\',
 		'RAN\\Internal\\',
@@ -118,6 +126,17 @@ final class ModuleDependencyBoundaryTest extends TestCase {
 		$allowed = self::ALLOWED_IMPORTS;
 		sort( $allowed );
 		self::assertSame( $allowed, $imports );
+	}
+
+	public function testModuleCarriesNoAssistedHooksRuntimeCompatibility(): void {
+		foreach ( $this->moduleFiles() as $path ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Static local architecture boundary under test.
+			$source = file_get_contents( $path );
+			self::assertIsString( $source );
+			foreach ( self::FORBIDDEN_LEGACY_RUNTIME_IDENTIFIERS as $identifier ) {
+				self::assertStringNotContainsString( $identifier, $source, $path );
+			}
+		}
 	}
 
 	/** @return list<string> */
