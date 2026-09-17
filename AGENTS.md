@@ -16,9 +16,9 @@ The package may depend on explicit shared libraries where the dependency is genu
 
 The repository profile is `php-library`, using the current organisation `quality-php-library-v2.yml` provider at an immutable reviewed SHA.
 
-For package conventions, prefer the closest maintained Booster support libraries as references: `ran/updater-support`, `ran/wp-branch-updater`, and `ran/wp-release-updater`. Use Booster and `ran-starter-plugin` for stronger transferable guarantees and repository ergonomics, but do not copy plugin-only runtime, archive, frontend or publication machinery into this library without an applicable source/product requirement.
+For package conventions, prefer the closest maintained Booster support libraries as references: `ran/updater-support`, `ran/wp-branch-updater`, and `ran/wp-release-updater`. Use Booster and `ran-starter-plugin` for stronger transferable guarantees and repository ergonomics, but do not copy plugin-only runtime, archive or frontend machinery into this library without an applicable source/product requirement.
 
-The extracted implementation currently has no maintained JavaScript, TypeScript, CSS or SCSS source. Do not add Node, pnpm, ESLint, Prettier or Stylelint merely for symmetry. If maintained frontend source is introduced later, reclassify the quality surface deliberately and adopt the applicable shared `@rocketsarenostalgic/quality-config` entry points at that time.
+The provider implementation has no maintained JavaScript, TypeScript, CSS or SCSS frontend source. Node is intentionally present only for the maintained release-control surface: publisher, workflow-contract and release-classification scripts/tests. Do not add pnpm, ESLint, Prettier or Stylelint merely for symmetry. If maintained frontend source is introduced later, reclassify the quality surface deliberately and adopt the applicable shared `@rocketsarenostalgic/quality-config` entry points at that time.
 
 PHP quality derives from `ran/coding-standards` through `RANWordPressLibrary`, with support range, namespace/prefix and extraction-specific exceptions kept local. PHPCS is the authoritative style check, PHPCBF is the formatter, and PHPStan is WordPress-aware because provider implementation code uses WordPress APIs. Do not introduce a second PHP formatter merely to mirror a plugin repository.
 
@@ -29,7 +29,7 @@ composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-Use `composer format` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility and the package-owned deterministic foundation contract.
+Use `composer format` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-owned deterministic foundation contract, and the release publisher/classification contracts.
 
 The extracted implementation consumes Booster-owned provider contracts, so implementation static analysis and the migrated PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
 
@@ -38,13 +38,19 @@ RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer analyze
 RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer test:implementation
 ```
 
-CI pins and verifies the certified Booster revision before running those host-backed gates, separately verifies the host contract, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
+CI pins and verifies the certified Booster revision before running those host-backed gates, separately verifies the host contract, validates mutable PR release classification, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
 
 ## Review and merge discipline
 
 Review evidence is revision-specific. Every inline review finding must receive a written disposition and be explicitly resolved, including stale, superseded or not-applicable comments. Review-summary findings without inline threads must still receive an explicit PR-conversation disposition before merge. Do not merge without explicit owner authorization.
 
-Use Conventional Commits. Release Please metadata is present for the future beta series, but no privileged publisher should be enabled until release work is ready. When publication is enabled, reconcile the repository with the current organisation release-trust/classification/workflow-run workstreams in `RocketsAreNostalgic/.github` rather than copying an older publisher blindly.
+Use Conventional Commits. Changes under `src/` or to production Composer requirements are release-significant and must use a visible provider release-driving type (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`; PR-title edits rerun the required classification gate.
+
+The Phase 4 publisher follows the current organisation release-trust contracts in `RocketsAreNostalgic/.github#9`, `#20` and `#22`. `workflow_run` name routing is not sufficient admission: before repository-owned publication logic, bind to the canonical CI path and exact GitHub-authored triggering SHA, check out that SHA without persisted credentials, and verify `HEAD`. Release Please may prepare/reconcile proposals, but only the repository-owned exact publisher has publication authority.
+
+Generated Release Please version PRs are a merge-method exception: they must use a normal two-parent merge so the publisher can prove exact base/head/tree geometry. Ordinary iterative/agent-developed PRs should follow the repository's normal squash preference unless the owner intentionally chooses otherwise.
+
+Do not manually create/move release tags, bypass failed release checks, or treat the Release Please manifest as proof that a version is published. Published immutable tag/release readback is the availability boundary. See `RELEASING.md`.
 
 ## Agent/tooling boundary
 
