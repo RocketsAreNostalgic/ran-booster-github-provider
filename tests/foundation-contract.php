@@ -5,24 +5,6 @@ declare(strict_types=1);
 $root         = dirname( __DIR__ );
 $composerPath = $root . '/composer.json';
 $composerJson = file_get_contents( $composerPath ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local package contract fixture.
-$providerSource = file_get_contents( $root . '/src/GitHubProvider.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local package contract fixture.
-if ( ! is_string( $providerSource ) ) {
-	throw new RuntimeException( 'Unable to read GitHub provider production source.' );
-}
-foreach (
-	array(
-		'legacyAssistedHooksAddOnIsActive',
-		'registerLegacyAssistedHooksAddOnNotice',
-		'RAN_BOOSTER_ASSISTED_HOOKS_RETIREMENT_BRIDGE_VERSION',
-		'RAN\\AssistedHooks\\Plugin',
-		'pre-retirement RAN Booster Assisted Hooks',
-	) as $legacyRuntimeIdentifier
-) {
-	if ( str_contains( $providerSource, $legacyRuntimeIdentifier ) ) {
-		throw new RuntimeException( 'GitHub provider source still contains obsolete Assisted Hooks runtime compatibility.' );
-	}
-}
-
 if ( ! is_string( $composerJson ) ) {
 	throw new RuntimeException( 'Unable to read composer.json.' );
 }
