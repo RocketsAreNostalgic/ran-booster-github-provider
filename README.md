@@ -6,7 +6,7 @@ This repository is a **Composer library**, not a WordPress plugin. Booster bundl
 
 ## Status
 
-The extraction tracked by `RocketsAreNostalgic/ran-booster#131` has completed its implementation, package release, and Booster consumption cutover. The first immutable prerelease, `v0.1.0-beta.1`, was published from commit `ad034dd0d2d4434d0ca6fbcb0750731d25f300d5`. Booster PR #147 consumes that exact released package and was merged to Booster `main` as `cfa0e795fbe43048285749c8b4dc7a253e71a3e4`.
+The extraction tracked by `RocketsAreNostalgic/ran-booster#131` has completed its implementation, package release, and Booster consumption cutover. The first immutable prerelease, `v0.1.0-beta.1`, was published from commit `ad034dd0d2d4434d0ca6fbcb0750731d25f300d5`. `RocketsAreNostalgic/ran-booster#147` consumes that exact released package and was merged to Booster `main` as `cfa0e795fbe43048285749c8b4dc7a253e71a3e4`.
 
 GitHub-specific implementation code, tests, issues, releases, and maintenance belong in this repository. Booster remains the owner of the Provider API contracts and provider-neutral host concerns such as registration/sealing, credential custody, administration, deployment orchestration, and host policy. Host-integration or provider-contract issues should therefore remain in `RocketsAreNostalgic/ran-booster`.
 
