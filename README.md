@@ -22,11 +22,13 @@ This repository follows the same PHP-library family as `ran/updater-support`, `r
 
 The migrated implementation's WordPress-aware PHPStan analysis and PHPUnit suite are host-backed because the provider contracts remain Booster-owned. CI checks out and verifies the exact certified Booster revision before running those gates instead of introducing a development or production dependency on the whole Booster plugin.
 
-The provider implementation remains PHP-only and has no maintained frontend source. Node is nevertheless part of the repository quality profile for the maintained release-control surface: publisher, workflow-contract, and release-classification scripts/tests run on the repository-pinned Node version. This does not introduce a frontend toolchain; pnpm, ESLint, Prettier and Stylelint remain unnecessary unless maintained frontend source is added later.
+The provider implementation remains PHP-only and has no maintained frontend source. Node **24.11.0** is nevertheless a required repository tool for the maintained release-control surface: publisher, workflow-contract, and release-classification scripts/tests run on that exact CI-pinned version, including through `composer check`. This does not introduce a frontend toolchain; pnpm, ESLint, Prettier and Stylelint remain unnecessary unless maintained frontend source is added later.
 
 If maintained JavaScript, TypeScript, CSS or SCSS frontend source is introduced later, the frontend quality surface must be adopted deliberately through the shared RAN quality configuration.
 
 ## Development
+
+Prerequisites for the canonical local gate are PHP 8.2+ with Composer and Node 24.11.0.
 
 ```bash
 composer install --no-interaction --prefer-dist --no-progress
