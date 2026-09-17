@@ -39,6 +39,20 @@ export {
 
 const FULL_SHA = /^[a-f0-9]{40}$/;
 const REPOSITORY = "RocketsAreNostalgic/ran-booster-github-provider";
+export const PHASE3_BOOTSTRAP_SHA = "90ff6995d3c3a0a9e6588c5550422026ffe8c944";
+
+export function effectiveParentVersion(parentSha, parentVersion, unreleased) {
+  if (!unreleased) {
+    return parentVersion;
+  }
+  if (parentVersion === "0.0.0") {
+    return parentVersion;
+  }
+  if (parentSha === PHASE3_BOOTSTRAP_SHA) {
+    return "0.0.0";
+  }
+  refuse("release_version_regression", "released beta metadata may not return to 0.0.0");
+}
 
 async function reconcileLabels(repository, number, value) {
   if (!value.includes(TAGGED_LABEL)) {
@@ -85,10 +99,8 @@ export async function runPublisher(root = process.cwd()) {
   if (!parentState && !unreleased) {
     refuse("release_content_drift", "released metadata requires a complete unreleased or released parent");
   }
-  const parentVersion = parentState ? manifestVersion(parentState.manifest, "parent", true) : "0.0.0";
-  if (unreleased && parentState && parentVersion !== "0.0.0") {
-    refuse("release_version_regression", "released beta metadata may not return to 0.0.0");
-  }
+  const observedParentVersion = parentState ? manifestVersion(parentState.manifest, "parent", true) : "0.0.0";
+  const parentVersion = effectiveParentVersion(parent, observedParentVersion, unreleased);
 
   const unchangedVersion = parentState?.manifest === candidateContents.manifest;
   const delta = !parentState || unreleased
