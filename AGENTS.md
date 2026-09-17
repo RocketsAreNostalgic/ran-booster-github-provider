@@ -2,7 +2,7 @@
 
 ## Project contract
 
-This repository is the first-party GitHub provider package for RAN Booster. It is a Composer **library**, not a WordPress plugin. The package is extracted from Booster under `RocketsAreNostalgic/ran-booster#131`; preserve behaviour during that migration rather than using extraction as a feature rewrite.
+This repository is the first-party GitHub provider package for RAN Booster. It is a Composer **library**, not a WordPress plugin. The package was extracted from Booster under `RocketsAreNostalgic/ran-booster#131`; preserve the certified provider boundary and behavior when maintaining it, while treating new GitHub-specific feature work as independently scoped package work rather than as Booster Core work.
 
 The supported baseline follows the current Booster host: PHP 8.2+ and WordPress 7.0+. Keep `composer.json`, `.phpcs.xml`, PHPStan, CI and documentation aligned when that support contract changes.
 
@@ -46,7 +46,7 @@ Review evidence is revision-specific. Every inline review finding must receive a
 
 Use Conventional Commits. Changes under `src/` or to production Composer requirements are release-significant and must use a visible provider release-driving type (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`; PR-title edits rerun the required classification gate. Classification must use merge-base-to-head changes, not the moving base-branch tip, so unrelated `main` changes cannot be attributed to an older PR.
 
-The Phase 4 publisher follows the current organisation release-trust contracts in `RocketsAreNostalgic/.github#9`, `#20` and `#22`. `workflow_run` name routing is not sufficient admission: before repository-owned publication logic, bind to the canonical CI path and exact GitHub-authored triggering SHA, check out that SHA without persisted credentials, and verify `HEAD`. Release Please may prepare/reconcile proposals, but only the repository-owned exact publisher has publication authority.
+The publisher follows the current organisation release-trust contracts in `RocketsAreNostalgic/.github#9`, `#20` and `#22`. `workflow_run` name routing is not sufficient admission: before repository-owned publication logic, bind to the canonical CI path and exact GitHub-authored triggering SHA, check out that SHA without persisted credentials, and verify `HEAD`. Release Please may prepare/reconcile proposals, but only the repository-owned exact publisher has publication authority.
 
 Generated Release Please version PRs are a merge-method exception: they must use a normal two-parent merge so the publisher can prove exact base/head/tree geometry. Ordinary iterative/agent-developed PRs should follow the repository's normal squash preference unless the owner intentionally chooses otherwise.
 
