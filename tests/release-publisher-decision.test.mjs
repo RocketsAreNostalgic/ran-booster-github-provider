@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  PHASE3_BOOTSTRAP_SHA,
   PublisherRefusal,
   candidateIdentity,
   classifyParentReleaseMetadata,
   decidePublication,
+  effectiveParentVersion,
   verifyReleaseDelta,
   verifyPublishedState,
 } from "../scripts/release-publisher.mjs";
@@ -107,6 +109,13 @@ test("first release accepts the Release Please compare-link heading form", () =>
     parentVersion: "0.0.0",
     candidateVersion: VERSION,
   });
+});
+
+test("only the exact Phase 3 baseline may reset staged beta metadata to unreleased", () => {
+  assert.equal(effectiveParentVersion(PHASE3_BOOTSTRAP_SHA, VERSION, true), "0.0.0");
+  assert.equal(effectiveParentVersion("b".repeat(40), "0.0.0", true), "0.0.0");
+  assert.equal(effectiveParentVersion("b".repeat(40), VERSION, false), VERSION);
+  refusal("release_version_regression", () => effectiveParentVersion("b".repeat(40), VERSION, true));
 });
 
 test("exact successful normal Release Please merge may publish", () => {
