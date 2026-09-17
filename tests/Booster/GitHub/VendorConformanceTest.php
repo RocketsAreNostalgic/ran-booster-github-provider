@@ -76,7 +76,6 @@ final class VendorConformanceTest extends TestCase {
 			)
 		);
 		self::assertSame( ProviderWebhookProfileReader::class, (string) $webhookParameter->getType() );
-
 	}
 
 	#[RunInSeparateProcess]
