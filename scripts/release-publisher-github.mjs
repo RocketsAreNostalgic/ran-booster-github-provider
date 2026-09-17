@@ -15,6 +15,7 @@ export async function api(path, options = {}) {
       Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
       "User-Agent": "ran-booster-github-provider-exact-publisher",
       "X-GitHub-Api-Version": options.apiVersion ?? API_VERSION,
+      ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
     },
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
     redirect: "error",
