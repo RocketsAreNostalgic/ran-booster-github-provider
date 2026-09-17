@@ -6,6 +6,10 @@ const workflow = readFileSync(
   new URL("../.github/workflows/release-please.yml", import.meta.url),
   "utf8",
 );
+const ciWorkflow = readFileSync(
+  new URL("../.github/workflows/ci.yml", import.meta.url),
+  "utf8",
+);
 
 test("release job authenticates canonical CI before mutation", () => {
   const jobStart = workflow.indexOf("jobs:\n  release:");
@@ -42,4 +46,11 @@ test("publisher checkout stays bound to the exact workflow_run SHA", () => {
   assert.match(workflow, /ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$RAN_RELEASE_SHA"/);
+});
+
+test("required quality cannot be manufactured by workflow dispatch without PR classification", () => {
+  assert.doesNotMatch(ciWorkflow, /^\s*workflow_dispatch:/m);
+  assert.match(ciWorkflow, /pull_request:\n\s+types: \[opened, synchronize, reopened, edited\]/);
+  assert.match(ciWorkflow, /RAN_RELEASE_PR_TITLE: \$\{\{ github\.event\.pull_request\.title \}\}/);
+  assert.match(ciWorkflow, /quality:\n\s+name: quality[\s\S]*needs:[\s\S]*- release-classification/);
 });
