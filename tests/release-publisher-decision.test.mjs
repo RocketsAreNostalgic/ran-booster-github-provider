@@ -94,6 +94,21 @@ test("first release delta is exactly 0.0.0 to beta.1", () => {
   }
 });
 
+test("first release accepts the Release Please compare-link heading form", () => {
+  const parent = {
+    ...contents("0.0.0"),
+    changelog: "# Changelog\n\n## [Unreleased]\n\nBootstrap\n",
+  };
+  const linked = {
+    ...contents(),
+    changelog: `# Changelog\n\n## [${VERSION}](https://github.com/${REPOSITORY}/compare/v0.0.0...v${VERSION}) (2026-09-17)\n\n### Features\n\n* first provider release\n\n## [Unreleased]\n\nBootstrap\n`,
+  };
+  assert.deepEqual(verifyReleaseDelta(parent, linked), {
+    parentVersion: "0.0.0",
+    candidateVersion: VERSION,
+  });
+});
+
 test("exact successful normal Release Please merge may publish", () => {
   assert.deepEqual(decidePublication(input()), { action: "create_release", pullNumber: 7 });
 });
