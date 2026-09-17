@@ -1,51 +1,66 @@
 # RAN Booster GitHub Provider
 
-First-party GitHub provider implementation for [RAN Booster](https://github.com/RocketsAreNostalgic/ran-booster).
+GitHub integration for [RAN Booster](https://github.com/RocketsAreNostalgic/ran-booster).
 
-This repository is a **Composer library**, not a WordPress plugin. Booster bundles and registers it as the first-party GitHub provider, while the implementation is maintained and released independently.
+This package gives Booster its built-in GitHub support. It is a Composer library, **not a WordPress plugin**.
 
-## Status
+## What it does
 
-The extraction tracked by `RocketsAreNostalgic/ran-booster#131` has completed its implementation, package release, and Booster consumption cutover. The first immutable prerelease, `v0.1.0-beta.1`, was published from commit `ad034dd0d2d4434d0ca6fbcb0750731d25f300d5`. `RocketsAreNostalgic/ran-booster#147` consumes that exact released package and was merged to Booster `main` as `cfa0e795fbe43048285749c8b4dc7a253e71a3e4`.
+The provider contains the GitHub-specific code Booster uses for:
 
-GitHub-specific implementation code, implementation-owned tests, issues, releases, and maintenance belong in this repository. Booster remains the owner of the Provider API contracts and provider-neutral host concerns such as registration/sealing, credential custody, administration, deployment orchestration, host policy, and host-integration coverage. Host-integration or provider-contract issues should therefore remain in `RocketsAreNostalgic/ran-booster`.
+- finding and resolving GitHub repositories;
+- working with GitHub credentials supplied through Booster;
+- preparing repository archives for installation and deployment;
+- receiving and managing GitHub webhooks;
+- GitHub release discovery, downloads, and update integration;
+- GitHub-specific diagnostics and release-workflow assistance.
 
-## Contract boundary
+Booster remains responsible for the WordPress UI, saved credential custody, provider registration, deployment orchestration, and other provider-neutral application behavior.
 
-The package may consume Booster's public provider contracts supplied by the host at runtime, but it must not take a production Composer dependency on the whole `ran/booster` plugin. Shared non-host utilities are explicit Composer dependencies.
+## Do I need to install this?
 
-The bundled `gh` aggregate is registered through Booster's ordinary `ProviderRegistry::registerWithCredentialStore()` path and implements the public provider contracts/capabilities. Its first-party factory also receives two explicit host-owned composition inputs: Booster's selected release-updater registrar compatibility adapter and a lazy archive-limit supplier. Those inputs do not expose Booster's private container, storage implementations, credential writer, logger, or generic service resolution to this package.
+Normally, no.
 
-The current provider contract is pre-release. The package targets the current certified Booster contract rather than promising arbitrary compatibility with historical pre-release Booster builds.
+RAN Booster includes a tested version of this package as one of its Composer dependencies. If you are using Booster as a WordPress plugin, install and configure Booster; there is no separate GitHub Provider plugin to activate.
 
-## Quality profile
+Direct use of this repository is mainly for development and maintenance of Booster's GitHub integration.
 
-This repository follows the same PHP-library family as `ran/updater-support`, `ran/wp-branch-updater`, and `ran/wp-release-updater`: `composer check` is the ordinary host-independent deterministic package gate; PHPCS/PHPCBF own PHP style and formatting; PHPCompatibility covers the supported runtime surface; and CI consumes the immutable organisation PHP-v2 reusable workflow and adds package-specific evidence.
+## Requirements
 
-The implementation's WordPress-aware PHPStan analysis and PHPUnit suite are host-backed because the provider contracts remain Booster-owned. CI checks out and verifies the exact certified Booster revision before running those gates instead of introducing a development or production dependency on the whole Booster plugin.
+- PHP 8.2 or later
+- WordPress 7.0 or later when used with Booster
+- a compatible RAN Booster version
 
-The provider implementation remains PHP-only and has no maintained frontend source. Node **24.11.0** is nevertheless a required repository tool for the maintained release-control surface: publisher, workflow-contract, and release-classification scripts/tests run on that exact CI-pinned version, including through `composer check`. This does not introduce a frontend toolchain; pnpm, ESLint, Prettier and Stylelint remain unnecessary unless maintained frontend source is added later.
-
-If maintained JavaScript, TypeScript, CSS or SCSS frontend source is introduced later, the frontend quality surface must be adopted deliberately through the shared RAN quality configuration.
+Booster's provider API is still pre-release, so the safest combination is the provider version selected by the Booster release you are using rather than substituting package versions independently.
 
 ## Development
 
-Prerequisites for the canonical local gate are PHP 8.2+ with Composer and Node 24.11.0.
+Install the locked dependencies and run the main package checks:
 
 ```bash
 composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-Use `composer format` to apply the repository PHPCBF formatter. `composer check` validates Composer metadata, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-foundation contract, and the repository-owned release publisher/classification contracts.
+The repository currently uses PHP 8.2+ and Node 24.11.0 for its development and release checks.
 
-To run the implementation analysis and tests locally, point `RAN_BOOSTER_CORE_PATH` at the certified Booster checkout:
+Some analysis and implementation tests also need a Booster checkout because the public provider interfaces are defined by Booster:
 
 ```bash
 RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer analyze
 RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer test:implementation
 ```
 
-CI additionally verifies the exact current Booster host-contract signatures, runs those host-backed implementation gates on PHP 8.2 and 8.5, checks mutable PR release classification, and exposes one terminal `quality` fan-in.
+Use `composer format` to apply the repository's PHP formatter.
 
-Release operations and trust boundaries are documented in `RELEASING.md`. Organisation quality policy is tracked in `RocketsAreNostalgic/.github#7`, `#15` and `#12`; release trust/classification/admission are tracked under `.github#9`, `#20` and `#22`.
+## Reporting issues
+
+Report GitHub-specific behavior here, including repository discovery, GitHub authentication behavior, webhooks, GitHub Releases, or GitHub-specific diagnostics.
+
+Report Booster application issues in the [RAN Booster repository](https://github.com/RocketsAreNostalgic/ran-booster/issues), including WordPress administration, provider registration, credential storage, deployment orchestration, or behavior shared by multiple providers.
+
+## Releases
+
+See [CHANGELOG.md](CHANGELOG.md) for released changes and [RELEASING.md](RELEASING.md) for the release process.
+
+This package is released independently from Booster, while Booster pins the provider version it ships and tests.
