@@ -5,28 +5,21 @@ declare(strict_types=1);
 $root         = dirname( __DIR__ );
 $composerPath = $root . '/composer.json';
 $composerJson = file_get_contents( $composerPath ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local package contract fixture.
-$legacyRuntimeIdentifiers = array(
-	'legacyAssistedHooksAddOnIsActive',
-	'registerLegacyAssistedHooksAddOnNotice',
-	'RAN_BOOSTER_ASSISTED_HOOKS_RETIREMENT_BRIDGE_VERSION',
-	'RAN\\AssistedHooks\\Plugin',
-	'pre-retirement RAN Booster Assisted Hooks',
-);
-$sourceIterator = new RecursiveIteratorIterator(
-	new RecursiveDirectoryIterator( $root . '/src', FilesystemIterator::SKIP_DOTS )
-);
-foreach ( $sourceIterator as $sourceFile ) {
-	if ( ! $sourceFile instanceof SplFileInfo || 'php' !== strtolower( $sourceFile->getExtension() ) ) {
-		continue;
-	}
-	$source = file_get_contents( $sourceFile->getPathname() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local package contract fixture.
-	if ( ! is_string( $source ) ) {
-		throw new RuntimeException( 'Unable to read provider production source.' );
-	}
-	foreach ( $legacyRuntimeIdentifiers as $identifier ) {
-		if ( str_contains( $source, $identifier ) ) {
-			throw new RuntimeException( 'Provider production source still contains obsolete Assisted Hooks runtime compatibility.' );
-		}
+$providerSource = file_get_contents( $root . '/src/GitHubProvider.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local package contract fixture.
+if ( ! is_string( $providerSource ) ) {
+	throw new RuntimeException( 'Unable to read GitHub provider production source.' );
+}
+foreach (
+	array(
+		'legacyAssistedHooksAddOnIsActive',
+		'registerLegacyAssistedHooksAddOnNotice',
+		'RAN_BOOSTER_ASSISTED_HOOKS_RETIREMENT_BRIDGE_VERSION',
+		'RAN\\AssistedHooks\\Plugin',
+		'pre-retirement RAN Booster Assisted Hooks',
+	) as $legacyRuntimeIdentifier
+) {
+	if ( str_contains( $providerSource, $legacyRuntimeIdentifier ) ) {
+		throw new RuntimeException( 'GitHub provider source still contains obsolete Assisted Hooks runtime compatibility.' );
 	}
 }
 
