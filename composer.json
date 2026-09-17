@@ -47,11 +47,13 @@
       "@validate:strict",
       "@lint:syntax",
       "@lint:php",
-      "@test:foundation"
+      "@test:foundation",
+      "@test:release-publisher"
     ],
     "validate:strict": "composer validate --strict --no-check-publish",
     "test:foundation": "@php tests/foundation-contract.php",
     "test:implementation": "phpunit --configuration phpunit.xml --fail-on-phpunit-deprecation",
+    "test:release-publisher": "node --test tests/release-classification.test.mjs tests/release-workflow-contract.test.mjs tests/release-publisher-decision.test.mjs tests/release-publisher.test.mjs",
     "lint:syntax": "find src tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l",
     "lint:php": "phpcs --standard=.phpcs.xml --report=summary",
     "format:php": "phpcbf --standard=.phpcs.xml --report=summary",
