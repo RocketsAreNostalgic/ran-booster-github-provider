@@ -93,7 +93,12 @@ function transport(value, options = {}) {
   const fetch = async (url, init = {}) => {
     const parsed = new URL(url);
     const method = init.method ?? "GET";
-    calls.push({ path: parsed.pathname + parsed.search, method });
+    const headers = new Headers(init.headers ?? {});
+    calls.push({
+      path: parsed.pathname + parsed.search,
+      method,
+      contentType: headers.get("content-type"),
+    });
 
     if (parsed.pathname.endsWith(`/commits/${value.candidate}/pulls`)) {
       return response(options.ordinary ? [] : [pull()]);
@@ -176,6 +181,18 @@ test("publisher creates one immutable release then reads it back idempotently", 
   assert.deepEqual(mocked.state.labels, ["autorelease: tagged"]);
   assert.equal((await runPublisher(value.root)).action, "already_published");
   assert.equal(mocked.calls.filter((call) => call.method === "POST" && call.path.endsWith("/releases")).length, 1);
+});
+
+test("publisher sends JSON content type for JSON mutation bodies", async (context) => {
+  const value = fixture();
+  const mocked = transport(value);
+  context.after(environment(value, mocked.fetch));
+  await runPublisher(value.root);
+  const jsonPosts = mocked.calls.filter((call) => call.method === "POST");
+  assert.ok(jsonPosts.length >= 2);
+  for (const call of jsonPosts) {
+    assert.equal(call.contentType, "application/json");
+  }
 });
 
 test("ordinary unreleased main is read-only", async (context) => {
