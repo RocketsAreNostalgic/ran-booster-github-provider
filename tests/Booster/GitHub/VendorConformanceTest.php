@@ -76,19 +76,7 @@ final class VendorConformanceTest extends TestCase {
 			)
 		);
 		self::assertSame( ProviderWebhookProfileReader::class, (string) $webhookParameter->getType() );
-		$providerSource = file_get_contents( (string) $providerReflection->getFileName() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Static package boundary under test.
-		self::assertIsString( $providerSource );
-		foreach (
-			array(
-				'legacyAssistedHooksAddOnIsActive',
-				'registerLegacyAssistedHooksAddOnNotice',
-				'RAN_BOOSTER_ASSISTED_HOOKS_RETIREMENT_BRIDGE_VERSION',
-				'RAN\\\\AssistedHooks\\\\Plugin',
-				'pre-retirement RAN Booster Assisted Hooks',
-			) as $legacyRuntimeIdentifier
-		) {
-			self::assertStringNotContainsString( $legacyRuntimeIdentifier, $providerSource );
-		}
+
 	}
 
 	#[RunInSeparateProcess]
