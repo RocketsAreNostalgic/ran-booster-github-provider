@@ -2,7 +2,7 @@
 
 ## Project contract
 
-This repository is the first-party GitHub provider package for RAN Booster. It is a Composer **library**, not a WordPress plugin. The package was extracted from Booster under `RocketsAreNostalgic/ran-booster#131`; preserve the certified provider boundary and behavior when maintaining it, while treating new GitHub-specific feature work as independently scoped package work rather than as Booster Core work.
+This repository is the first-party GitHub provider package for RAN Booster. It is a Composer **library**, not a WordPress plugin. Maintain GitHub-specific provider behavior here while keeping Booster's provider-neutral host responsibilities in `RocketsAreNostalgic/ran-booster`.
 
 The supported baseline follows the current Booster host: PHP 8.2+ and WordPress 7.0+. Keep `composer.json`, `.phpcs.xml`, PHPStan, CI and documentation aligned when that support contract changes.
 
@@ -20,7 +20,7 @@ For package conventions, prefer the closest maintained Booster support libraries
 
 The provider implementation has no maintained JavaScript, TypeScript, CSS or SCSS frontend source. Node **24.11.0** is intentionally present and required for the maintained release-control surface: publisher, workflow-contract and release-classification scripts/tests. Do not add pnpm, ESLint, Prettier or Stylelint merely for symmetry. If maintained frontend source is introduced later, reclassify the quality surface deliberately and adopt the applicable shared `@rocketsarenostalgic/quality-config` entry points at that time.
 
-PHP quality derives from `ran/coding-standards` through `RANWordPressLibrary`, with support range, namespace/prefix and extraction-specific exceptions kept local. PHPCS is the authoritative style check, PHPCBF is the formatter, and PHPStan is WordPress-aware because provider implementation code uses WordPress APIs. Do not introduce a second PHP formatter merely to mirror a plugin repository.
+PHP quality derives from `ran/coding-standards` through `RANWordPressLibrary`, with support range, namespace/prefix and package-specific exceptions kept local. PHPCS is the authoritative style check, PHPCBF is the formatter, and PHPStan is WordPress-aware because provider implementation code uses WordPress APIs. Do not introduce a second PHP formatter merely to mirror a plugin repository.
 
 The ordinary host-independent deterministic local gate requires PHP 8.2+ with Composer and Node 24.11.0:
 
@@ -31,7 +31,7 @@ composer check
 
 Use `composer format` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-owned deterministic foundation contract, and the release publisher/classification contracts.
 
-The extracted implementation consumes Booster-owned provider contracts, so implementation static analysis and the migrated PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
+The implementation consumes Booster-owned provider contracts, so implementation static analysis and PHPUnit are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
 
 ```sh
 RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer analyze
