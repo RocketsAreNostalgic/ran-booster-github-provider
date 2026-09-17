@@ -22,14 +22,23 @@ The extracted implementation currently has no maintained JavaScript, TypeScript,
 
 PHP quality derives from `ran/coding-standards` through `RANWordPressLibrary`, with support range, namespace/prefix and extraction-specific exceptions kept local. PHPCS is the authoritative style check, PHPCBF is the formatter, and PHPStan is WordPress-aware because provider implementation code uses WordPress APIs. Do not introduce a second PHP formatter merely to mirror a plugin repository.
 
-The ordinary deterministic local gate is:
+The ordinary host-independent deterministic local gate is:
 
 ```sh
 composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-Use `composer format` to apply PHPCBF. `composer check` must cover strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, static analysis and package-owned deterministic contract tests. CI adds the exact Booster host-contract proof and a terminal `quality` fan-in.
+Use `composer format` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility and the package-owned deterministic foundation contract.
+
+The extracted implementation consumes Booster-owned provider contracts, so implementation static analysis and the migrated PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
+
+```sh
+RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer analyze
+RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer test:implementation
+```
+
+CI pins and verifies the certified Booster revision before running those host-backed gates, separately verifies the host contract, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
 
 ## Review and merge discipline
 

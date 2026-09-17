@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+if ( class_exists( 'WP_Error', false ) ) {
+	return;
+}
+
 final class WP_Error {
 
 	public function __construct(
