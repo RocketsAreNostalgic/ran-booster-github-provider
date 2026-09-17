@@ -152,3 +152,43 @@ test("CLI verifies exact base/head and changed source paths", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("CLI classifies only merge-base-to-head changes when the base branch advances", () => {
+  const root = mkdtempSync(join(tmpdir(), "provider-release-classification-stale-base-"));
+  try {
+    git(root, ["init", "--initial-branch=main"]);
+    git(root, ["config", "user.name", "Release Test"]);
+    git(root, ["config", "user.email", "release@example.invalid"]);
+    writeJson(join(root, "composer.json"), baseComposer);
+    writeJson(join(root, "release-please-config.json"), releaseConfig);
+    writeFileSync(join(root, "README.md"), "base\n");
+    git(root, ["add", "."]);
+    git(root, ["commit", "-m", "chore: base"]);
+    git(root, ["branch", "feature"]);
+
+    execFileSync("mkdir", ["-p", join(root, "src")]);
+    writeFileSync(join(root, "src", "BaseOnly.php"), "<?php\n");
+    writeJson(join(root, "composer.json"), {
+      ...baseComposer,
+      require: { ...baseComposer.require, php: "^8.3" },
+    });
+    git(root, ["add", "src/BaseOnly.php", "composer.json"]);
+    git(root, ["commit", "-m", "feat: advance main only"]);
+    const advancedBaseSha = git(root, ["rev-parse", "HEAD"]);
+
+    git(root, ["checkout", "feature"]);
+    writeFileSync(join(root, "README.md"), "feature docs\n");
+    git(root, ["add", "README.md"]);
+    git(root, ["commit", "-m", "docs: update feature docs"]);
+    const headSha = git(root, ["rev-parse", "HEAD"]);
+
+    const result = runCli(root, {
+      RAN_RELEASE_BASE_SHA: advancedBaseSha,
+      RAN_RELEASE_HEAD_SHA: headSha,
+      RAN_RELEASE_PR_TITLE: "Update docs",
+    });
+    assert.deepEqual(result, { required: false, classification: null });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

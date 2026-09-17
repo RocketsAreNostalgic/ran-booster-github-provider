@@ -94,8 +94,16 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-function readBaseComposer(root, baseSha) {
-  return JSON.parse(git(root, ["show", `${baseSha}:composer.json`]));
+function mergeBase(root, baseSha, headSha) {
+  const sha = git(root, ["merge-base", baseSha, headSha]);
+  if (!FULL_SHA.test(sha)) {
+    throw new Error("pull request base and head do not have a canonical merge base");
+  }
+  return sha;
+}
+
+function readComposerAt(root, sha) {
+  return JSON.parse(git(root, ["show", `${sha}:composer.json`]));
 }
 
 function changedPaths(root, baseSha, headSha) {
@@ -118,11 +126,12 @@ export function runCli(root = process.cwd(), env = process.env) {
     throw new Error(`checked out revision ${checkoutSha} does not match pull request head ${headSha}`);
   }
 
+  const classificationBaseSha = mergeBase(root, baseSha, headSha);
   const result = assertReleaseClassification({
-    baseComposer: readBaseComposer(root, baseSha),
+    baseComposer: readComposerAt(root, classificationBaseSha),
     headComposer: readJson(`${root}/composer.json`),
     releaseConfig: readJson(`${root}/release-please-config.json`),
-    paths: changedPaths(root, baseSha, headSha),
+    paths: changedPaths(root, classificationBaseSha, headSha),
     title,
   });
 

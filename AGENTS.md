@@ -44,11 +44,13 @@ CI pins and verifies the certified Booster revision before running those host-ba
 
 Review evidence is revision-specific. Every inline review finding must receive a written disposition and be explicitly resolved, including stale, superseded or not-applicable comments. Review-summary findings without inline threads must still receive an explicit PR-conversation disposition before merge. Do not merge without explicit owner authorization.
 
-Use Conventional Commits. Changes under `src/` or to production Composer requirements are release-significant and must use a visible provider release-driving type (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`; PR-title edits rerun the required classification gate.
+Use Conventional Commits. Changes under `src/` or to production Composer requirements are release-significant and must use a visible provider release-driving type (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`; PR-title edits rerun the required classification gate. Classification must use merge-base-to-head changes, not the moving base-branch tip, so unrelated `main` changes cannot be attributed to an older PR.
 
 The Phase 4 publisher follows the current organisation release-trust contracts in `RocketsAreNostalgic/.github#9`, `#20` and `#22`. `workflow_run` name routing is not sufficient admission: before repository-owned publication logic, bind to the canonical CI path and exact GitHub-authored triggering SHA, check out that SHA without persisted credentials, and verify `HEAD`. Release Please may prepare/reconcile proposals, but only the repository-owned exact publisher has publication authority.
 
 Generated Release Please version PRs are a merge-method exception: they must use a normal two-parent merge so the publisher can prove exact base/head/tree geometry. Ordinary iterative/agent-developed PRs should follow the repository's normal squash preference unless the owner intentionally chooses otherwise.
+
+Release Please intentionally uses the repository `GITHUB_TOKEN`, so GitHub may suppress the initial `pull_request` CI event for a generated version PR. If that exact release-PR head has no required `quality` check, use a body-only PR metadata edit to trigger the existing `pull_request: edited` CI path. Do not alter the release title/source merely to trigger CI, do not reintroduce `workflow_dispatch`, and repeat the metadata-only event if Release Please later changes the head. This trigger does not grant publication authority; it only evaluates the unchanged candidate through the normal protected PR gate.
 
 Do not manually create/move release tags, bypass failed release checks, or treat the Release Please manifest as proof that a version is published. Published immutable tag/release readback is the availability boundary. See `RELEASING.md`.
 
