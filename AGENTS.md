@@ -18,11 +18,11 @@ The repository profile is `php-library`, using the current organisation `quality
 
 For package conventions, prefer the closest maintained Booster support libraries as references: `ran/updater-support`, `ran/wp-branch-updater`, and `ran/wp-release-updater`. Use Booster and `ran-starter-plugin` for stronger transferable guarantees and repository ergonomics, but do not copy plugin-only runtime, archive or frontend machinery into this library without an applicable source/product requirement.
 
-The provider implementation has no maintained JavaScript, TypeScript, CSS or SCSS frontend source. Node is intentionally present only for the maintained release-control surface: publisher, workflow-contract and release-classification scripts/tests. Do not add pnpm, ESLint, Prettier or Stylelint merely for symmetry. If maintained frontend source is introduced later, reclassify the quality surface deliberately and adopt the applicable shared `@rocketsarenostalgic/quality-config` entry points at that time.
+The provider implementation has no maintained JavaScript, TypeScript, CSS or SCSS frontend source. Node **24.11.0** is intentionally present and required for the maintained release-control surface: publisher, workflow-contract and release-classification scripts/tests. Do not add pnpm, ESLint, Prettier or Stylelint merely for symmetry. If maintained frontend source is introduced later, reclassify the quality surface deliberately and adopt the applicable shared `@rocketsarenostalgic/quality-config` entry points at that time.
 
 PHP quality derives from `ran/coding-standards` through `RANWordPressLibrary`, with support range, namespace/prefix and extraction-specific exceptions kept local. PHPCS is the authoritative style check, PHPCBF is the formatter, and PHPStan is WordPress-aware because provider implementation code uses WordPress APIs. Do not introduce a second PHP formatter merely to mirror a plugin repository.
 
-The ordinary host-independent deterministic local gate is:
+The ordinary host-independent deterministic local gate requires PHP 8.2+ with Composer and Node 24.11.0:
 
 ```sh
 composer install --no-interaction --prefer-dist --no-progress
