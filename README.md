@@ -12,7 +12,7 @@ The provider contains the GitHub-specific code Booster uses for:
 - working with GitHub credentials supplied through Booster;
 - preparing repository archives for installation and deployment;
 - receiving and managing GitHub webhooks;
-- GitHub release discovery, downloads, and update integration;
+- GitHub Releases integration used by Booster's release and update features;
 - GitHub-specific diagnostics and release-workflow assistance.
 
 Booster remains responsible for the WordPress UI, saved credential custody, provider registration, deployment orchestration, and other provider-neutral application behavior.
@@ -31,7 +31,7 @@ Direct use of this repository is mainly for development and maintenance of Boost
 - WordPress 7.0 or later when used with Booster
 - a compatible RAN Booster version
 
-Booster's provider API is still pre-release, so the safest combination is the provider version selected by the Booster release you are using rather than substituting package versions independently.
+Booster's provider API is still pre-release, so use the provider version selected by the Booster release you are running rather than substituting package versions independently.
 
 ## Development
 
