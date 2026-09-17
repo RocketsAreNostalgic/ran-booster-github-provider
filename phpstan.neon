@@ -6,6 +6,9 @@ parameters:
 	# Raising analysis strictness belongs in a separate typed-contract change after extraction parity.
 	level: 1
 	treatPhpDocTypesAsCertain: false
+	bootstrapFiles:
+		- tests/Booster/GitHub/bootstrap.php
+		- tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceTestBootstrap.php
 	paths:
 		- src
 		- tests/foundation-contract.php

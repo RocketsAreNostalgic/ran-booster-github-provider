@@ -31,6 +31,14 @@
 		<severity>0</severity>
 	</rule>
 
+	<!-- Preserve inherited public/callback signatures during behavior-preserving extraction. -->
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+		<severity>0</severity>
+	</rule>
+
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<exclude-pattern>/tests/</exclude-pattern>
 		<properties>
