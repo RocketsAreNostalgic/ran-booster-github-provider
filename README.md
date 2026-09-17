@@ -14,6 +14,8 @@ GitHub-specific implementation code, tests, issues, releases, and maintenance be
 
 The package may consume Booster's public provider contracts supplied by the host at runtime, but it must not take a production Composer dependency on the whole `ran/booster` plugin. Shared non-host utilities are explicit Composer dependencies.
 
+The bundled `gh` aggregate is registered through Booster's ordinary `ProviderRegistry::registerWithCredentialStore()` path and implements the public provider contracts/capabilities. Its first-party factory also receives two explicit host-owned composition inputs: Booster's selected release-updater registrar compatibility adapter and a lazy archive-limit supplier. Those inputs do not expose Booster's private container, storage implementations, credential writer, logger, or generic service resolution to this package.
+
 The current provider contract is pre-release. The package targets the current certified Booster contract rather than promising arbitrary compatibility with historical pre-release Booster builds.
 
 ## Quality profile
