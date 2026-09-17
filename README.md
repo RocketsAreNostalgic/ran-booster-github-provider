@@ -6,9 +6,9 @@ This repository is a **Composer library**, not a WordPress plugin. Booster bundl
 
 ## Status
 
-The package is being extracted under `RocketsAreNostalgic/ran-booster#131`. The GitHub provider implementation and its provider-owned tests are now present in this repository and are being certified against the exact Booster source from which they were extracted.
+The package is being extracted under `RocketsAreNostalgic/ran-booster#131`. The GitHub provider implementation and its provider-owned tests are present in this repository and certified against the exact Booster source from which they were extracted.
 
-The package has not yet reached the release/cutover phases: an immutable beta release and the subsequent Booster dependency/runtime cutover remain separate work after extraction parity and review are complete.
+Phase 4 release work is enabling the package's trusted prerelease publisher and preparing the first immutable `v0.1.0-beta.1` release. Booster dependency/runtime cutover remains a separate later phase and must consume a verified immutable package release rather than `dev-main`.
 
 ## Contract boundary
 
@@ -22,18 +22,20 @@ This repository follows the same PHP-library family as `ran/updater-support`, `r
 
 The migrated implementation's WordPress-aware PHPStan analysis and PHPUnit suite are host-backed because the provider contracts remain Booster-owned. CI checks out and verifies the exact certified Booster revision before running those gates instead of introducing a development or production dependency on the whole Booster plugin.
 
-The implementation being extracted is PHP-only, so Node is deliberately disabled rather than adding a synthetic frontend toolchain. Starter remains a useful repository-ergonomics reference, but its ESLint/Prettier/Stylelint surface applies only when maintained frontend source exists.
+The provider implementation remains PHP-only and has no maintained frontend source. Node **24.11.0** is nevertheless a required repository tool for the maintained release-control surface: publisher, workflow-contract, and release-classification scripts/tests run on that exact CI-pinned version, including through `composer check`. This does not introduce a frontend toolchain; pnpm, ESLint, Prettier and Stylelint remain unnecessary unless maintained frontend source is added later.
 
-If maintained JavaScript, TypeScript, CSS or SCSS source is introduced later, the frontend quality surface must be adopted deliberately through the shared RAN quality configuration.
+If maintained JavaScript, TypeScript, CSS or SCSS frontend source is introduced later, the frontend quality surface must be adopted deliberately through the shared RAN quality configuration.
 
 ## Development
+
+Prerequisites for the canonical local gate are PHP 8.2+ with Composer and Node 24.11.0.
 
 ```bash
 composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-Use `composer format` to apply the repository PHPCBF formatter. `composer check` validates Composer metadata, PHP syntax, PHPCS/WPCS/PHPCompatibility and the package-foundation contract.
+Use `composer format` to apply the repository PHPCBF formatter. `composer check` validates Composer metadata, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-foundation contract, and the repository-owned release publisher/classification contracts.
 
 To run the migrated implementation analysis and tests locally, point `RAN_BOOSTER_CORE_PATH` at the certified Booster checkout:
 
@@ -42,6 +44,6 @@ RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer analyze
 RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer test:implementation
 ```
 
-CI additionally verifies the exact current Booster host-contract signatures, runs those host-backed implementation gates on PHP 8.2 and 8.5, and exposes one terminal `quality` fan-in.
+CI additionally verifies the exact current Booster host-contract signatures, runs those host-backed implementation gates on PHP 8.2 and 8.5, checks mutable PR release classification, and exposes one terminal `quality` fan-in.
 
-Organization quality policy and reusable-workflow lifecycle are tracked in `RocketsAreNostalgic/.github#7`, `#15` and `#12`; release-publisher trust/classification is separate and will be adopted when package publishing is enabled.
+Release operations and trust boundaries are documented in `RELEASING.md`. Organisation quality policy is tracked in `RocketsAreNostalgic/.github#7`, `#15` and `#12`; release trust/classification/admission are tracked under `.github#9`, `#20` and `#22`.

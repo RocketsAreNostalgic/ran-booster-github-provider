@@ -1,3 +1,5 @@
 # Changelog
 
-This package is pre-release. Release Please will maintain this file once publishing is enabled.
+## [Unreleased]
+
+All notable changes to this package are documented here.
