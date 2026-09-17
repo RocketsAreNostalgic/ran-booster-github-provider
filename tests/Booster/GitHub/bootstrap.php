@@ -13,11 +13,11 @@ spl_autoload_register(
 	static function ( string $class ) use ( $ranProviderRoot, $ranBoosterRoot ): void {
 		$prefixes = array(
 			'RAN\\BoosterGitHubProvider\\V1\\' => $ranProviderRoot . '/src/',
-			'RAN\\RepositoryProvider\\'       => $ranBoosterRoot . '/RAN/RepositoryProvider/',
-			'RAN\\AddOn\\WebhookAssistance\\' => $ranBoosterRoot . '/RAN/AddOn/WebhookAssistance/',
-			'RAN\\Admin\\Interaction\\'       => $ranBoosterRoot . '/RAN/Admin/Interaction/',
-			'RAN\\UpdaterSupport\\V1\\'       => $ranProviderRoot . '/vendor/ran/updater-support/src/',
-			'Tests\\Booster\\GitHub\\'        => __DIR__ . '/',
+			'RAN\\RepositoryProvider\\'        => $ranBoosterRoot . '/RAN/RepositoryProvider/',
+			'RAN\\AddOn\\WebhookAssistance\\'  => $ranBoosterRoot . '/RAN/AddOn/WebhookAssistance/',
+			'RAN\\Admin\\Interaction\\'        => $ranBoosterRoot . '/RAN/Admin/Interaction/',
+			'RAN\\UpdaterSupport\\V1\\'        => $ranProviderRoot . '/vendor/ran/updater-support/src/',
+			'Tests\\Booster\\GitHub\\'         => __DIR__ . '/',
 		);
 
 		foreach ( $prefixes as $prefix => $directory ) {
