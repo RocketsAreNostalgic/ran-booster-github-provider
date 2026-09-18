@@ -30,4 +30,14 @@ Do not create or move release tags manually, bypass failed `quality`, edit gener
 
 ## Booster consumption
 
-Booster must consume a reviewed immutable package release, not `dev-main` or an arbitrary source SHA. Adding the released provider to Booster is a separate cutover phase after tag/release/readback evidence is complete.
+Booster consumes a reviewed immutable provider release, never `dev-main` or an
+arbitrary source SHA. After a provider release is published and its immutable
+tag/release state is read back successfully, any Booster dependency update is a
+separate reviewed integration change that pins that released version and exact
+Composer lock provenance.
+
+Provider publication does not update Booster automatically. Booster integration
+must independently pass its own exact-head Quality and runtime dependency/archive
+verification before merge. A provider release may therefore exist before any
+Booster version consumes it, and Booster may continue pinning an earlier
+immutable provider release until an integration change is approved.
