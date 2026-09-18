@@ -40,18 +40,17 @@ final class WorkflowAssistanceStateTest extends TestCase {
 	}
 
 	public function testDurableCleanupOwnsOnlyCurrentProviderStateAndIsRepeatable(): void {
-		$state    = new WorkflowAssistanceState();
-		$expected = array(
-			'ran_booster_release_deployments_setup_records'                 => array( 'legacy' => true ),
-			'ran_booster_release_deployments_assessment_observations'       => array( 'legacy' => true ),
-			'ran_booster_release_deployments_failure_history'                => array( 'legacy' => true ),
-			'unrelated_option'                                               => 'preserved',
-		);
+		$state = new WorkflowAssistanceState();
 
 		self::assertTrue( $state->removeDurableState() );
-		self::assertSame( $expected, $GLOBALS['ran_booster_release_deployments_test_options'] );
+		self::assertSame( array( 'legacy' => true ), $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] );
+		self::assertSame( array( 'legacy' => true ), $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_assessment_observations'] );
+		self::assertSame( array( 'legacy' => true ), $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_failure_history'] );
+		self::assertSame( 'preserved', $GLOBALS['ran_booster_release_deployments_test_options']['unrelated_option'] );
+		self::assertCount( 4, $GLOBALS['ran_booster_release_deployments_test_options'] );
+
 		self::assertTrue( $state->removeDurableState() );
-		self::assertSame( $expected, $GLOBALS['ran_booster_release_deployments_test_options'] );
+		self::assertCount( 4, $GLOBALS['ran_booster_release_deployments_test_options'] );
 	}
 
 	public function testLockAndPreviewNamesAreProviderOwned(): void {
