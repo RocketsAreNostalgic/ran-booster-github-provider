@@ -43,13 +43,12 @@ final class SetupRecordStore {
 		'bundle_hash',
 		'changed_path_hash',
 	);
-	private const LEGACY_FIELDS            = array( 'repo_id', 'repository', 'package_type', 'package_identifier', 'source_revision', 'default_branch', 'setup_branch', 'head_sha', 'pr_number' );
+	private const IDENTITY_FIELDS          = array( 'repo_id', 'repository', 'package_type', 'package_identifier', 'source_revision', 'default_branch', 'setup_branch', 'head_sha', 'pr_number' );
 	private const OBSERVATION_FIELDS       = array( 'kind', 'repository_id', 'package_type', 'package_identifier', 'source_revision', 'observed_at' );
 	private const OBSERVATION_STATUSES     = array( 'existing_automation_detected', 'booster_setup_verified', 'no_recognisable_automation' );
-	private const LEGACY_FAILURE_FIELDS    = array( 'operation', 'outcome_code', 'failure_stage', 'package_type', 'package_identifier', 'source_revision', 'repository_id', 'correlation_reference', 'recorded_at' );
 	private const FAILURE_FIELDS           = array( 'operation', 'outcome_code', 'failure_stage', 'package_type', 'package_identifier', 'source_revision', 'repository_id', 'diagnostic_code', 'diagnostic_available', 'correlation_reference', 'recorded_at' );
 	private const FAILURE_STAGES           = array( 'credential_authorisation', 'release_preflight', 'repository_snapshot', 'template_pack', 'preview_storage', 'repository_mutation', 'local_persistence', 'unexpected' );
-	private const FAILURE_DIAGNOSTIC_CODES = array( 'diagnostic_detail_unavailable', 'credential_authorisation_unavailable', 'preflight_contract_unavailable', 'provider_unavailable', 'no_releases', 'invalid_release', 'release_identity_mismatch', 'release_incompatible', 'release_version_mismatch', 'package_header_missing', 'package_header_invalid', 'package_archive_unreadable', 'package_zip_extension_unavailable', 'package_archive_size_invalid', 'package_archive_too_large', 'package_archive_path_unsafe', 'package_archive_path_duplicate', 'package_archive_root_invalid', 'package_archive_entry_duplicate', 'package_archive_entry_limit', 'release_version_invalid', 'package_update_uri_missing', 'package_update_uri_invalid', 'package_compatibility_missing', 'package_compatibility_invalid', 'package_header_ambiguous', 'release_automation_detected', 'repository_snapshot_unavailable', 'template_pack_unavailable', 'preview_storage_unavailable', 'repository_mutation_unverified', 'local_persistence_unavailable', 'unexpected_runtime_failure' );
+	private const FAILURE_DIAGNOSTIC_CODES = array( 'credential_authorisation_unavailable', 'preflight_contract_unavailable', 'provider_unavailable', 'no_releases', 'invalid_release', 'release_identity_mismatch', 'release_incompatible', 'release_version_mismatch', 'package_header_missing', 'package_header_invalid', 'package_archive_unreadable', 'package_zip_extension_unavailable', 'package_archive_size_invalid', 'package_archive_too_large', 'package_archive_path_unsafe', 'package_archive_path_duplicate', 'package_archive_root_invalid', 'package_archive_entry_duplicate', 'package_archive_entry_limit', 'release_version_invalid', 'package_update_uri_missing', 'package_update_uri_invalid', 'package_compatibility_missing', 'package_compatibility_invalid', 'package_header_ambiguous', 'release_automation_detected', 'repository_snapshot_unavailable', 'template_pack_unavailable', 'preview_storage_unavailable', 'repository_mutation_unverified', 'local_persistence_unavailable', 'unexpected_runtime_failure' );
 
 	private ?string $claimToken      = null;
 	private ?string $claimConnection = null;
@@ -182,27 +181,6 @@ final class SetupRecordStore {
 			}
 		}
 		return $released ? $readback : null;
-	}
-	/** Schema 1 is display-only evidence and never mutation authority. @return array<string,int|string>|null */
-	public function legacyEvidence( string $repositoryId, string $type, string $identifier, int $revision ): ?array {
-		$raw = $this->raw( $repositoryId );
-		if ( null === $raw ) {
-			return null;
-		}
-		if ( array_keys( $raw ) !== self::LEGACY_FIELDS || ! $this->legacyValid( $raw )
-			|| ! hash_equals( $repositoryId, $raw['repo_id'] ) || ! hash_equals( $type, $raw['package_type'] )
-			|| ! hash_equals( $identifier, $raw['package_identifier'] ) || $revision !== $raw['source_revision'] ) {
-			return array(
-				'schema_version' => 1,
-				'unsupported'    => 1,
-			);
-		}
-		return array(
-			'schema_version' => 1,
-			'repository'     => $raw['repository'],
-			'setup_branch'   => $raw['setup_branch'],
-			'pr_number'      => $raw['pr_number'],
-		);
 	}
 	/** @param array<string,mixed> $record */
 	public function save( array $record ): bool {
@@ -403,7 +381,7 @@ final class SetupRecordStore {
 	private function normalize( array $raw ): ?array {
 		if ( array_keys( $raw ) !== self::FIELDS || 2 !== ( $raw['schema_version'] ?? null )
 			|| ! in_array( $raw['operation'] ?? null, array( 'bootstrap', 'template_update' ), true )
-			|| ! $this->legacyValid( array_intersect_key( $raw, array_flip( self::LEGACY_FIELDS ) ) )
+			|| ! $this->currentIdentityValid( array_intersect_key( $raw, array_flip( self::IDENTITY_FIELDS ) ) )
 			|| ! str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v2-' )
 			|| ! $this->hash( $raw['base_sha'] ?? null, 40 )
 			|| ! in_array( $raw['profile_id'] ?? null, array( 'source-ready-wordpress-plugin/2', 'source-ready-wordpress-theme/2' ), true )
@@ -462,16 +440,6 @@ final class SetupRecordStore {
 	}
 	/** @param array<string,mixed> $failure @return array<string,int|string>|null */
 	private function normalizeFailure( array $failure ): ?array {
-		if ( array_keys( $failure ) === self::LEGACY_FAILURE_FIELDS ) {
-			$failure = array_merge(
-				array_slice( $failure, 0, 7, true ),
-				array(
-					'diagnostic_code'      => 'diagnostic_detail_unavailable',
-					'diagnostic_available' => false,
-				),
-				array_slice( $failure, 7, null, true )
-			);
-		}
 		if ( array_keys( $failure ) !== self::FAILURE_FIELDS
 			|| ! in_array( $failure['operation'] ?? null, array( 'inspect', 'setup', 'outcome', 'update_inspect', 'update_setup' ), true )
 			|| ! is_string( $failure['outcome_code'] ?? null ) || 1 !== preg_match( '/\Aworkflow_[a-z0-9_]{1,55}\z/D', $failure['outcome_code'] )
@@ -489,12 +457,12 @@ final class SetupRecordStore {
 		return $failure;
 	}
 	/** @param array<string,mixed> $raw */
-	private function legacyValid( array $raw ): bool {
-		return count( $raw ) === count( self::LEGACY_FIELDS ) && $this->number( $raw['repo_id'] ?? null )
+	private function currentIdentityValid( array $raw ): bool {
+		return count( $raw ) === count( self::IDENTITY_FIELDS ) && $this->number( $raw['repo_id'] ?? null )
 			&& $this->repository( $raw['repository'] ?? null ) && in_array( $raw['package_type'] ?? null, array( 'plugin', 'theme' ), true )
 			&& $this->textValue( $raw['package_identifier'] ?? null, 255 ) && $this->positiveInt( $raw['source_revision'] ?? null )
 			&& $this->branch( $raw['default_branch'] ?? null ) && $this->branch( $raw['setup_branch'] ?? null )
-			&& ( str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v1-' ) || str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v2-' ) )
+			&& str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v2-' )
 			&& $this->hash( $raw['head_sha'] ?? null, 40 ) && $this->positiveInt( $raw['pr_number'] ?? null );
 	}
 	private function repository( mixed $value ): bool {
