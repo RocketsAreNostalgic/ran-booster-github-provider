@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.4](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.3...v0.1.0-beta.4) (2026-09-18)
+
+
+### Bug Fixes
+
+* remove prerelease workflow state compatibility ([#16](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/16)) ([bf62fb7](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/bf62fb76a341e923090412b349ed9ff841ae9873))
+
 ## [0.1.0-beta.3](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.2...v0.1.0-beta.3) (2026-09-18)
 
 
