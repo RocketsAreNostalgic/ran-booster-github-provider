@@ -43,11 +43,15 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		$state = new WorkflowAssistanceState();
 
 		self::assertTrue( $state->removeDurableState() );
-		self::assertSame( array( 'legacy' => true ), $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] );
-		self::assertSame( array( 'legacy' => true ), $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_assessment_observations'] );
-		self::assertSame( array( 'legacy' => true ), $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_failure_history'] );
-		self::assertSame( 'preserved', $GLOBALS['ran_booster_release_deployments_test_options']['unrelated_option'] );
-		self::assertCount( 4, $GLOBALS['ran_booster_release_deployments_test_options'] );
+		$options = $GLOBALS['ran_booster_release_deployments_test_options'];
+		self::assertSame( array( 'legacy' => true ), $options['ran_booster_release_deployments_setup_records'] );
+		self::assertSame(
+			array( 'legacy' => true ),
+			$options['ran_booster_release_deployments_assessment_observations']
+		);
+		self::assertSame( array( 'legacy' => true ), $options['ran_booster_release_deployments_failure_history'] );
+		self::assertSame( 'preserved', $options['unrelated_option'] );
+		self::assertCount( 4, $options );
 
 		self::assertTrue( $state->removeDurableState() );
 		self::assertCount( 4, $GLOBALS['ran_booster_release_deployments_test_options'] );
