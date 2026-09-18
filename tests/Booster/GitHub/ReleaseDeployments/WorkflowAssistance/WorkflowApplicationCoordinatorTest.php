@@ -509,9 +509,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 						return $receipt;
 					}
 				);
-				$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records']['101']['receipt_digest'] = hash( 'sha256', $bytes );
+				$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['101']['receipt_digest'] = hash( 'sha256', $bytes );
 			} else {
-				$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records']['101']['template_release_id'] = 999;
+				$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['101']['template_release_id'] = 999;
 			}
 			self::assertSame( 'workflow_target_changed', $coordinator->outcome( $status, 'token' )['code'], $scenario );
 		}
@@ -537,7 +537,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$coordinator = $this->coordinator( $facade, $transport, new SetupRecordStore() );
 		$status      = WorkflowProviderFixtures::target();
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->readyPreflight(), 'token' );
-		$transient   = 'ran_booster_github_release_workflow_preview_' . $inspect['preview_key'];
+		$transient   = 'ran_booster_github_provider_release_workflow_preview_' . $inspect['preview_key'];
 		$valid       = $GLOBALS['ran_booster_release_deployments_test_transients'][ $transient ];
 		$cases       = array();
 		foreach ( array(
@@ -739,9 +739,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			'unknown'   => array( 'future_schema' => 3 ),
 			'non_array' => 'occupied',
 		) as $name => $existing ) {
-			$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] = array( '101' => $existing );
+			$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] = array( '101' => $existing );
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact raw scalar value bytes are the compatibility subject under test.
-			$before      = serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] );
+			$before      = serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
 			$transport   = new D23ApplicationTransport();
 			$facade      = new D23ReleaseFacade();
 			$coordinator = $this->coordinator( $facade, $transport, new SetupRecordStore() );
@@ -750,7 +750,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			self::assertSame( 'workflow_invalid_request', $coordinator->inspect( $status, 'stable', $this->readyPreflight(), 'request-only-token' )['code'], $name );
 			self::assertSame( array(), $transport->requests, $name );
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact raw scalar value bytes are the compatibility subject under test.
-			self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] ), $name );
+			self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] ), $name );
 		}
 	}
 
@@ -798,7 +798,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$status      = WorkflowProviderFixtures::target();
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->readyPreflight(), 'request-only-token' );
 		$key         = $inspect['preview_key'];
-		$newKey      = 'ran_booster_github_release_workflow_preview_' . $key;
+		$newKey      = 'ran_booster_github_provider_release_workflow_preview_' . $key;
 		$preview     = $GLOBALS['ran_booster_release_deployments_test_transients'][ $newKey ];
 
 		unset( $GLOBALS['ran_booster_release_deployments_test_transients'][ $newKey ] );

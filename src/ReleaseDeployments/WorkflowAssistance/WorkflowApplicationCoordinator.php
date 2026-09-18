@@ -10,7 +10,7 @@ use Throwable;
 
 /** GitHub API 2 assessment, preview, mutation, readback and outcome owner. */
 final class WorkflowApplicationCoordinator {
-	private const PREVIEW_PREFIX         = 'ran_booster_github_release_workflow_preview_';
+	private const PREVIEW_PREFIX         = WorkflowAssistanceState::PREVIEW_PREFIX;
 	private const PREVIEW_FIELDS         = array( 'schema_version', 'kind', 'user_id', 'type', 'identifier', 'revision', 'repo_id', 'repository', 'default_branch', 'base_sha', 'preflight_channel', 'profile_id', 'pack_version', 'manifest_hash', 'new_template_identity', 'old_template_identity', 'bundle_hash', 'changed_path_hash', 'allowlist_hash', 'changes' );
 	private const IDENTITY_FIELDS        = array( 'repository_name', 'repository_id', 'release_id', 'release_tag', 'release_commit', 'release_target', 'tag_target', 'release_draft', 'release_prerelease', 'release_immutable', 'asset_count', 'asset_id', 'asset_name', 'asset_state', 'asset_content_type', 'asset_size', 'asset_digest', 'asset_sha256' );
 	private const PREFLIGHT_REASON_CODES = array( 'provider_unavailable', 'no_releases', 'invalid_release', 'release_identity_mismatch', 'release_incompatible', 'release_version_mismatch', 'package_header_missing', 'package_header_invalid', 'package_archive_unreadable', 'package_zip_extension_unavailable', 'package_archive_size_invalid', 'package_archive_too_large', 'package_archive_path_unsafe', 'package_archive_path_duplicate', 'package_archive_root_invalid', 'package_archive_entry_duplicate', 'package_archive_entry_limit', 'release_version_invalid', 'package_update_uri_missing', 'package_update_uri_invalid', 'package_compatibility_missing', 'package_compatibility_invalid', 'package_header_ambiguous' );
