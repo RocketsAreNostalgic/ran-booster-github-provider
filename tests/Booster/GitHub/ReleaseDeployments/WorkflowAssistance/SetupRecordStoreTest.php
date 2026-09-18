@@ -42,6 +42,27 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertFalse( $store->save( array_replace( $record, array( 'template_asset_name' => 'other.zip' ) ) ) );
 		self::assertFalse( $store->save( array_replace( $record, array( 'template_asset_size' => 2097153 ) ) ) );
 	}
+	public function testObsoleteOptionNamespaceIsNotReadAsCurrentState(): void {
+		$legacyOption = 'ran_booster_release_deployments_setup_records';
+		$legacyValue  = array(
+			'123456789' => array(
+				'legacy_sentinel' => 'opaque',
+			),
+		);
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact obsolete bytes must remain untouched.
+		$before = serialize( $legacyValue );
+		$GLOBALS['ran_booster_release_deployments_test_options'][ $legacyOption ] = $legacyValue;
+		$store  = new SetupRecordStore();
+		$record = $this->record();
+
+		self::assertNull( $store->find( '123456789' ) );
+		self::assertFalse( $store->occupied( '123456789' ) );
+		self::assertTrue( $store->save( $record ) );
+		self::assertSame( $record, $store->find( '123456789' ) );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- The obsolete option must not be adopted or rewritten.
+		self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options'][ $legacyOption ] ) );
+	}
+
 	public function testSourceRevisionRefreshIsMonotonicAndBoundToTheExactPackage(): void {
 		$store  = new SetupRecordStore();
 		$record = $this->record();
@@ -68,17 +89,17 @@ final class SetupRecordStoreTest extends TestCase {
 			'non_array' => 'opaque-row',
 			'null_row'  => null,
 		) as $name => $existing ) {
-			$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] = array( '123456789' => $existing );
+			$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] = array( '123456789' => $existing );
 			$GLOBALS['ran_booster_release_deployments_test_option_updates'] = array();
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact raw scalar value bytes are the compatibility subject under test.
-			$before = serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] );
+			$before = serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
 			$store  = new SetupRecordStore();
 
 			self::assertTrue( $store->occupied( '123456789' ), $name );
 			self::assertFalse( $store->save( $this->record() ), $name );
 			self::assertSame( array(), $GLOBALS['ran_booster_release_deployments_test_option_updates'], $name );
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact raw scalar value bytes are the compatibility subject under test.
-			self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] ), $name );
+			self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] ), $name );
 		}
 	}
 	public function testClaimIsAtomicAndReleaseRequiresTheExactOwner(): void {
@@ -183,7 +204,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertTrue( $second->releaseClaim( '987654321', $otherClaim ) );
 		self::assertNotNull( $second->find( '123456789' ) );
 		self::assertNotNull( $second->find( '987654321' ) );
-		self::assertCount( 2, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] );
+		self::assertCount( 2, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
 	}
 	public function testConnectionCloseRecoversAnAbandonedClaimWithoutPersistentState(): void {
 		$first = new SetupRecordStore();
@@ -238,7 +259,7 @@ final class SetupRecordStoreTest extends TestCase {
 		$refreshed       = $other->refreshSourceRevision( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 );
 		self::assertSame( 4, $refreshed['source_revision'] );
 		self::assertNotNull( $other->find( '987654321' ) );
-		self::assertCount( 2, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] );
+		self::assertCount( 2, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
 	}
 	public function testExistingRecordClaimRequiresItsExactPackageAndRevision(): void {
 		$store = new SetupRecordStore();
@@ -258,7 +279,7 @@ final class SetupRecordStoreTest extends TestCase {
 	public function testSchemaOneIsDisplayOnlyAndNeverCurrentAuthority(): void {
 		$legacy                 = array_intersect_key( $this->record(), array_flip( array( 'repo_id', 'repository', 'package_type', 'package_identifier', 'source_revision', 'default_branch', 'setup_branch', 'head_sha', 'pr_number' ) ) );
 		$legacy['setup_branch'] = 'ran-booster/release-setup-v1-aaaaaaaaaaaa-deadbeef';
-		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records']['123456789'] = $legacy;
+		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['123456789'] = $legacy;
 		$store = new SetupRecordStore();
 		self::assertNull( $store->find( '123456789' ) );
 		self::assertSame(
@@ -270,13 +291,13 @@ final class SetupRecordStoreTest extends TestCase {
 			),
 			$store->legacyEvidence( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 )
 		);
-		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records']['123456789']['token'] = 'secret';
+		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['123456789']['token'] = 'secret';
 		$unsupported = array(
 			'schema_version' => 1,
 			'unsupported'    => 1,
 		);
 		self::assertSame( $unsupported, $store->legacyEvidence( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
-		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records']['123456789'] = $legacy;
+		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['123456789'] = $legacy;
 		self::assertSame( $unsupported, $store->legacyEvidence( '123456789', 'theme', 'example-plugin/example-plugin.php', 3 ) );
 		self::assertSame( $unsupported, $store->legacyEvidence( '123456789', 'plugin', 'other/example.php', 3 ) );
 		self::assertSame( $unsupported, $store->legacyEvidence( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 ) );
@@ -290,7 +311,7 @@ final class SetupRecordStoreTest extends TestCase {
 			$record                     = array_replace( $this->record(), array( 'repo_id' => (string) $index ) );
 			$records[ (string) $index ] = $record;
 		}
-		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_setup_records'] = $records;
+		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] = $records;
 		self::assertTrue( ( new SetupRecordStore() )->occupied( '100' ) );
 		self::assertFalse( ( new SetupRecordStore() )->save( array_replace( $this->record(), array( 'repo_id' => '101' ) ) ) );
 		self::assertTrue( ( new SetupRecordStore() )->save( array_replace( $this->record(), array( 'repo_id' => '100' ) ) ) );
@@ -314,7 +335,7 @@ final class SetupRecordStoreTest extends TestCase {
 		);
 		self::assertTrue( $store->saveAssessmentObservation( $replacement ) );
 		self::assertSame( $replacement, $store->assessmentObservation( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
-		self::assertCount( 1, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_assessment_observations'] );
+		self::assertCount( 1, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_assessment_observations'] );
 		self::assertFalse( $GLOBALS['ran_booster_release_deployments_test_option_updates'][0][2] );
 	}
 	public function testAssessmentObservationUsesTheSameCrossConnectionLock(): void {
@@ -340,7 +361,7 @@ final class SetupRecordStoreTest extends TestCase {
 	}
 	public function testMalformedAssessmentObservationOptionFailsClosed(): void {
 		$observation = $this->observation();
-		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_assessment_observations'] = array( $observation, $observation );
+		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_assessment_observations'] = array( $observation, $observation );
 		$store = new SetupRecordStore();
 		self::assertNull( $store->assessmentObservation( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 		self::assertFalse( $store->saveAssessmentObservation( $observation ) );
@@ -360,7 +381,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertTrue( $store->saveAssessmentObservation( $current ) );
 		self::assertNull( $store->assessmentObservation( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 		self::assertSame( $current, $store->assessmentObservation( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 ) );
-		self::assertCount( 1, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_assessment_observations'] );
+		self::assertCount( 1, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_assessment_observations'] );
 	}
 	public function testAssessmentObservationDeterministicallyEvictsTheOldestValidEntryAtCapacity(): void {
 		$store = new SetupRecordStore();
@@ -389,7 +410,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertTrue( $store->saveAssessmentObservation( $new ) );
 		self::assertNull( $store->assessmentObservation( '1', 'plugin', 'example-1/example.php', 3 ) );
 		self::assertSame( $new, $store->assessmentObservation( '101', 'plugin', 'example-101/example.php', 3 ) );
-		self::assertCount( 100, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_assessment_observations'] );
+		self::assertCount( 100, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_assessment_observations'] );
 	}
 	public function testFailureHistoryIsBoundedToSafeValidatedFailureEvidence(): void {
 		$store   = new SetupRecordStore();
@@ -477,7 +498,7 @@ final class SetupRecordStoreTest extends TestCase {
 			'correlation_reference' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
 			'recorded_at'           => '2026-08-27T12:34:56Z',
 		);
-		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_failure_history'] = array( $legacy );
+		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_failure_history'] = array( $legacy );
 		$store = new SetupRecordStore();
 		$new   = array_merge(
 			array_slice( $legacy, 0, 7, true ),
@@ -509,7 +530,7 @@ final class SetupRecordStoreTest extends TestCase {
 				'correlation_reference',
 				'recorded_at',
 			),
-			array_keys( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_release_deployments_failure_history'][0] )
+			array_keys( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_failure_history'][0] )
 		);
 	}
 	/** @return array<string,int|string> */

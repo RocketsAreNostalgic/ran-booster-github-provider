@@ -6,9 +6,9 @@ namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 /** Stores exact, bounded, non-secret setup pull-request evidence. */
 final class SetupRecordStore {
-	private const OPTION                   = 'ran_booster_release_deployments_setup_records';
-	private const ASSESSMENT_OPTION        = 'ran_booster_release_deployments_assessment_observations';
-	private const FAILURE_OPTION           = 'ran_booster_release_deployments_failure_history';
+	private const OPTION                   = WorkflowAssistanceState::SETUP_OPTION;
+	private const ASSESSMENT_OPTION        = WorkflowAssistanceState::ASSESSMENT_OPTION;
+	private const FAILURE_OPTION           = WorkflowAssistanceState::FAILURE_OPTION;
 	private const MAX_RECORDS              = 100;
 	private const MAX_OBSERVATIONS         = 100;
 	private const MAX_FAILURES             = 100;
@@ -158,9 +158,7 @@ final class SetupRecordStore {
 	}
 
 	private static function claimLockName(): string {
-		global $wpdb;
-		$options = is_object( $wpdb ) && isset( $wpdb->options ) ? (string) $wpdb->options : 'unavailable';
-		return 'ran_booster_release_workflow_' . substr( hash( 'sha256', $options ), 0, 32 );
+		return WorkflowAssistanceState::claimLockName();
 	}
 	/** Refresh only the monotonic Core source revision for the same exact package record. @return array<string,int|string>|null */
 	public function refreshSourceRevision( string $repositoryId, string $type, string $identifier, int $revision ): ?array {
