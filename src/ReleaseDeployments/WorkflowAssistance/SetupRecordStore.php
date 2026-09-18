@@ -61,7 +61,7 @@ final class SetupRecordStore {
 		$record = $this->normalize( $raw );
 		return null !== $record && hash_equals( $repositoryId, $record['repo_id'] ) ? $record : null;
 	}
-	/** Any existing value owns its repository key, including legacy or malformed evidence. */
+	/** Any existing value owns its repository key, including unknown or malformed evidence. */
 	public function occupied( string $repositoryId ): bool {
 		if ( ! $this->text( $repositoryId, 191 ) ) {
 			return false;
