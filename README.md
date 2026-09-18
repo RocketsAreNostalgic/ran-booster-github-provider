@@ -39,6 +39,11 @@ The current host contract is Provider API 10. The additive
 `ProviderRegistrationContext` is feature-detected by external wrappers so the
 original two-argument API-10 factory remains the compatibility floor.
 
+Workflow-assistance persistence has a single current pre-1.0 baseline: setup
+records use schema 2 under the provider-owned option namespace, and failure
+history uses the current diagnostic-bearing record shape. Earlier prerelease
+option names and record shapes are not migration contracts.
+
 ## Requirements
 
 The supported host baseline is:
