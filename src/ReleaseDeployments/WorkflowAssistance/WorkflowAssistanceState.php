@@ -11,7 +11,6 @@ final class WorkflowAssistanceState {
 	public const FAILURE_OPTION    = 'ran_booster_github_provider_release_workflow_failure_history';
 	public const PREVIEW_PREFIX    = 'ran_booster_github_provider_release_workflow_preview_';
 
-
 	public static function claimLockName(): string {
 		global $wpdb;
 
