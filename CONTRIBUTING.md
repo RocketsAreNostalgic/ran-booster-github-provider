@@ -15,6 +15,10 @@ Use `composer format` for the repository-owned PHP formatting pass and rerun `co
 
 Do not add pnpm, ESLint, Prettier, Stylelint or other frontend tooling unless maintained JavaScript, TypeScript, CSS or SCSS frontend source actually exists. A future frontend surface must adopt the applicable shared RAN quality configuration through an explicit reviewed profile change.
 
-Changes to the provider boundary must remain compatible with the extraction plan in `RocketsAreNostalgic/ran-booster#131`: no production dependency on the whole Booster plugin, no hidden first-party authority, and no unrelated GitHub feature rewrite during migration.
+Changes to the provider boundary must preserve the standing package contract:
+no production dependency on the whole Booster plugin, no hidden first-party
+authority, no imports of Booster private implementation namespaces, and no
+unrelated GitHub feature rewrite merely because the package is bundled by
+Booster.
 
 Release-significant changes under `src/` or to production Composer requirements must use a visible release-driving Conventional Commit PR title (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`. See `RELEASING.md` for the trusted beta publication flow and the normal-merge exception for generated Release Please version PRs.

@@ -2,7 +2,7 @@
 
 ## Project contract
 
-This repository is the first-party GitHub provider package for RAN Booster. It is a Composer **library**, not a WordPress plugin. The package is extracted from Booster under `RocketsAreNostalgic/ran-booster#131`; preserve behaviour during that migration rather than using extraction as a feature rewrite.
+This repository is the first-party GitHub provider package for RAN Booster. It is a Composer **library**, not a WordPress plugin. Booster bundles an immutable released version as its first-party GitHub distribution; preserve the package boundary and established behavior rather than treating bundled status as permission for host-specific shortcuts or unrelated feature rewrites.
 
 The supported baseline follows the current Booster host: PHP 8.2+ and WordPress 7.0+. Keep `composer.json`, `.phpcs.xml`, PHPStan, CI and documentation aligned when that support contract changes.
 
@@ -31,7 +31,7 @@ composer check
 
 Use `composer format` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-owned deterministic foundation contract, and the release publisher/classification contracts.
 
-The extracted implementation consumes Booster-owned provider contracts, so implementation static analysis and the migrated PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
+The implementation consumes Booster-owned provider contracts, so implementation static analysis and the provider PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
 
 ```sh
 RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer analyze
@@ -46,7 +46,7 @@ Review evidence is revision-specific. Every inline review finding must receive a
 
 Use Conventional Commits. Changes under `src/` or to production Composer requirements are release-significant and must use a visible provider release-driving type (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`; PR-title edits rerun the required classification gate. Classification must use merge-base-to-head changes, not the moving base-branch tip, so unrelated `main` changes cannot be attributed to an older PR.
 
-The Phase 4 publisher follows the current organisation release-trust contracts in `RocketsAreNostalgic/.github#9`, `#20` and `#22`. `workflow_run` name routing is not sufficient admission: before repository-owned publication logic, bind to the canonical CI path and exact GitHub-authored triggering SHA, check out that SHA without persisted credentials, and verify `HEAD`. Release Please may prepare/reconcile proposals, but only the repository-owned exact publisher has publication authority.
+The repository publisher follows the current organisation release-trust contracts in `RocketsAreNostalgic/.github#9`, `#20` and `#22`. `workflow_run` name routing is not sufficient admission: before repository-owned publication logic, bind to the canonical CI path and exact GitHub-authored triggering SHA, check out that SHA without persisted credentials, and verify `HEAD`. Release Please may prepare/reconcile proposals, but only the repository-owned exact publisher has publication authority.
 
 Generated Release Please version PRs are a merge-method exception: they must use a normal two-parent merge so the publisher can prove exact base/head/tree geometry. Ordinary iterative/agent-developed PRs should follow the repository's normal squash preference unless the owner intentionally chooses otherwise.
 
