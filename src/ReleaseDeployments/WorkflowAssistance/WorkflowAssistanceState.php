@@ -11,11 +11,6 @@ final class WorkflowAssistanceState {
 	public const FAILURE_OPTION    = 'ran_booster_github_provider_release_workflow_failure_history';
 	public const PREVIEW_PREFIX    = 'ran_booster_github_provider_release_workflow_preview_';
 
-	private const LEGACY_OPTIONS = array(
-		'ran_booster_release_deployments_setup_records',
-		'ran_booster_release_deployments_assessment_observations',
-		'ran_booster_release_deployments_failure_history',
-	);
 
 	public static function claimLockName(): string {
 		global $wpdb;
@@ -25,10 +20,10 @@ final class WorkflowAssistanceState {
 		return 'ran_booster_github_workflow_' . substr( hash( 'sha256', $options ), 0, 32 );
 	}
 
-	/** Remove current provider-owned durable state plus obsolete prerelease keys. */
+	/** Remove current provider-owned durable workflow-assistance state. */
 	public function removeDurableState(): bool {
 		$missing = new \stdClass();
-		foreach ( array_merge( self::currentOptions(), self::LEGACY_OPTIONS ) as $option ) {
+		foreach ( self::currentOptions() as $option ) {
 			delete_option( $option );
 			if ( function_exists( 'wp_cache_delete' ) ) {
 				wp_cache_delete( $option, 'options' );
