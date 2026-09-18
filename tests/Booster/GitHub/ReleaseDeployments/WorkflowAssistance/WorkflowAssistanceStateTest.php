@@ -39,13 +39,22 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		$GLOBALS['wpdb']->disconnect();
 	}
 
-	public function testDurableCleanupOwnsCurrentAndObsoletePrereleaseKeysAndIsRepeatable(): void {
+	public function testDurableCleanupOwnsOnlyCurrentProviderStateAndIsRepeatable(): void {
 		$state = new WorkflowAssistanceState();
 
 		self::assertTrue( $state->removeDurableState() );
-		self::assertSame( array( 'unrelated_option' => 'preserved' ), $GLOBALS['ran_booster_release_deployments_test_options'] );
+		$options = $GLOBALS['ran_booster_release_deployments_test_options'];
+		self::assertSame( array( 'legacy' => true ), $options['ran_booster_release_deployments_setup_records'] );
+		self::assertSame(
+			array( 'legacy' => true ),
+			$options['ran_booster_release_deployments_assessment_observations']
+		);
+		self::assertSame( array( 'legacy' => true ), $options['ran_booster_release_deployments_failure_history'] );
+		self::assertSame( 'preserved', $options['unrelated_option'] );
+		self::assertCount( 4, $options );
+
 		self::assertTrue( $state->removeDurableState() );
-		self::assertSame( array( 'unrelated_option' => 'preserved' ), $GLOBALS['ran_booster_release_deployments_test_options'] );
+		self::assertCount( 4, $GLOBALS['ran_booster_release_deployments_test_options'] );
 	}
 
 	public function testLockAndPreviewNamesAreProviderOwned(): void {

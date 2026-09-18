@@ -276,32 +276,28 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertFalse( $store->save( array_replace( $this->record(), array( 'package_identifier' => 'other/other.php' ) ) ) );
 		self::assertSame( 'example-plugin/example-plugin.php', $store->find( '123456789' )['package_identifier'] );
 	}
-	public function testSchemaOneIsDisplayOnlyAndNeverCurrentAuthority(): void {
+	public function testSchemaOneRecordIsOccupiedButNeverInterpretedAsCurrentState(): void {
 		$legacy                 = array_intersect_key( $this->record(), array_flip( array( 'repo_id', 'repository', 'package_type', 'package_identifier', 'source_revision', 'default_branch', 'setup_branch', 'head_sha', 'pr_number' ) ) );
 		$legacy['setup_branch'] = 'ran-booster/release-setup-v1-aaaaaaaaaaaa-deadbeef';
 		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['123456789'] = $legacy;
 		$store = new SetupRecordStore();
+
 		self::assertNull( $store->find( '123456789' ) );
-		self::assertSame(
-			array(
-				'schema_version' => 1,
-				'repository'     => $legacy['repository'],
-				'setup_branch'   => $legacy['setup_branch'],
-				'pr_number'      => 42,
-			),
-			$store->legacyEvidence( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 )
+		self::assertTrue( $store->occupied( '123456789' ) );
+		self::assertNull( $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
+		self::assertFalse(
+			$store->save(
+				array_replace(
+					$this->record(),
+					array(
+						'repo_id'      => '987654321',
+						'setup_branch' => 'ran-booster/release-setup-v1-aaaaaaaaaaaa-deadbeef',
+					)
+				)
+			)
 		);
-		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['123456789']['token'] = 'secret';
-		$unsupported = array(
-			'schema_version' => 1,
-			'unsupported'    => 1,
-		);
-		self::assertSame( $unsupported, $store->legacyEvidence( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
-		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['123456789'] = $legacy;
-		self::assertSame( $unsupported, $store->legacyEvidence( '123456789', 'theme', 'example-plugin/example-plugin.php', 3 ) );
-		self::assertSame( $unsupported, $store->legacyEvidence( '123456789', 'plugin', 'other/example.php', 3 ) );
-		self::assertSame( $unsupported, $store->legacyEvidence( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 ) );
 	}
+
 	public function testReadbackAndRecordCapFailClosed(): void {
 		$GLOBALS['ran_booster_release_deployments_test_option_override'] = array();
 		self::assertFalse( ( new SetupRecordStore() )->save( $this->record() ) );
@@ -486,7 +482,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertTrue( $second->recordFailure( $failure ) );
 		self::assertSame( array( $failure ), $second->failureHistory( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 	}
-	public function testLegacyFailureHistoryIsRetainedAndUpgradedWhenRecordingANewFailure(): void {
+	public function testLegacyFailureHistoryFailsClosedAndIsNotUpgradedOnAppend(): void {
 		$legacy = array(
 			'operation'             => 'inspect',
 			'outcome_code'          => 'workflow_remote_unavailable',
@@ -499,8 +495,10 @@ final class SetupRecordStoreTest extends TestCase {
 			'recorded_at'           => '2026-08-27T12:34:56Z',
 		);
 		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_failure_history'] = array( $legacy );
-		$store = new SetupRecordStore();
-		$new   = array_merge(
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact prerelease bytes must remain untouched when rejected.
+		$before = serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_failure_history'] );
+		$store  = new SetupRecordStore();
+		$new    = array_merge(
 			array_slice( $legacy, 0, 7, true ),
 			array(
 				'diagnostic_code'       => 'provider_unavailable',
@@ -510,29 +508,12 @@ final class SetupRecordStoreTest extends TestCase {
 			)
 		);
 
-		self::assertTrue( $store->recordFailure( $new ) );
-		$history = $store->failureHistory( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
-		self::assertCount( 2, $history );
-		self::assertSame( 'diagnostic_detail_unavailable', $history[0]['diagnostic_code'] );
-		self::assertFalse( $history[0]['diagnostic_available'] );
-		self::assertSame( $new, $history[1] );
-		self::assertSame(
-			array(
-				'operation',
-				'outcome_code',
-				'failure_stage',
-				'package_type',
-				'package_identifier',
-				'source_revision',
-				'repository_id',
-				'diagnostic_code',
-				'diagnostic_available',
-				'correlation_reference',
-				'recorded_at',
-			),
-			array_keys( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_failure_history'][0] )
-		);
+		self::assertSame( array(), $store->failureHistory( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
+		self::assertFalse( $store->recordFailure( $new ) );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Rejection must not rewrite obsolete history into a current shape.
+		self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_failure_history'] ) );
 	}
+
 	/** @return array<string,int|string> */
 	private function record(): array {
 		return array(
