@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.3](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.2...v0.1.0-beta.3) (2026-09-18)
+
+
+### Bug Fixes
+
+* own workflow-assistance state namespace ([#12](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/12)) ([dadb846](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/dadb8469c963d947c3a8a7069ed231bb4acd4678))
+
 ## [0.1.0-beta.2](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.1...v0.1.0-beta.2) (2026-09-17)
 
 
