@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.5](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.4...v0.1.0-beta.5) (2026-09-19)
+
+
+### Bug Fixes
+
+* advance release updater baseline ([#18](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/18)) ([eeab491](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/eeab491f17ffab0441b157ba56fe9da70a869377))
+
 ## [0.1.0-beta.4](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.3...v0.1.0-beta.4) (2026-09-18)
 
 
