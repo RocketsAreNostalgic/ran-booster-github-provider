@@ -14,6 +14,7 @@ use RAN\Deployment\PreparedArtifact;
 use RAN\Deployment\ReleaseArtifactCustodian;
 use RAN\RepositoryProvider\AuthenticatedWebhookDeliveryEvidence;
 use RAN\RepositoryProvider\AuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\RepositoryProvider\ProviderRegistrationContext;
 use RAN\RepositoryProvider\RepositoryReference;
 use RAN\RepositoryProvider\RepositoryReleaseAcquirer;
 use RAN\RepositoryProvider\RepositoryReleaseAcquisitionRejected;
@@ -134,7 +135,8 @@ final class ReleaseAcquisitionTest extends TestCase {
 					return null;
 				}
 			},
-			NeutralReleaseUpdaterFixtures::registrar()
+			NeutralReleaseUpdaterFixtures::registrar(),
+			new ProviderRegistrationContext( static fn (): int => 52_428_800 )
 		);
 		self::assertInstanceOf( GitHubProvider::class, $provider );
 		self::assertInstanceOf( RepositoryReleaseAcquirer::class, $provider );
