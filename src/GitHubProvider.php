@@ -26,6 +26,7 @@ use RAN\RepositoryProvider\ProviderCredentialStore;
 use RAN\RepositoryProvider\ProviderDiagnosticResult;
 use RAN\RepositoryProvider\ProviderDiagnostics;
 use RAN\RepositoryProvider\ProviderMetadata;
+use RAN\RepositoryProvider\ProviderRegistrationContext;
 use RAN\RepositoryProvider\ProviderWebhookPolicy;
 use RAN\RepositoryProvider\PublicRepositoryBrowseMetadata;
 use RAN\RepositoryProvider\RepositoryBrowseRequest;
@@ -97,7 +98,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		ProviderCredentialStore $credentials,
 		AuthenticatedWebhookDeliveryEvidenceReader $deliveryEvidence,
 		object $registrar,
-		?callable $maximumArtifactBytes = null
+		ProviderRegistrationContext $registrationContext
 	): RepositoryProvider {
 		return new self(
 			$credentials,
@@ -105,7 +106,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			new WebhookNormalizer( $credentials, $deliveryEvidence ),
 			new RepositoryWebhookClient(),
 			$registrar,
-			$maximumArtifactBytes
+			$registrationContext->maximumArtifactBytes( ... )
 		);
 	}
 
