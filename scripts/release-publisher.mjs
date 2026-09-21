@@ -73,7 +73,7 @@ export async function hydrateExactReleasePullTree(repository, candidateSha, pull
   return hydrateReleasePullTree(repository, candidateSha, pulls, request);
 }
 
-export async function runPublisher(root = process.cwd()) {
+export async function runPublisher(root = process.cwd(), options = {}) {
   const eventPath = process.env.GITHUB_EVENT_PATH;
   const repository = process.env.GITHUB_REPOSITORY;
   if (repository !== REPOSITORY || !eventPath || !process.env.GITHUB_TOKEN) {
@@ -82,9 +82,20 @@ export async function runPublisher(root = process.cwd()) {
 
   const payload = JSON.parse(readFileSync(eventPath, "utf8"));
   const event = payload.workflow_run;
-  const sha = event?.head_sha;
-  if (!FULL_SHA.test(sha ?? "") || currentSha(root) !== sha) {
+  const admittedSha = event?.head_sha;
+  const replaySha = options.replaySha ?? process.env.RAN_RELEASE_PUBLISHER_REPLAY_SHA ?? null;
+  const sha = replaySha ?? admittedSha;
+  if (!FULL_SHA.test(admittedSha ?? "") || currentSha(root) !== admittedSha) {
     refuse("checkout_drift", "checkout is not the CI candidate");
+  }
+  if (replaySha !== null) {
+    if (!FULL_SHA.test(replaySha) || process.env.RAN_RELEASE_PUBLISHER_REPLAY_AUTHORIZED !== "1") {
+      refuse("replay_invalid", "release replay requires an exact authorized candidate SHA");
+    }
+    const replayMain = (await api(`/repos/${repository}/git/ref/heads/main`)).data?.object?.sha;
+    if (replayMain !== admittedSha) {
+      refuse("main_moved", "main no longer points at the successful recovery candidate");
+    }
   }
 
   const candidateContents = releaseContents(root, sha);
@@ -116,9 +127,9 @@ export async function runPublisher(root = process.cwd()) {
   ]);
   const hydratedPulls = await hydrateExactReleasePullTree(repository, sha, pulls);
   let input = {
-    event,
+    event: replaySha === null ? event : { ...event, head_sha: sha },
     candidateSha: sha,
-    mainSha: main.data?.object?.sha,
+    mainSha: replaySha === null ? main.data?.object?.sha : sha,
     identity,
     pulls: hydratedPulls,
     commit: {
@@ -149,7 +160,7 @@ export async function runPublisher(root = process.cwd()) {
   ]);
   input = {
     ...input,
-    mainSha: freshMain.data?.object?.sha,
+    mainSha: replaySha === null ? freshMain.data?.object?.sha : sha,
     pulls: await hydrateExactReleasePullTree(repository, sha, freshPulls),
     tagRef: freshState.tagRef,
     release: freshState.release,
