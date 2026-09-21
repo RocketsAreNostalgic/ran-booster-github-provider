@@ -9,6 +9,7 @@ require_once dirname( __DIR__, 2 ) . '/Support/NeutralReleaseUpdaterFixtures.php
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\GitHubProvider;
 use RAN\BoosterGitHubProvider\V1\GitHubReleaseNativeTarget;
+use RAN\RepositoryProvider\ProviderRegistrationContext;
 use RAN\RepositoryProvider\RepositoryReference;
 use RuntimeException;
 use Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
@@ -62,11 +63,13 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 			new RepositoryResolverSecretsStub(),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
 			$registrar,
-			static function () use ( &$limitReads ): int {
-				++$limitReads;
+			new ProviderRegistrationContext(
+				static function () use ( &$limitReads ): int {
+					++$limitReads;
 
-				return 1048576;
-			}
+					return 1048576;
+				}
+			)
 		);
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
 
@@ -119,7 +122,8 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		$provider   = GitHubProvider::create(
 			new RepositoryResolverSecretsStub(),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
-			$registrar
+			$registrar,
+			new ProviderRegistrationContext( static fn (): int => 52_428_800 )
 		);
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
 
@@ -137,7 +141,8 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 
 					return new class() {};
 				}
-			}
+			},
+			new ProviderRegistrationContext( static fn (): int => 52_428_800 )
 		);
 
 		self::assertSame( 'gh', $provider->getMetadata()->code->value );
@@ -231,7 +236,8 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		$provider = GitHubProvider::create(
 			new RepositoryResolverSecretsStub(),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
-			$runtime
+			$runtime,
+			new ProviderRegistrationContext( static fn (): int => 52_428_800 )
 		);
 		$target   = $provider->createNativeTarget(
 			'plugin',
