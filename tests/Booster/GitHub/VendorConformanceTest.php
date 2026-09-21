@@ -55,9 +55,9 @@ final class VendorConformanceTest extends TestCase {
 		self::assertSame( ProviderCredentialStore::class, (string) $providerParameters[0]->getType() );
 		self::assertSame( AuthenticatedWebhookDeliveryEvidenceReader::class, (string) $providerParameters[1]->getType() );
 		self::assertSame( 'object', (string) $providerParameters[2]->getType() );
-		self::assertSame( ProviderRegistrationContext::class, (string) $providerParameters[3]->getType() );
-		self::assertFalse( $providerParameters[3]->isOptional() );
-		self::assertFalse( $providerParameters[3]->allowsNull() );
+		self::assertSame( '?callable', (string) $providerParameters[3]->getType() );
+		self::assertTrue( $providerParameters[3]->isOptional() );
+		self::assertNull( $providerParameters[3]->getDefaultValue() );
 		self::assertSame( RepositoryProvider::class, (string) $compositionMethod->getReturnType() );
 		self::assertTrue( $compositionMethod->isPublic() );
 		self::assertTrue( $compositionMethod->isStatic() );
@@ -131,7 +131,12 @@ final class VendorConformanceTest extends TestCase {
 
 		$registry->registerWithCredentialStore(
 			'gh',
-			static fn ( ProviderCredentialStore $store, AuthenticatedWebhookDeliveryEvidenceReader $evidence, ProviderRegistrationContext $context ): RepositoryProvider => GitHubProvider::create( $store, $evidence, new \stdClass(), $context )
+			static fn ( ProviderCredentialStore $store, AuthenticatedWebhookDeliveryEvidenceReader $evidence, ProviderRegistrationContext $context ): RepositoryProvider => GitHubProvider::create(
+				$store,
+				$evidence,
+				new \stdClass(),
+				static fn (): int => $context->maximumArtifactBytes()
+			)
 		);
 		$registry->seal();
 
