@@ -19,6 +19,7 @@ use RAN\RepositoryProvider\ProviderCode;
 use RAN\RepositoryProvider\ProviderCredentialPolicySupplier;
 use RAN\RepositoryProvider\ProviderCredentialStore;
 use RAN\RepositoryProvider\ProviderRegistry;
+use RAN\RepositoryProvider\ProviderRegistrationContext;
 use RAN\RepositoryProvider\ProviderSecretPolicyCatalog;
 use RAN\RepositoryProvider\ProviderWebhookProfileReader;
 use RAN\RepositoryProvider\RepositoryBrowser;
@@ -54,9 +55,9 @@ final class VendorConformanceTest extends TestCase {
 		self::assertSame( ProviderCredentialStore::class, (string) $providerParameters[0]->getType() );
 		self::assertSame( AuthenticatedWebhookDeliveryEvidenceReader::class, (string) $providerParameters[1]->getType() );
 		self::assertSame( 'object', (string) $providerParameters[2]->getType() );
-		self::assertSame( '?callable', (string) $providerParameters[3]->getType() );
-		self::assertTrue( $providerParameters[3]->isOptional() );
-		self::assertNull( $providerParameters[3]->getDefaultValue() );
+		self::assertSame( ProviderRegistrationContext::class, (string) $providerParameters[3]->getType() );
+		self::assertFalse( $providerParameters[3]->isOptional() );
+		self::assertFalse( $providerParameters[3]->allowsNull() );
 		self::assertSame( RepositoryProvider::class, (string) $compositionMethod->getReturnType() );
 		self::assertTrue( $compositionMethod->isPublic() );
 		self::assertTrue( $compositionMethod->isStatic() );
@@ -124,12 +125,13 @@ final class VendorConformanceTest extends TestCase {
 			static function ( ProviderCode $code ) use ( $deliveryEvidence, &$requestedEvidence ): AuthenticatedWebhookDeliveryEvidenceReader {
 				$requestedEvidence[] = $code->value;
 				return $deliveryEvidence;
-			}
+			},
+			new ProviderRegistrationContext( static fn (): int => 52_428_800 )
 		);
 
 		$registry->registerWithCredentialStore(
 			'gh',
-			static fn ( ProviderCredentialStore $store, AuthenticatedWebhookDeliveryEvidenceReader $evidence ): RepositoryProvider => GitHubProvider::create( $store, $evidence, new \stdClass() )
+			static fn ( ProviderCredentialStore $store, AuthenticatedWebhookDeliveryEvidenceReader $evidence, ProviderRegistrationContext $context ): RepositoryProvider => GitHubProvider::create( $store, $evidence, new \stdClass(), $context )
 		);
 		$registry->seal();
 
