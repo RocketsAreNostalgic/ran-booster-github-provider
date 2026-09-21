@@ -35,9 +35,11 @@ Where host policy is needed, it arrives through bounded public registration
 inputs. The package owns its legitimate shared dependencies, including the
 provider-neutral release updater.
 
-The current host contract is Provider API 10. The additive
-`ProviderRegistrationContext` is feature-detected by external wrappers so the
-original two-argument API-10 factory remains the compatibility floor.
+The current host contract is Provider API 11. Credential-bearing registration
+requires `ProviderCredentialStore`, `AuthenticatedWebhookDeliveryEvidenceReader`
+and the bounded `ProviderRegistrationContext`. GitHub consumes the context's
+host-resolved artifact-size policy for its release adapters; there is no API-10
+two-argument compatibility path.
 
 Workflow-assistance persistence has a single current pre-1.0 baseline: setup
 records use schema 2 under the provider-owned option namespace, and failure
