@@ -37,9 +37,10 @@ provider-neutral release updater.
 
 The current host contract is Provider API 11. Credential-bearing registration
 requires `ProviderCredentialStore`, `AuthenticatedWebhookDeliveryEvidenceReader`
-and the bounded `ProviderRegistrationContext`. GitHub consumes the context's
-host-resolved artifact-size policy for its release adapters; there is no API-10
-two-argument compatibility path.
+and the bounded `ProviderRegistrationContext`. The API-11 registration wrapper
+adapts the context's host-resolved artifact-size policy to the package's
+host-neutral callable composition boundary used by released Booster beta.29;
+there is no API-10 two-argument registration compatibility path.
 
 Workflow-assistance persistence has a single current pre-1.0 baseline: setup
 records use schema 2 under the provider-owned option namespace, and failure
