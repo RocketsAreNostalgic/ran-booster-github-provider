@@ -20,7 +20,7 @@ The required `quality` check reruns when a pull request title is edited and fail
 
 The metadata-only CI trigger above is not release authority: it cannot publish, does not alter the candidate tree, and does not bypass the required `quality` gate. It exists only because GitHub intentionally suppresses recursive workflow events created by the repository `GITHUB_TOKEN`.
 
-The first release must advance the explicit unreleased state `0.0.0` to `0.1.0-beta.1`. Subsequent releases remain on the independent `0.1.0-beta.N` line until the package's pre-release policy changes deliberately.
+The first release must advance the explicit unreleased state `0.0.0` to `0.1.0-beta.1`. Subsequent releases remain canonical SemVer prereleases of the form `MAJOR.MINOR.PATCH-beta.N`. Release Please may advance the SemVer core when release-driving metadata requires it, including an explicit breaking `!` change; the repository-owned publisher independently verifies the exact Release Please merge, monotonic version progression and immutable publication state.
 
 ## Immutable-release acknowledgement
 
