@@ -31,7 +31,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 require $coreRoot . '/autoload.php';
 
-if ( ! defined( 'RAN_BOOSTER_PROVIDER_API_VERSION' ) || 11 !== RAN_BOOSTER_PROVIDER_API_VERSION ) {
+$corePlugin = file_get_contents( $coreRoot . '/ran-booster.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Exact certified source contract.
+if ( ! is_string( $corePlugin )
+	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 11 \);/", $corePlugin )
+) {
 	throw new RuntimeException( 'Unexpected Provider API generation.' );
 }
 if ( ! class_exists( ProviderRegistrationContext::class ) ) {
