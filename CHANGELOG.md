@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0-beta.5](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.5...v1.0.0-beta.5) (2026-09-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **provider:** recertify GitHub provider for Provider API 11 ([#20](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/20))
+
+### Bug Fixes
+
+* **provider:** recertify GitHub provider for Provider API 11 ([#20](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/20)) ([dc2fb34](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/dc2fb34ae002d369ca9a21de7c0669ed5d98902f))
+
 ## [0.1.0-beta.5](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.4...v0.1.0-beta.5) (2026-09-19)
 
 
