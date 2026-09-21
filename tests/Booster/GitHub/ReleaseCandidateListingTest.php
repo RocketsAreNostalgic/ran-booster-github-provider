@@ -13,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\GitHubProvider;
 use RAN\RepositoryProvider\AuthenticatedWebhookDeliveryEvidence;
 use RAN\RepositoryProvider\AuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\RepositoryProvider\ProviderRegistrationContext;
 use RAN\RepositoryProvider\RepositoryReference;
 use RAN\RepositoryProvider\RepositoryReleaseCandidateListing;
 use RAN\RepositoryProvider\RepositoryReleaseReadUnavailable;
@@ -201,7 +202,8 @@ final class ReleaseCandidateListingTest extends TestCase {
 					return null;
 				}
 			},
-			NeutralReleaseUpdaterFixtures::registrar()
+			NeutralReleaseUpdaterFixtures::registrar(),
+			new ProviderRegistrationContext( static fn (): int => 52_428_800 )
 		);
 		self::assertInstanceOf( RepositoryReleaseCandidateListing::class, $provider );
 
