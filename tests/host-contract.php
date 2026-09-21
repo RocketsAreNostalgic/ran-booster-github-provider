@@ -7,6 +7,7 @@ use RAN\RepositoryProvider\ArchiveRequest;
 use RAN\RepositoryProvider\PreparedArchive;
 use RAN\RepositoryProvider\ProviderDiagnostics;
 use RAN\RepositoryProvider\ProviderMetadata;
+use RAN\RepositoryProvider\ProviderRegistrationContext;
 use RAN\RepositoryProvider\RepositoryDescriptor;
 use RAN\RepositoryProvider\RepositoryLookupRequest;
 use RAN\RepositoryProvider\RepositoryProvider;
@@ -29,6 +30,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 }
 require $coreRoot . '/autoload.php';
+
+if ( ! defined( 'RAN_BOOSTER_PROVIDER_API_VERSION' ) || 11 !== RAN_BOOSTER_PROVIDER_API_VERSION ) {
+	throw new RuntimeException( 'Unexpected Provider API generation.' );
+}
+if ( ! class_exists( ProviderRegistrationContext::class ) ) {
+	throw new RuntimeException( 'Provider API 11 registration context is unavailable.' );
+}
 
 /** @return string */
 function ran_booster_github_provider_type_name( ?ReflectionType $type ): string {
