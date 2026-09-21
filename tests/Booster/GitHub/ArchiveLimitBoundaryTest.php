@@ -80,7 +80,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		self::assertSame( 1048576, $registrar->arguments[6] );
 	}
 
-	public function testReleaseSourceWithoutHostLimitUsesUpdaterOwnedDefaultContract(): void {
+	public function testReleaseSourceForwardsApi11HostLimit(): void {
 		$registrar  = new class() {
 			/** @var list<mixed> */
 			public array $arguments = array();
@@ -89,15 +89,8 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 				throw new \LogicException( 'GitHub must not discover host policy from the updater registrar.' );
 			}
 
-			public function releases(
-				mixed $provider,
-				mixed $packageType,
-				mixed $repository,
-				mixed $repositoryId,
-				mixed $channel,
-				mixed $accessToken
-			): object {
-				$this->arguments = array( $provider, $packageType, $repository, $repositoryId, $channel, $accessToken );
+			public function releases( mixed ...$arguments ): object {
+				$this->arguments = $arguments;
 
 				return new class() {
 					/** @return array<string, mixed> */
@@ -119,12 +112,14 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		$provider   = GitHubProvider::create(
 			new RepositoryResolverSecretsStub(),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
-			$registrar
+			$registrar,
+			static fn (): int => 52_428_800
 		);
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
 
 		$provider->listReleaseCandidates( 'plugin', $repository, 'stable' );
-		self::assertCount( 6, $registrar->arguments );
+		self::assertCount( 7, $registrar->arguments );
+		self::assertSame( 52_428_800, $registrar->arguments[6] );
 	}
 
 	public function testUnavailableReleaseRuntimeFailsOnlyAtReleaseBoundary(): void {
@@ -213,7 +208,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		self::assertCount( 7, $runtime->arguments );
 	}
 
-	public function testProviderCreatedNativeTargetWithoutHostLimitUsesUpdaterOwnedDefaultContract(): void {
+	public function testProviderCreatedNativeTargetForwardsApi11HostLimit(): void {
 		$runtime  = new class() {
 			/** @var list<mixed> */
 			public array $arguments = array();
@@ -231,7 +226,8 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		$provider = GitHubProvider::create(
 			new RepositoryResolverSecretsStub(),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
-			$runtime
+			$runtime,
+			static fn (): int => 52_428_800
 		);
 		$target   = $provider->createNativeTarget(
 			'plugin',
@@ -244,7 +240,8 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		);
 
 		self::assertTrue( $target->register() );
-		self::assertCount( 7, $runtime->arguments );
+		self::assertCount( 8, $runtime->arguments );
+		self::assertSame( 52_428_800, $runtime->arguments[7] );
 	}
 
 	public function testGitHubReleaseAdaptersDoNotOwnBoosterDefaultLiteral(): void {

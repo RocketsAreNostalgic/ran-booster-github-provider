@@ -67,18 +67,18 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Check out certified Booster host
-        # Phase 3 parity is certified against the exact Booster source from which this implementation was extracted.
+        # Provider API 11 certification is pinned to the released Booster v1.0.0-beta.29 tag target.
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: 52305d0f394c4b6447015da206ddc0f622ff39e8
+          ref: ffc11fc8e40618624a785b7fca5193029c6d492e
           persist-credentials: false
           path: booster
 
       - name: Verify exact source and host revisions
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: 52305d0f394c4b6447015da206ddc0f622ff39e8
+          RAN_BOOSTER_HOST_SHA: ffc11fc8e40618624a785b7fca5193029c6d492e
         run: |
           set -euo pipefail
           test -n "$RAN_EXPECTED_SHA"
@@ -117,14 +117,14 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: 52305d0f394c4b6447015da206ddc0f622ff39e8
+          ref: ffc11fc8e40618624a785b7fca5193029c6d492e
           persist-credentials: false
           path: booster
 
       - name: Verify exact source and host revisions
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: 52305d0f394c4b6447015da206ddc0f622ff39e8
+          RAN_BOOSTER_HOST_SHA: ffc11fc8e40618624a785b7fca5193029c6d492e
         run: |
           set -euo pipefail
           test -n "$RAN_EXPECTED_SHA"
