@@ -90,8 +90,12 @@ export async function runPublisher(root = process.cwd(), options = {}) {
     refuse("checkout_drift", "checkout is not the CI candidate");
   }
   if (replaySha !== null) {
-    if (!FULL_SHA.test(replaySha) || process.env.RAN_RELEASE_PUBLISHER_REPLAY_AUTHORIZED !== "1") {
-      refuse("replay_invalid", "release replay requires an exact authorized candidate SHA");
+    const replayAdmissionSha = process.env.RAN_RELEASE_PUBLISHER_REPLAY_ADMISSION_SHA ?? "";
+    if (!FULL_SHA.test(replaySha)
+      || !FULL_SHA.test(replayAdmissionSha)
+      || replayAdmissionSha !== admittedSha
+      || process.env.RAN_RELEASE_PUBLISHER_REPLAY_AUTHORIZED !== "1") {
+      refuse("replay_invalid", "release replay requires exact candidate and recovery-admission SHAs");
     }
     const replayMain = (await api(`/repos/${repository}/git/ref/heads/main`)).data?.object?.sha;
     if (replayMain !== admittedSha) {
