@@ -4,6 +4,7 @@ import test from "node:test";
 
 const workflow = readFileSync(new URL("../.github/workflows/release-please.yml", import.meta.url), "utf8");
 const ciWorkflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+const releaseConfig = JSON.parse(readFileSync(new URL("../release-please-config.json", import.meta.url), "utf8"));
 
 test("release workflow is a thin pinned Profile A caller", () => {
   assert.match(workflow, /workflow_run:/);
@@ -15,11 +16,20 @@ test("release workflow is a thin pinned Profile A caller", () => {
   assert.match(workflow, /actions: write/);
   assert.doesNotMatch(workflow, /release-publisher/);
   assert.doesNotMatch(workflow, /RAN_RELEASE_PUBLISHER_REPLAY/);
+  assert.equal(releaseConfig.packages["."]["skip-github-release"], undefined);
 });
 
-test("canonical CI supports shared exact-head candidate dispatch", () => {
+test("canonical CI authenticates shared exact-head candidate dispatch", () => {
   assert.match(ciWorkflow, /^\s*workflow_dispatch:/m);
-  assert.match(ciWorkflow, /pull_request:\n\s+types: \[opened, synchronize, reopened, edited\]/);
-  assert.match(ciWorkflow, /RAN_RELEASE_PR_TITLE: \$\{\{ github\.event\.pull_request\.title \}\}/);
+  assert.match(ciWorkflow, /pull-requests: read/);
+  assert.match(ciWorkflow, /Resolve exact Release Please PR for dispatch/);
+  assert.match(ciWorkflow, /expected_head='release-please--branches--main--components--ran\/booster-github-provider'/);
+  assert.match(ciWorkflow, /\.user\.login == \$bot/);
+  assert.match(ciWorkflow, /\.head\.sha == \$sha/);
+  assert.match(ciWorkflow, /Expected exactly one canonical Release Please pull request for dispatch/);
+  assert.match(ciWorkflow, /github\.event_name == 'pull_request' \|\| github\.event_name == 'workflow_dispatch'/);
+  assert.match(ciWorkflow, /steps\.dispatch-pr\.outputs\.base_sha/);
+  assert.match(ciWorkflow, /steps\.dispatch-pr\.outputs\.head_sha/);
+  assert.match(ciWorkflow, /steps\.dispatch-pr\.outputs\.title/);
   assert.match(ciWorkflow, /quality:\n\s+name: quality[\s\S]*needs:[\s\S]*- release-classification/);
 });
