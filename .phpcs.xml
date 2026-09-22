@@ -31,9 +31,10 @@
 		<severity>0</severity>
 	</rule>
 
-	<!-- Preserve inherited public/callback signatures during behavior-preserving extraction. -->
+	<!-- Test doubles preserve the WordPress and provider callback signatures they replace. -->
 	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
-		<severity>0</severity>
+		<exclude-pattern>/tests/Support/NeutralReleaseUpdaterWordPressFunctions.php</exclude-pattern>
+		<exclude-pattern>/tests/Booster/GitHub/PublicReleaseResultMappingTest.php</exclude-pattern>
 	</rule>
 	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
 		<severity>0</severity>
