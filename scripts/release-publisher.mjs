@@ -83,7 +83,8 @@ export async function runPublisher(root = process.cwd(), options = {}) {
   const payload = JSON.parse(readFileSync(eventPath, "utf8"));
   const event = payload.workflow_run;
   const admittedSha = event?.head_sha;
-  const replaySha = options.replaySha ?? process.env.RAN_RELEASE_PUBLISHER_REPLAY_SHA ?? null;
+  const configuredReplaySha = options.replaySha ?? process.env.RAN_RELEASE_PUBLISHER_REPLAY_SHA ?? "";
+  const replaySha = configuredReplaySha === "" ? null : configuredReplaySha;
   const sha = replaySha ?? admittedSha;
   if (!FULL_SHA.test(admittedSha ?? "") || currentSha(root) !== admittedSha) {
     refuse("checkout_drift", "checkout is not the CI candidate");
@@ -158,6 +159,9 @@ export async function runPublisher(root = process.cwd(), options = {}) {
     associatedPulls(repository, sha),
     remoteState(repository, identity.tag),
   ]);
+  if (replaySha !== null && freshMain.data?.object?.sha !== admittedSha) {
+    refuse("main_moved", "main moved after recovery admission");
+  }
   input = {
     ...input,
     mainSha: replaySha === null ? freshMain.data?.object?.sha : sha,
