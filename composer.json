@@ -46,21 +46,27 @@
     "check": [
       "@validate:strict",
       "@lint:syntax",
-      "@lint:php",
-      "@test:foundation",
-      "@test:release-control"
+      "@standards",
+      "@test"
     ],
     "validate:strict": "composer validate --strict --no-check-publish",
     "test:foundation": "@php tests/foundation-contract.php",
     "test:implementation": "phpunit --configuration phpunit.xml --fail-on-phpunit-deprecation",
-    "lint:syntax": "find src tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l",
-    "lint:php": "phpcs --standard=.phpcs.xml --report=summary",
-    "format:php": "phpcbf --standard=.phpcs.xml --report=summary",
-    "standards": "@lint:php",
-    "standards:fix": "@format:php",
+    "lint:syntax": "bash -o pipefail -c 'find src tests -type f -name \"*.php\" -print0 | xargs -0 -n1 php -l'",
+    "standards": "phpcs --standard=.phpcs.xml --report=summary",
+    "standards:fix": "phpcbf --standard=.phpcs.xml --report=summary",
     "analyze": "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M",
-    "format": "@format:php",
-    "test:release-control": "node --test tests/release-classification.test.mjs tests/release-workflow-contract.test.mjs"
+    "test:release-control": "node --test tests/release-classification.test.mjs tests/release-workflow-contract.test.mjs",
+    "test": [
+      "@test:foundation",
+      "@test:release-control"
+    ],
+    "test:host-contract": "@php tests/host-contract.php",
+    "check:host": [
+      "@test:host-contract",
+      "@analyze",
+      "@test:implementation"
+    ]
   },
   "config": {
     "platform": {

@@ -179,17 +179,11 @@ jobs:
         working-directory: provider
         run: composer install --no-interaction --prefer-dist
 
-      - name: Analyze migrated production source
+      - name: Run certified-host quality aggregate
         env:
           RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
         working-directory: provider
-        run: composer analyze
-
-      - name: Run migrated implementation suite
-        env:
-          RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
-        working-directory: provider
-        run: composer test:implementation
+        run: composer check:host
 
   quality:
     name: quality

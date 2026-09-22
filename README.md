@@ -72,17 +72,21 @@ composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-Use `composer format` to apply PHPCBF.
+Use `composer standards:fix` to apply PHPCBF.
 
 The implementation tests and static analysis also verify compatibility with an
 exact certified Booster checkout because the public provider contracts remain
 Booster-owned. For an equivalent local pass:
 
 ```bash
-RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer analyze
-RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer test:implementation
+export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
+# Match the certified host pinned in .github/workflows/ci.yml.
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ffc11fc8e40618624a785b7fca5193029c6d492e &&
+  composer check:host
 ```
 
+`composer check:host` runs the host contract, blocking level-1 production
+analysis and the implementation PHPUnit suite. It supplements `composer check`.
 CI pins and verifies that host revision before running the host-backed gates.
 
 ## Issues and ownership

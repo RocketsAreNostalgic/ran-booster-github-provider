@@ -29,14 +29,18 @@ composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-Use `composer format` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-owned deterministic foundation contract, and the release workflow/classification contracts.
+Use `composer standards:fix` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-owned deterministic foundation contract, and the release workflow/classification contracts.
 
 The implementation consumes Booster-owned provider contracts, so implementation static analysis and the provider PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
 
 ```sh
-RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer analyze
-RAN_BOOSTER_CORE_PATH=/path/to/ran-booster composer test:implementation
+export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
+# Match the certified host pinned in .github/workflows/ci.yml.
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ffc11fc8e40618624a785b7fca5193029c6d492e &&
+  composer check:host
 ```
+
+`composer test` aggregates the host-independent foundation and release-control tests. `composer check:host` aggregates `test:host-contract`, `analyze` and `test:implementation`; the focused commands remain available.
 
 CI pins and verifies the certified Booster revision before running those host-backed gates, separately verifies the host contract, validates mutable PR release classification, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
 
