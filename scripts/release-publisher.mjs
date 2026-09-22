@@ -73,7 +73,7 @@ export async function hydrateExactReleasePullTree(repository, candidateSha, pull
   return hydrateReleasePullTree(repository, candidateSha, pulls, request);
 }
 
-export async function runPublisher(root = process.cwd()) {
+export async function runPublisher(root = process.cwd(), options = {}) {
   const eventPath = process.env.GITHUB_EVENT_PATH;
   const repository = process.env.GITHUB_REPOSITORY;
   if (repository !== REPOSITORY || !eventPath || !process.env.GITHUB_TOKEN) {
@@ -82,9 +82,25 @@ export async function runPublisher(root = process.cwd()) {
 
   const payload = JSON.parse(readFileSync(eventPath, "utf8"));
   const event = payload.workflow_run;
-  const sha = event?.head_sha;
-  if (!FULL_SHA.test(sha ?? "") || currentSha(root) !== sha) {
+  const admittedSha = event?.head_sha;
+  const configuredReplaySha = options.replaySha ?? process.env.RAN_RELEASE_PUBLISHER_REPLAY_SHA ?? "";
+  const replaySha = configuredReplaySha === "" ? null : configuredReplaySha;
+  const sha = replaySha ?? admittedSha;
+  if (!FULL_SHA.test(admittedSha ?? "") || currentSha(root) !== admittedSha) {
     refuse("checkout_drift", "checkout is not the CI candidate");
+  }
+  if (replaySha !== null) {
+    const replayAdmissionSha = process.env.RAN_RELEASE_PUBLISHER_REPLAY_ADMISSION_SHA ?? "";
+    if (!FULL_SHA.test(replaySha)
+      || !FULL_SHA.test(replayAdmissionSha)
+      || replayAdmissionSha !== admittedSha
+      || process.env.RAN_RELEASE_PUBLISHER_REPLAY_AUTHORIZED !== "1") {
+      refuse("replay_invalid", "release replay requires exact candidate and recovery-admission SHAs");
+    }
+    const replayMain = (await api(`/repos/${repository}/git/ref/heads/main`)).data?.object?.sha;
+    if (replayMain !== admittedSha) {
+      refuse("main_moved", "main no longer points at the successful recovery candidate");
+    }
   }
 
   const candidateContents = releaseContents(root, sha);
@@ -116,9 +132,9 @@ export async function runPublisher(root = process.cwd()) {
   ]);
   const hydratedPulls = await hydrateExactReleasePullTree(repository, sha, pulls);
   let input = {
-    event,
+    event: replaySha === null ? event : { ...event, head_sha: sha },
     candidateSha: sha,
-    mainSha: main.data?.object?.sha,
+    mainSha: replaySha === null ? main.data?.object?.sha : sha,
     identity,
     pulls: hydratedPulls,
     commit: {
@@ -147,9 +163,12 @@ export async function runPublisher(root = process.cwd()) {
     associatedPulls(repository, sha),
     remoteState(repository, identity.tag),
   ]);
+  if (replaySha !== null && freshMain.data?.object?.sha !== admittedSha) {
+    refuse("main_moved", "main moved after recovery admission");
+  }
   input = {
     ...input,
-    mainSha: freshMain.data?.object?.sha,
+    mainSha: replaySha === null ? freshMain.data?.object?.sha : sha,
     pulls: await hydrateExactReleasePullTree(repository, sha, freshPulls),
     tagRef: freshState.tagRef,
     release: freshState.release,

@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { runPublisher } from "../scripts/release-publisher.mjs";
+import { runPublisher, verifyReleaseDelta } from "../scripts/release-publisher.mjs";
+import { manifestVersion } from "../scripts/release-publisher-content.mjs";
 
 const REPOSITORY = "RocketsAreNostalgic/ran-booster-github-provider";
 const ID = 1370171375;
@@ -260,4 +261,24 @@ test("wrong CI identity refuses without writes", async () => {
       restore();
     }
   }
+});
+
+
+test("publisher content accepts Release Please prerelease major transitions", () => {
+  assert.equal(manifestVersion(JSON.stringify({ ".": "1.0.0-beta.5" }), "candidate"), "1.0.0-beta.5");
+  const composer = JSON.stringify({ name: "ran/booster-github-provider", type: "library" });
+  const parent = {
+    manifest: JSON.stringify({ ".": "0.1.0-beta.5" }),
+    composer,
+    changelog: "# Changelog\n\n## [0.1.0-beta.5](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.4...v0.1.0-beta.5) (2026-09-19)\n\nold\n",
+  };
+  const candidate = {
+    manifest: JSON.stringify({ ".": "1.0.0-beta.5" }),
+    composer,
+    changelog: "# Changelog\n\n## [1.0.0-beta.5](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.5...v1.0.0-beta.5) (2026-09-21)\n\n### ⚠ BREAKING CHANGES\n\n* provider API 11\n\n" + parent.changelog.slice("# Changelog\n\n".length),
+  };
+  assert.deepEqual(verifyReleaseDelta(parent, candidate), {
+    parentVersion: "0.1.0-beta.5",
+    candidateVersion: "1.0.0-beta.5",
+  });
 });
