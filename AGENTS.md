@@ -18,7 +18,7 @@ The repository profile is `php-library`, using the current organisation `quality
 
 For package conventions, prefer the closest maintained Booster support libraries as references: `ran/updater-support`, `ran/wp-branch-updater`, and `ran/wp-release-updater`. Use Booster and `ran-starter-plugin` for stronger transferable guarantees and repository ergonomics, but do not copy plugin-only runtime, archive or frontend machinery into this library without an applicable source/product requirement.
 
-The provider implementation has no maintained JavaScript, TypeScript, CSS or SCSS frontend source. Node **24.11.0** is intentionally present and required for the maintained release-control surface: publisher, workflow-contract and release-classification scripts/tests. Do not add pnpm, ESLint, Prettier or Stylelint merely for symmetry. If maintained frontend source is introduced later, reclassify the quality surface deliberately and adopt the applicable shared `@rocketsarenostalgic/quality-config` entry points at that time.
+The provider implementation has no maintained JavaScript, TypeScript, CSS or SCSS frontend source. Node **24.11.0** is intentionally present and required for the maintained release-control surface: workflow-contract and release-classification scripts/tests. Do not add pnpm, ESLint, Prettier or Stylelint merely for symmetry. If maintained frontend source is introduced later, reclassify the quality surface deliberately and adopt the applicable shared `@rocketsarenostalgic/quality-config` entry points at that time.
 
 PHP quality derives from `ran/coding-standards` through `RANWordPressLibrary`, with support range, namespace/prefix and extraction-specific exceptions kept local. PHPCS is the authoritative style check, PHPCBF is the formatter, and PHPStan is WordPress-aware because provider implementation code uses WordPress APIs. Do not introduce a second PHP formatter merely to mirror a plugin repository.
 
@@ -29,7 +29,7 @@ composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-Use `composer format` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-owned deterministic foundation contract, and the release publisher/classification contracts.
+Use `composer format` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-owned deterministic foundation contract, and the release workflow/classification contracts.
 
 The implementation consumes Booster-owned provider contracts, so implementation static analysis and the provider PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
 
@@ -46,13 +46,11 @@ Review evidence is revision-specific. Every inline review finding must receive a
 
 Use Conventional Commits. Changes under `src/` or to production Composer requirements are release-significant and must use a visible provider release-driving type (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`; PR-title edits rerun the required classification gate. Classification must use merge-base-to-head changes, not the moving base-branch tip, so unrelated `main` changes cannot be attributed to an older PR.
 
-The repository publisher follows the current organisation release-trust contracts in `RocketsAreNostalgic/.github#9`, `#20` and `#22`. `workflow_run` name routing is not sufficient admission: before repository-owned publication logic, bind to the canonical CI path and exact GitHub-authored triggering SHA, check out that SHA without persisted credentials, and verify `HEAD`. Release Please may prepare/reconcile proposals, but only the repository-owned exact publisher has publication authority.
+The repository release path follows the owner-approved organisation Profile A contract in `RocketsAreNostalgic/.github#44/#47`. The local `release-please.yml` is a thin caller pinned to an approved organisation revision. Release Please owns generic version/changelog/release-PR/tag/release lifecycle; this repository retains only its package-specific release-significance classification and host-contract evidence.
 
-Generated Release Please version PRs are a merge-method exception: they must use a normal two-parent merge so the publisher can prove exact base/head/tree geometry. Ordinary iterative/agent-developed PRs should follow the repository's normal squash preference unless the owner intentionally chooses otherwise.
+The canonical `CI` supports input-free `workflow_dispatch` solely so shared Profile A can qualify an exact bot-owned Release Please PR head when `GITHUB_TOKEN` suppresses ordinary PR events. That dispatch must fail closed unless the ref resolves to exactly one canonical bot-owned release PR and the same PR-title classification is evaluated before terminal `quality` succeeds.
 
-Release Please intentionally uses the repository `GITHUB_TOKEN`, so GitHub may suppress the initial `pull_request` CI event for a generated version PR. If that exact release-PR head has no required `quality` check, use a body-only PR metadata edit to trigger the existing `pull_request: edited` CI path. Do not alter the release title/source merely to trigger CI, do not reintroduce `workflow_dispatch`, and repeat the metadata-only event if Release Please later changes the head. This trigger does not grant publication authority; it only evaluates the unchanged candidate through the normal protected PR gate.
-
-Do not manually create/move release tags, bypass failed release checks, or treat the Release Please manifest as proof that a version is published. Published immutable tag/release readback is the availability boundary. See `RELEASING.md`.
+Do not manually create/move release tags, bypass failed release checks, or reintroduce repository-local publisher/replay/lifecycle state. See `RELEASING.md`.
 
 ## Agent/tooling boundary
 
