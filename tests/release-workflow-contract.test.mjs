@@ -2,54 +2,23 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const workflow = readFileSync(
-  new URL("../.github/workflows/release-please.yml", import.meta.url),
-  "utf8",
-);
-const ciWorkflow = readFileSync(
-  new URL("../.github/workflows/ci.yml", import.meta.url),
-  "utf8",
-);
+const workflow = readFileSync(new URL("../.github/workflows/release-please.yml", import.meta.url), "utf8");
+const ciWorkflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
 
-test("release job authenticates canonical CI before mutation", () => {
-  const jobStart = workflow.indexOf("jobs:\n  release:");
-  const ifMarker = "    if: >-\n";
-  const ifStart = workflow.indexOf(ifMarker, jobStart);
-  const runsOn = workflow.indexOf("\n    runs-on:", ifStart);
-  assert.ok(jobStart >= 0 && ifStart > jobStart && runsOn > ifStart);
-
-  const condition = workflow
-    .slice(ifStart + ifMarker.length, runsOn)
-    .trimEnd()
-    .split("\n")
-    .map((line) => line.trim())
-    .join(" ");
-  const terms = condition
-    .replace("${{", "")
-    .replace("}}", "")
-    .split("&&")
-    .map((term) => term.trim());
-
-  for (const expected of [
-    "github.event.workflow_run.event == 'push'",
-    "github.event.workflow_run.conclusion == 'success'",
-    "github.event.workflow_run.path == '.github/workflows/ci.yml'",
-    "github.event.workflow_run.head_branch == 'main'",
-    "github.event.workflow_run.head_repository.id == github.repository_id",
-    "github.event.workflow_run.head_repository.full_name == github.repository",
-  ]) {
-    assert.ok(terms.includes(expected), `missing admission term: ${expected}`);
-  }
+test("release workflow is a thin pinned Profile A caller", () => {
+  assert.match(workflow, /workflow_run:/);
+  assert.match(workflow, /workflows: \[CI\]/);
+  assert.match(workflow, /permissions: \{\}/);
+  assert.match(workflow, /uses: RocketsAreNostalgic\/\.github\/\.github\/workflows\/release-profile-a\.yml@289352e08cdf10b15d07c4e1c890f385afc3d3f5/);
+  assert.match(workflow, /expected-workflow-path: \.github\/workflows\/ci\.yml/);
+  assert.match(workflow, /release-pr-head: release-please--branches--main--components--ran\/booster-github-provider/);
+  assert.match(workflow, /actions: write/);
+  assert.doesNotMatch(workflow, /release-publisher/);
+  assert.doesNotMatch(workflow, /RAN_RELEASE_PUBLISHER_REPLAY/);
 });
 
-test("publisher checkout stays bound to the exact workflow_run SHA", () => {
-  assert.match(workflow, /ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
-  assert.match(workflow, /persist-credentials: false/);
-  assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$RAN_RELEASE_SHA"/);
-});
-
-test("required quality cannot be manufactured by workflow dispatch without PR classification", () => {
-  assert.doesNotMatch(ciWorkflow, /^\s*workflow_dispatch:/m);
+test("canonical CI supports shared exact-head candidate dispatch", () => {
+  assert.match(ciWorkflow, /^\s*workflow_dispatch:/m);
   assert.match(ciWorkflow, /pull_request:\n\s+types: \[opened, synchronize, reopened, edited\]/);
   assert.match(ciWorkflow, /RAN_RELEASE_PR_TITLE: \$\{\{ github\.event\.pull_request\.title \}\}/);
   assert.match(ciWorkflow, /quality:\n\s+name: quality[\s\S]*needs:[\s\S]*- release-classification/);
