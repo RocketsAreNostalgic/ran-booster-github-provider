@@ -21,4 +21,4 @@ authority, no imports of Booster private implementation namespaces, and no
 unrelated GitHub feature rewrite merely because the package is bundled by
 Booster.
 
-Release-significant changes under `src/` or to production Composer requirements must use a visible release-driving Conventional Commit PR title (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`. See `RELEASING.md` for the trusted beta publication flow and the normal-merge exception for generated Release Please version PRs.
+Release-significant changes under `src/` or to production Composer requirements must use a visible release-driving Conventional Commit PR title (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`. See `RELEASING.md` for the shared Profile A beta publication flow. Generated Release Please version PRs follow the repository's approved merge policy; publication no longer depends on a special normal-merge geometry.
