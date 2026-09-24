@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0-beta.6](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.5...v1.0.0-beta.6) (2026-09-24)
+
+
+### Bug Fixes
+
+* **release:** accept semver prerelease major bumps ([f4ca30b](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/f4ca30b2bb5e111e5dea789c8cc94f77aef878a7))
+* **release:** add bounded trusted replay candidate ([7b36182](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/7b3618260629250640e28f4ef9261422f46a2d06))
+* **release:** compare prerelease components exactly ([ce64c3f](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/ce64c3f58cd0f90e13538c45afb7483748f53fd8))
+* **release:** harden replay admission guards ([3e5d503](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/3e5d50359edd9ab9332d0cf0216c5e0b4aecb11a))
+* **release:** scope replay to one admitted revision ([9195380](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/91953809d11e097e5a4e90ec283f24f88757bfef))
+
 ## [1.0.0-beta.5](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v0.1.0-beta.5...v1.0.0-beta.5) (2026-09-21)
 
 
