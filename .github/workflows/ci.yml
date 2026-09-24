@@ -185,6 +185,82 @@ jobs:
         working-directory: provider
         run: composer check:host
 
+  template-pack-compatibility:
+    name: Template pack compatibility (Core beta.30)
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact candidate provider
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          path: provider
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check out additional published Booster host
+        # Supplemental compatibility proof; do not replace the certified beta.29 lanes above.
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: RocketsAreNostalgic/ran-booster
+          ref: 1c8283bc814ac593171d608d532226fcea83c6f4
+          persist-credentials: false
+          path: booster
+
+      - name: Verify candidate provider and additional host identities
+        env:
+          RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git -C provider rev-parse HEAD)" = "$RAN_EXPECTED_SHA"
+          test "$(git -C booster rev-parse HEAD)" = 1c8283bc814ac593171d608d532226fcea83c6f4
+
+      - name: Set up PHP 8.2 with native ZIP support
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.2'
+          extensions: zip
+          coverage: none
+
+      - name: Install candidate provider dependencies
+        working-directory: provider
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Prove candidate implementation against published Core beta.30
+        working-directory: provider
+        env:
+          RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
+        run: composer check:host
+
+      - name: Download exact immutable historical pack fixtures
+        working-directory: provider
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/template-pack-fixtures
+          root=https://github.com/RocketsAreNostalgic/ran-booster-release-bootstrap-templates/releases/download
+          curl --fail --location --proto '=https' --proto-redir '=https' --retry 3 --max-time 120 \
+            "$root/v0.2.1/ran-booster-release-bootstrap-templates.zip" -o build/template-pack-fixtures/api2.zip
+          curl --fail --location --proto '=https' --proto-redir '=https' --retry 3 --max-time 120 \
+            "$root/v0.2.0/ran-booster-release-bootstrap-templates.zip" -o build/template-pack-fixtures/api1.zip
+          test "$(wc -c < build/template-pack-fixtures/api2.zip | tr -d '[:space:]')" = 13879
+          test "$(wc -c < build/template-pack-fixtures/api1.zip | tr -d '[:space:]')" = 8017
+          printf '%s  %s\n' \
+            7518b7c30b23fe95fb6c3c5211607657394ffcf440d258323d55c20b15bb5b14 build/template-pack-fixtures/api2.zip \
+            2c223e14287a1fab28aa91e92d6a454b27e647cfb33f1bb3df965ed995cd89db build/template-pack-fixtures/api1.zip \
+            | sha256sum --check --strict
+
+      - name: Prove existing published packs with candidate reader
+        working-directory: provider
+        env:
+          RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
+          RAN_TEMPLATE_PACK_ZIP: ${{ github.workspace }}/provider/build/template-pack-fixtures/api2.zip
+          RAN_TEMPLATE_PACK_API1_ZIP: ${{ github.workspace }}/provider/build/template-pack-fixtures/api1.zip
+        run: |
+          vendor/bin/phpunit --no-configuration \
+            --bootstrap tests/Booster/GitHub/bootstrap.php \
+            --group published-template-pack --fail-on-skipped --fail-on-phpunit-deprecation \
+            tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/TemplatePackApi2ContractTest.php
+
   quality:
     name: quality
     if: ${{ always() }}
@@ -193,6 +269,7 @@ jobs:
       - release-classification
       - host-contract
       - implementation
+      - template-pack-compatibility
     runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - name: Require all quality lanes
@@ -201,9 +278,12 @@ jobs:
           CLASSIFICATION_RESULT: ${{ needs.release-classification.result }}
           HOST_CONTRACT_RESULT: ${{ needs.host-contract.result }}
           IMPLEMENTATION_RESULT: ${{ needs.implementation.result }}
+          TEMPLATE_PACK_RESULT: ${{ needs.template-pack-compatibility.result }}
         run: |
           printf 'baseline=%s\nclassification=%s\nhost-contract=%s\nimplementation=%s\n' "$BASELINE_RESULT" "$CLASSIFICATION_RESULT" "$HOST_CONTRACT_RESULT" "$IMPLEMENTATION_RESULT"
           test "$BASELINE_RESULT" = success
           test "$CLASSIFICATION_RESULT" = success
           test "$HOST_CONTRACT_RESULT" = success
           test "$IMPLEMENTATION_RESULT" = success
+          printf 'template-pack=%s\n' "$TEMPLATE_PACK_RESULT"
+          test "$TEMPLATE_PACK_RESULT" = success

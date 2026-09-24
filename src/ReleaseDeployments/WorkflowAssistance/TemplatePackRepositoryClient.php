@@ -253,8 +253,10 @@ final class TemplatePackRepositoryClient {
 		$assetState  = $asset['state'] ?? null;
 		$contentType = $asset['content_type'] ?? null;
 		$digest      = is_string( $asset['digest'] ?? null ) ? $asset['digest'] : '';
+		// Octet-stream permits API-3 discovery only; TemplatePack still requires ZIP MIME for API 2.
 		if ( null === $assetId || null === $assetSize || $assetSize > self::ASSET_BODY_LIMIT || 'uploaded' !== $assetState
-			|| 'application/zip' !== $contentType || 1 !== preg_match( '/\Asha256:([a-f0-9]{64})\z/D', $digest, $digestMatch ) ) {
+			|| ! in_array( $contentType, array( 'application/zip', 'application/octet-stream' ), true )
+			|| 1 !== preg_match( '/\Asha256:([a-f0-9]{64})\z/D', $digest, $digestMatch ) ) {
 			return null;
 		}
 

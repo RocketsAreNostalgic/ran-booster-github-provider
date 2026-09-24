@@ -238,7 +238,8 @@ final readonly class TemplatePack {
 		if ( ! is_array( $manifest ) || array_keys( $manifest ) !== array( 'schema_version', 'consumer_api', 'pack_version', 'repository', 'release', 'profiles' )
 			|| 1 !== $manifest['schema_version'] || ! is_int( $manifest['consumer_api'] ) || ! self::validStableVersion( $manifest['pack_version'] ?? null )
 			|| ! is_array( $manifest['repository'] ?? null ) || array_keys( $manifest['repository'] ) !== array( 'name', 'id' )
-			|| ! is_array( $manifest['release'] ?? null ) || array_keys( $manifest['release'] ) !== array( 'id', 'tag', 'commit' )
+			|| ! is_array( $manifest['release'] ?? null )
+			|| ( array_keys( $manifest['release'] ) !== array( 'id', 'tag', 'commit' ) && ! self::deterministicApi3Envelope( $manifest ) )
 			|| ! is_array( $manifest['profiles'] ?? null ) || array() === $manifest['profiles']
 			|| self::containsForbiddenCapability( $manifest ) ) {
 			return null;
@@ -247,11 +248,30 @@ final readonly class TemplatePack {
 		return $manifest;
 	}
 
+	/**
+	 * Recognise only the next deterministic envelope, not its render contract.
+	 * API 3 remains incompatible after identity and archive validation.
+	 *
+	 * @param array<string, mixed> $manifest
+	 */
+	private static function deterministicApi3Envelope( array $manifest ): bool {
+		return 3 === ( $manifest['consumer_api'] ?? null )
+			&& is_array( $manifest['release'] ?? null )
+			&& array_keys( $manifest['release'] ) === array( 'tag', 'commit' )
+			&& is_string( $manifest['release']['tag'] ) && is_string( $manifest['release']['commit'] )
+			&& is_array( $manifest['repository'] ?? null )
+			&& is_string( $manifest['repository']['name'] ?? null )
+			&& is_string( $manifest['repository']['id'] ?? null );
+	}
+
 	/** @param array<string, mixed> $manifest @param array<string, mixed> $identity */
 	private static function manifestIdentityMatches( array $manifest, array $identity ): bool {
+		$deterministic = self::deterministicApi3Envelope( $manifest );
+
 		return hash_equals( $identity['repository_name'], (string) ( $manifest['repository']['name'] ?? '' ) )
 			&& hash_equals( $identity['repository_id'], (string) ( $manifest['repository']['id'] ?? '' ) )
-			&& $identity['release_id'] === ( $manifest['release']['id'] ?? null )
+			&& ( $deterministic || $identity['release_id'] === ( $manifest['release']['id'] ?? null ) )
+			&& ( $deterministic || 'application/zip' === $identity['asset_content_type'] )
 			&& hash_equals( $identity['release_tag'], (string) ( $manifest['release']['tag'] ?? '' ) )
 			&& hash_equals( $identity['release_commit'], (string) ( $manifest['release']['commit'] ?? '' ) )
 			&& hash_equals( self::versionFromTag( $identity['release_tag'] ) ?? '', $manifest['pack_version'] );
@@ -344,7 +364,8 @@ final readonly class TemplatePack {
 			&& false === $identity['release_draft'] && false === $identity['release_prerelease'] && true === $identity['release_immutable']
 			&& 1 === $identity['asset_count'] && is_int( $identity['asset_id'] ) && $identity['asset_id'] > 0
 			&& 'ran-booster-release-bootstrap-templates.zip' === $identity['asset_name']
-			&& 'uploaded' === $identity['asset_state'] && 'application/zip' === $identity['asset_content_type']
+			&& 'uploaded' === $identity['asset_state']
+			&& in_array( $identity['asset_content_type'], array( 'application/zip', 'application/octet-stream' ), true )
 			&& is_int( $identity['asset_size'] ) && $identity['asset_size'] === strlen( $archive )
 			&& $identity['asset_size'] > 0 && $identity['asset_size'] <= self::MAX_ARCHIVE_BYTES
 			&& is_string( $identity['asset_sha256'] ) && 1 === preg_match( '/\A[a-f0-9]{64}\z/D', $identity['asset_sha256'] )

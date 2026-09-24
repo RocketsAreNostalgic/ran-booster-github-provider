@@ -33,3 +33,22 @@ test("canonical CI authenticates shared exact-head candidate dispatch", () => {
   assert.match(ciWorkflow, /steps\.dispatch-pr\.outputs\.title/);
   assert.match(ciWorkflow, /quality:\n\s+name: quality[\s\S]*needs:[\s\S]*- release-classification/);
 });
+
+test("template-pack bridge is proved by the candidate reader against the additional exact host", () => {
+  const compatibility = ciWorkflow.split("  template-pack-compatibility:\n")[1]?.split("  quality:\n")[0];
+  assert.ok(compatibility, "missing supplemental compatibility job");
+  assert.match(compatibility, /ref: 1c8283bc814ac593171d608d532226fcea83c6f4/);
+  assert.match(compatibility, /test "\$\(git -C provider rev-parse HEAD\)" = "\$RAN_EXPECTED_SHA"/);
+  assert.match(compatibility, /test "\$\(git -C booster rev-parse HEAD\)" = 1c8283bc814ac593171d608d532226fcea83c6f4/);
+  assert.match(compatibility, /run: composer check:host/);
+  assert.match(compatibility, /sha256sum --check --strict/);
+  assert.match(compatibility, /7518b7c30b23fe95fb6c3c5211607657394ffcf440d258323d55c20b15bb5b14/);
+  assert.match(compatibility, /2c223e14287a1fab28aa91e92d6a454b27e647cfb33f1bb3df965ed995cd89db/);
+  assert.match(compatibility, /vendor\/bin\/phpunit --no-configuration/);
+  assert.match(compatibility, /--bootstrap tests\/Booster\/GitHub\/bootstrap.php/);
+  assert.match(compatibility, /--group published-template-pack --fail-on-skipped/);
+  assert.doesNotMatch(compatibility, /booster\/vendor\/ran\/booster-github-provider/);
+  assert.match(ciWorkflow, /quality:\n\s+name: quality[\s\S]*needs:[\s\S]*- template-pack-compatibility/);
+  assert.match(ciWorkflow, /test "\$TEMPLATE_PACK_RESULT" = success/);
+  assert.equal((ciWorkflow.match(/ref: ffc11fc8e40618624a785b7fca5193029c6d492e/g) || []).length, 2);
+});
