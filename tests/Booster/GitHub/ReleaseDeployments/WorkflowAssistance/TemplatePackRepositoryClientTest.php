@@ -20,7 +20,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	public function testSelectsHighestCompatibleStableImmutablePackAndReportsNewerApi(): void {
 		$compatibleManifest   = TemplatePackApi2Fixture::manifest();
 		$compatibleArchive    = TemplatePackApi2Fixture::archive( $compatibleManifest );
-		$incompatibleManifest = $this->manifestIdentity( TemplatePackApi2Fixture::manifest( 3, '2.0.0' ), 42, 'v2.0.0' );
+		$incompatibleManifest = $this->manifestIdentity( TemplatePackApi2Fixture::manifest( 4, '2.0.0' ), 42, 'v2.0.0' );
 		$incompatibleArchive  = TemplatePackApi2Fixture::archive( $incompatibleManifest );
 
 		$compatible   = $this->release( 41, 'v1.2.3', $compatibleArchive );

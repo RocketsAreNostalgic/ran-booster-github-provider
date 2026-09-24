@@ -22,9 +22,10 @@ Version, tag, source commit and repository must match the separately verified
 GitHub identity. The nonempty `profiles` envelope cannot contain forbidden
 capability keys, but the new logical-file/render contract is not defined here.
 
-Only this next envelope may omit the embedded release ID. The existing ID-bearing
-shape remains unchanged, including its unsupported-version refusal behavior.
-An API-2 manifest without the ID, or with a different ID, is still invalid.
+Only this next envelope may omit the embedded release ID. API 3 using the old
+ID-bearing shape is invalid even when that ID matches the transport identity.
+API-2 manifests still require the matching ID. Other unsupported API numbers
+retain the existing ID-bearing incompatibility path; they cannot omit the ID.
 An unknown API using the ID-less shape is invalid, not a generic skip instruction.
 
 ## Incompatible is not accepted

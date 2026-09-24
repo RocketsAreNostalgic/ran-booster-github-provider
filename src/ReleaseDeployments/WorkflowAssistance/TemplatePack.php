@@ -239,7 +239,9 @@ final readonly class TemplatePack {
 			|| 1 !== $manifest['schema_version'] || ! is_int( $manifest['consumer_api'] ) || ! self::validStableVersion( $manifest['pack_version'] ?? null )
 			|| ! is_array( $manifest['repository'] ?? null ) || array_keys( $manifest['repository'] ) !== array( 'name', 'id' )
 			|| ! is_array( $manifest['release'] ?? null )
-			|| ( array_keys( $manifest['release'] ) !== array( 'id', 'tag', 'commit' ) && ! self::deterministicApi3Envelope( $manifest ) )
+			|| ( 3 === $manifest['consumer_api']
+				? ! self::deterministicApi3Envelope( $manifest )
+				: array_keys( $manifest['release'] ) !== array( 'id', 'tag', 'commit' ) )
 			|| ! is_array( $manifest['profiles'] ?? null ) || array() === $manifest['profiles']
 			|| self::containsForbiddenCapability( $manifest ) ) {
 			return null;

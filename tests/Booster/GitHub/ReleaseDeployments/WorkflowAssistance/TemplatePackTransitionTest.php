@@ -53,16 +53,65 @@ final class TemplatePackTransitionTest extends TestCase {
 		}
 	}
 
+	public function testApi3RejectsTheOldIdBearingShapeEvenWithMatchingTransport(): void {
+		$manifest = TemplatePackApi2Fixture::manifest( 3, '2.0.0' );
+		self::assertInvalidManifest( $manifest );
+
+		$manifest['release']['id'] = 42;
+		$responses                 = self::discoveryResponses( $manifest, 'application/zip' );
+		$requests                  = array();
+
+		self::assertSame( 'template_pack_invalid', self::client( $responses, $requests )->discover()['code'] );
+		self::assertCount( 6, $requests );
+	}
+
 	public function testMalformedDeterministicEnvelopeFailsClosedBeforeFallback(): void {
 		$changes = array(
 			array( 'schema_version', 2 ),
 			array( 'pack_version', '2.0.1' ),
-			array( 'repository', array( 'name' => 'other/repository', 'id' => TemplatePackApi2Fixture::REPOSITORY_ID ) ),
-			array( 'repository', array( 'name' => TemplatePackApi2Fixture::REPOSITORY, 'id' => '1' ) ),
-			array( 'release', array( 'tag' => 'v2.0.1', 'commit' => TemplatePackApi2Fixture::COMMIT ) ),
-			array( 'release', array( 'tag' => 'v2.0.0', 'commit' => str_repeat( 'a', 40 ) ) ),
-			array( 'release', array( 'tag' => array(), 'commit' => TemplatePackApi2Fixture::COMMIT ) ),
-			array( 'release', array( 'id' => 0, 'tag' => 'v2.0.0', 'commit' => TemplatePackApi2Fixture::COMMIT ) ),
+			array(
+				'repository',
+				array(
+					'name' => 'other/repository',
+					'id'   => TemplatePackApi2Fixture::REPOSITORY_ID,
+				),
+			),
+			array(
+				'repository',
+				array(
+					'name' => TemplatePackApi2Fixture::REPOSITORY,
+					'id'   => '1',
+				),
+			),
+			array(
+				'release',
+				array(
+					'tag'    => 'v2.0.1',
+					'commit' => TemplatePackApi2Fixture::COMMIT,
+				),
+			),
+			array(
+				'release',
+				array(
+					'tag'    => 'v2.0.0',
+					'commit' => str_repeat( 'a', 40 ),
+				),
+			),
+			array(
+				'release',
+				array(
+					'tag'    => array(),
+					'commit' => TemplatePackApi2Fixture::COMMIT,
+				),
+			),
+			array(
+				'release',
+				array(
+					'id'     => 0,
+					'tag'    => 'v2.0.0',
+					'commit' => TemplatePackApi2Fixture::COMMIT,
+				),
+			),
 			array( 'profiles', array() ),
 			array( 'profiles', array( 'future' => array( 'permissions' => array() ) ) ),
 		);
@@ -237,15 +286,28 @@ final class TemplatePackTransitionTest extends TestCase {
 		$old         = self::release( 41, 'v1.2.3', $oldArchive, 'application/zip' );
 		$responses   = array(
 			self::jsonResponse(
-				array( 'id' => TemplatePackApi2Fixture::REPOSITORY_ID, 'full_name' => TemplatePackApi2Fixture::REPOSITORY )
+				array(
+					'id'        => TemplatePackApi2Fixture::REPOSITORY_ID,
+					'full_name' => TemplatePackApi2Fixture::REPOSITORY,
+				)
 			),
 			self::jsonResponse( array( $next, $old ) ),
 		);
 		foreach ( array( array( $next, $nextArchive ), array( $old, $oldArchive ) ) as list( $release, $archive ) ) {
 			$responses[] = self::jsonResponse( $release );
-			$responses[] = self::jsonResponse( array( 'object' => array( 'type' => 'commit', 'sha' => TemplatePackApi2Fixture::COMMIT ) ) );
+			$responses[] = self::jsonResponse(
+				array(
+					'object' => array(
+						'type' => 'commit',
+						'sha'  => TemplatePackApi2Fixture::COMMIT,
+					),
+				)
+			);
 			$responses[] = self::jsonResponse( array( 'sha' => TemplatePackApi2Fixture::COMMIT ) );
-			$responses[] = array( 'response' => array( 'code' => 200 ), 'body' => $archive );
+			$responses[] = array(
+				'response' => array( 'code' => 200 ),
+				'body'     => $archive,
+			);
 		}
 
 		return $responses;
