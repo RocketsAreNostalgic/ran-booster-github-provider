@@ -64,7 +64,7 @@ $scripts = $composer['scripts'] ?? null;
 if ( ! is_array( $scripts ) ) {
 	throw new RuntimeException( 'The Composer quality command contract is missing.' );
 }
-foreach ( array( 'check', 'format', 'format:php', 'lint:php', 'lint:syntax', 'analyze', 'test:foundation' ) as $script ) {
+foreach ( array( 'check', 'standards', 'standards:fix', 'lint:syntax', 'analyze', 'test', 'test:foundation', 'test:host-contract', 'check:host' ) as $script ) {
 	if ( ! array_key_exists( $script, $scripts ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
 		throw new RuntimeException( "Required Composer script is missing: {$script}." );
