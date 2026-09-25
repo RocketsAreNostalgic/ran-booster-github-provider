@@ -7,12 +7,12 @@ namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 use ZipArchive;
 
 /**
- * Verified Consumer API 2 template pack. It parses and renders inert bytes but
+ * Verified Consumer API 3 template pack. It parses and renders inert bytes but
  * cannot write a repository, call GitHub or execute a downloaded member.
  */
 final readonly class TemplatePack {
 
-	public const CONSUMER_API  = 2;
+	public const CONSUMER_API  = 3;
 	public const MANIFEST_PATH = 'template-pack.json';
 
 	private const MAX_ARCHIVE_BYTES  = 2097152;
@@ -22,33 +22,44 @@ final readonly class TemplatePack {
 	private const MAX_MEMBERS        = 32;
 
 	private const PROFILES = array(
-		'source-ready-wordpress-plugin/2',
-		'source-ready-wordpress-theme/2',
+		'source-ready-wordpress-plugin/3',
+		'source-ready-wordpress-theme/3',
 	);
 
 	/** @var array<string, array<string, string>> */
 	private const ENTRY_PLACEHOLDERS = array(
-		'release-workflow'             => array(
-			'DEFAULT_BRANCH' => 'branch',
-			'PACKAGE_SLUG'   => 'slug',
+		'quality-workflow'      => array(
+			'PACKAGE_SLUG' => 'slug',
+			'PHP_VERSION'  => 'php_version',
 		),
-		'release-please-config'        => array(
+		'release-workflow'      => array(
+			'PACKAGE_SLUG' => 'slug',
+		),
+		'release-please-config' => array(
 			'BASE_SHA'         => 'sha',
 			'EXTRA_FILES_JSON' => 'json_fragment',
 			'PACKAGE_SLUG'     => 'slug',
 		),
-		'build-release-script'         => array(
+		'build-release-script'  => array(
 			'HEADER_PATH'  => 'path',
 			'PACKAGE_SLUG' => 'slug',
 			'PACKAGE_TYPE' => 'package_type',
 		),
-		'verify-release-script'        => array(
+		'verify-release-script' => array(
 			'HEADER_PATH'  => 'path',
 			'PACKAGE_SLUG' => 'slug',
 			'PACKAGE_TYPE' => 'package_type',
 			'UPDATE_URI'   => 'github_uri',
 		),
-		'upload-release-assets-script' => array(),
+	);
+
+	/** @var array<string, string> */
+	private const ENTRY_PATHS = array(
+		'quality-workflow'      => 'templates/shared/quality.yml.tmpl',
+		'release-workflow'      => 'templates/shared/release-please.yml.tmpl',
+		'release-please-config' => 'templates/shared/release-please-config.json.tmpl',
+		'build-release-script'  => 'templates/shared/build-release.sh.tmpl',
+		'verify-release-script' => 'templates/shared/verify-release.sh.tmpl',
 	);
 
 	/** @var list<string> */
@@ -111,11 +122,11 @@ final readonly class TemplatePack {
 				if ( null === $manifest ) {
 					return array( 'code' => 'template_pack_invalid' );
 				}
-				if ( ! self::manifestIdentityMatches( $manifest, $identity ) ) {
-					return array( 'code' => 'template_pack_invalid' );
-				}
 				if ( self::CONSUMER_API !== $manifest['consumer_api'] ) {
 					return array( 'code' => 'template_pack_incompatible' );
+				}
+				if ( ! self::manifestIdentityMatches( $manifest, $identity ) ) {
+					return array( 'code' => 'template_pack_invalid' );
 				}
 				$profiles = self::verifiedProfiles( $manifest['profiles'], $members );
 				if ( null === $profiles ) {
@@ -235,10 +246,11 @@ final readonly class TemplatePack {
 		} catch ( \Throwable ) {
 			return null;
 		}
-		if ( ! is_array( $manifest ) || array_keys( $manifest ) !== array( 'schema_version', 'consumer_api', 'pack_version', 'repository', 'release', 'profiles' )
+		if ( ! self::uniqueObjectKeys( $bytes ) || ! is_array( $manifest ) || array_keys( $manifest ) !== array( 'schema_version', 'consumer_api', 'pack_version', 'repository', 'release', 'profiles' )
 			|| 1 !== $manifest['schema_version'] || ! is_int( $manifest['consumer_api'] ) || ! self::validStableVersion( $manifest['pack_version'] ?? null )
 			|| ! is_array( $manifest['repository'] ?? null ) || array_keys( $manifest['repository'] ) !== array( 'name', 'id' )
-			|| ! is_array( $manifest['release'] ?? null ) || array_keys( $manifest['release'] ) !== array( 'id', 'tag', 'commit' )
+			|| ! is_array( $manifest['release'] ?? null )
+			|| ( self::CONSUMER_API === $manifest['consumer_api'] && array_keys( $manifest['release'] ) !== array( 'tag', 'commit' ) )
 			|| ! is_array( $manifest['profiles'] ?? null ) || array() === $manifest['profiles']
 			|| self::containsForbiddenCapability( $manifest ) ) {
 			return null;
@@ -249,9 +261,12 @@ final readonly class TemplatePack {
 
 	/** @param array<string, mixed> $manifest @param array<string, mixed> $identity */
 	private static function manifestIdentityMatches( array $manifest, array $identity ): bool {
-		return hash_equals( $identity['repository_name'], (string) ( $manifest['repository']['name'] ?? '' ) )
+		return is_string( $manifest['repository']['name'] ?? null )
+			&& is_string( $manifest['repository']['id'] ?? null )
+			&& is_string( $manifest['release']['tag'] ?? null )
+			&& is_string( $manifest['release']['commit'] ?? null )
+			&& hash_equals( $identity['repository_name'], (string) ( $manifest['repository']['name'] ?? '' ) )
 			&& hash_equals( $identity['repository_id'], (string) ( $manifest['repository']['id'] ?? '' ) )
-			&& $identity['release_id'] === ( $manifest['release']['id'] ?? null )
 			&& hash_equals( $identity['release_tag'], (string) ( $manifest['release']['tag'] ?? '' ) )
 			&& hash_equals( $identity['release_commit'], (string) ( $manifest['release']['commit'] ?? '' ) )
 			&& hash_equals( self::versionFromTag( $identity['release_tag'] ) ?? '', $manifest['pack_version'] );
@@ -278,7 +293,7 @@ final readonly class TemplatePack {
 			$profiles[ $profile ] = array();
 			foreach ( $definition['entries'] as $logicalId => $entry ) {
 				if ( ! is_array( $entry ) || array_keys( $entry ) !== array( 'path', 'size', 'sha256', 'placeholders' )
-					|| ! is_string( $entry['path'] ?? null ) || ! self::validMemberPath( $entry['path'] )
+					|| ! is_string( $entry['path'] ?? null ) || self::ENTRY_PATHS[ $logicalId ] !== $entry['path']
 					|| ! is_int( $entry['size'] ?? null ) || $entry['size'] < 1 || $entry['size'] > self::MAX_MEMBER_BYTES
 					|| ! is_string( $entry['sha256'] ?? null ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $entry['sha256'] )
 					|| ! is_array( $entry['placeholders'] ?? null ) || $entry['placeholders'] !== self::ENTRY_PLACEHOLDERS[ $logicalId ]
@@ -344,7 +359,7 @@ final readonly class TemplatePack {
 			&& false === $identity['release_draft'] && false === $identity['release_prerelease'] && true === $identity['release_immutable']
 			&& 1 === $identity['asset_count'] && is_int( $identity['asset_id'] ) && $identity['asset_id'] > 0
 			&& 'ran-booster-release-bootstrap-templates.zip' === $identity['asset_name']
-			&& 'uploaded' === $identity['asset_state'] && 'application/zip' === $identity['asset_content_type']
+			&& 'uploaded' === $identity['asset_state'] && in_array( $identity['asset_content_type'], array( 'application/zip', 'application/octet-stream' ), true )
 			&& is_int( $identity['asset_size'] ) && $identity['asset_size'] === strlen( $archive )
 			&& $identity['asset_size'] > 0 && $identity['asset_size'] <= self::MAX_ARCHIVE_BYTES
 			&& is_string( $identity['asset_sha256'] ) && 1 === preg_match( '/\A[a-f0-9]{64}\z/D', $identity['asset_sha256'] )
@@ -374,10 +389,10 @@ final readonly class TemplatePack {
 			return false;
 		}
 		return match ( $type ) {
-			'branch' => 1 === preg_match( '/\A[A-Za-z0-9](?:[A-Za-z0-9._\/-]*[A-Za-z0-9_-])?\z/D', $value ) && ! str_contains( $value, '..' ) && ! str_contains( $value, '//' ) && ! str_contains( $value, '@{' ) && ! str_ends_with( $value, '.lock' ),
-			'slug' => 1 === preg_match( '/\A[a-z0-9](?:[a-z0-9-]{0,198}[a-z0-9])?\z/D', $value ),
+			'php_version' => in_array( $value, array( '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5' ), true ),
+			'slug' => strlen( $value ) <= 100 && 1 === preg_match( '/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/D', $value ),
 			'sha' => 1 === preg_match( '/\A[a-f0-9]{40}\z/D', $value ),
-			'path' => self::validTargetPath( $value ),
+			'path' => self::validHeaderPath( $value ),
 			'package_type' => in_array( $value, array( 'plugin', 'theme' ), true ),
 			'github_uri' => 1 === preg_match( '#\Ahttps://github\.com/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z#D', $value ),
 			'json_fragment' => self::validExtraFilesJson( $value ),
@@ -391,23 +406,45 @@ final readonly class TemplatePack {
 		} catch ( \Throwable ) {
 			return false;
 		}
-		if ( ! is_array( $files ) || ! array_is_list( $files ) || array() === $files || count( $files ) > 64 ) {
+		if ( ! self::uniqueObjectKeys( $value ) || ! is_array( $files ) || ! array_is_list( $files )
+			|| count( $files ) < 1 || count( $files ) > 2 ) {
 			return false;
 		}
-		foreach ( $files as $file ) {
-			if ( ! is_array( $file ) || ! is_string( $file['type'] ?? null ) || ! is_string( $file['path'] ?? null )
-				|| ! self::validTargetPath( $file['path'] ) ) {
-				return false;
-			}
-			if ( 'generic' === $file['type'] && array_keys( $file ) === array( 'type', 'path' ) ) {
-				continue;
-			}
-			if ( 'json' !== $file['type'] || array_keys( $file ) !== array( 'type', 'path', 'jsonpath' )
-				|| '$.version' !== ( $file['jsonpath'] ?? null ) ) {
+		foreach ( $files as $index => $file ) {
+			if ( ! is_array( $file ) || array_keys( $file ) !== array( 'type', 'path' )
+				|| 'generic' !== $file['type'] || ! is_string( $file['path'] ) || ! self::validHeaderPath( $file['path'] )
+				|| ( 0 === $index && 'style.css' !== $file['path'] && ! str_ends_with( $file['path'], '.php' ) )
+				|| ( 1 === $index && 'readme.txt' !== $file['path'] ) ) {
 				return false;
 			}
 		}
+		return true;
+	}
 
+	private static function validHeaderPath( string $value ): bool {
+		return strlen( $value ) <= 255 && ! in_array( $value, array( '.', '..' ), true )
+			&& 1 === preg_match( '/\A[A-Za-z0-9._-]+\z/D', $value );
+	}
+
+	/** Reject duplicate JSON keys, including equivalent escaped spellings, after syntax validation. */
+	private static function uniqueObjectKeys( string $bytes ): bool {
+		preg_match_all( '/"(?:[^"\\\\]|\\\\.)*"|[{}\[\]:]/s', $bytes, $matches );
+		$stack  = array();
+		$tokens = $matches[0];
+		foreach ( $tokens as $index => $token ) {
+			if ( '{' === $token || '[' === $token ) {
+				$stack[] = array();
+			} elseif ( '}' === $token || ']' === $token ) {
+				array_pop( $stack );
+			} elseif ( str_starts_with( $token, '"' ) && ':' === ( $tokens[ $index + 1 ] ?? '' ) ) {
+				$key   = json_decode( $token, true, 2, JSON_THROW_ON_ERROR );
+				$level = count( $stack ) - 1;
+				if ( $level < 0 || isset( $stack[ $level ][ $key ] ) ) {
+					return false;
+				}
+				$stack[ $level ][ $key ] = true;
+			}
+		}
 		return true;
 	}
 
@@ -421,11 +458,11 @@ final readonly class TemplatePack {
 	}
 
 	private static function validStableVersion( mixed $version ): bool {
-		return is_string( $version ) && 1 === preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $version );
+		return is_string( $version ) && strlen( $version ) <= 63 && 1 === preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $version );
 	}
 
 	private static function versionFromTag( string $tag ): ?string {
-		$version = str_starts_with( $tag, 'v' ) ? substr( $tag, 1 ) : $tag;
+		$version = str_starts_with( $tag, 'v' ) ? substr( $tag, 1 ) : '';
 
 		return self::validStableVersion( $version ) ? $version : null;
 	}

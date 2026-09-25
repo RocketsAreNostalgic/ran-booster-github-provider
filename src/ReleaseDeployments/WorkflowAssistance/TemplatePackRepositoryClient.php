@@ -254,7 +254,7 @@ final class TemplatePackRepositoryClient {
 		$contentType = $asset['content_type'] ?? null;
 		$digest      = is_string( $asset['digest'] ?? null ) ? $asset['digest'] : '';
 		if ( null === $assetId || null === $assetSize || $assetSize > self::ASSET_BODY_LIMIT || 'uploaded' !== $assetState
-			|| 'application/zip' !== $contentType || 1 !== preg_match( '/\Asha256:([a-f0-9]{64})\z/D', $digest, $digestMatch ) ) {
+			|| ! in_array( $contentType, array( 'application/zip', 'application/octet-stream' ), true ) || 1 !== preg_match( '/\Asha256:([a-f0-9]{64})\z/D', $digest, $digestMatch ) ) {
 			return null;
 		}
 
@@ -308,7 +308,7 @@ final class TemplatePackRepositoryClient {
 			&& true === ( $expected['release_immutable'] ?? null ) && 1 === ( $expected['asset_count'] ?? null )
 			&& is_int( $expected['asset_id'] ?? null ) && $expected['asset_id'] > 0
 			&& ( $expected['asset_name'] ?? null ) === self::ASSET_NAME
-			&& 'uploaded' === ( $expected['asset_state'] ?? null ) && 'application/zip' === ( $expected['asset_content_type'] ?? null )
+			&& 'uploaded' === ( $expected['asset_state'] ?? null ) && in_array( $expected['asset_content_type'] ?? null, array( 'application/zip', 'application/octet-stream' ), true )
 			&& is_int( $expected['asset_size'] ?? null ) && $expected['asset_size'] > 0 && $expected['asset_size'] <= self::ASSET_BODY_LIMIT
 			&& is_string( $expected['asset_sha256'] ?? null ) && 1 === preg_match( '/\A[a-f0-9]{64}\z/D', $expected['asset_sha256'] )
 			&& 'sha256:' . $expected['asset_sha256'] === ( $expected['asset_digest'] ?? null );
