@@ -31,8 +31,8 @@ if ( ! is_array( $require ) || '^8.2' !== ( $require['php'] ?? null ) ) {
 if ( array_key_exists( 'ran/booster', $require ) ) {
 	throw new RuntimeException( 'The provider package must not depend on the whole Booster plugin in production.' );
 }
-if ( '0.1.0-beta.3' !== ( $require['ran/updater-support'] ?? null ) ) {
-	throw new RuntimeException( 'The shared repository-path dependency must remain explicit and immutable.' );
+if ( '^1.0.0-beta.4' !== ( $require['ran/updater-support'] ?? null ) ) {
+	throw new RuntimeException( 'The shared repository-path dependency must retain the compatible Support beta.4 baseline.' );
 }
 
 $autoload = $composer['autoload']['psr-4'] ?? null;
