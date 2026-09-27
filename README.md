@@ -59,6 +59,10 @@ The supported host baseline is:
 The package is pre-release software and should be consumed through an immutable
 tagged release, not a moving development branch.
 
+The shared repository-path dependency requires `ran/updater-support ^1.0.0-beta.4`.
+This repository locks an immutable release for qualification; consuming hosts own
+their dependency locks and must qualify their complete package composition.
+
 ## Development
 
 The canonical local gate requires PHP 8.2+ with Composer and Node **24.11.0**.

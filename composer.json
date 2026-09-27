@@ -19,7 +19,7 @@
   ],
   "require": {
     "php": "^8.2",
-    "ran/updater-support": "0.1.0-beta.3",
+    "ran/updater-support": "^1.0.0-beta.4",
     "ran/wp-release-updater": "0.1.0-beta.7"
   },
   "require-dev": {
