@@ -421,7 +421,7 @@ final class GitHubRepositoryClient {
 	}
 	private function assessmentDocument( string $path ): bool {
 		return ( ! str_contains( $path, '/' ) && ( str_ends_with( strtolower( $path ), '.php' )
-			|| in_array( $path, array( 'style.css', 'package.json', 'readme.txt', '.prettierignore', ManagedReleaseBundle::RECEIPT_PATH, 'release-please-config.json' ), true ) ) )
+			|| in_array( $path, array( 'style.css', 'package.json', 'readme.txt', '.prettierignore', InitialReleaseBundle::ORIGIN_PATH, 'release-please-config.json' ), true ) ) )
 			|| ( str_starts_with( $path, '.github/workflows/' ) && 1 === preg_match( '/\.ya?ml\z/i', $path ) )
 			|| ( ( str_starts_with( $path, 'scripts/' ) || str_starts_with( $path, '.github/scripts/' ) || str_starts_with( $path, '.ci/' ) )
 				&& str_ends_with( strtolower( $path ), '.sh' ) )
@@ -429,7 +429,7 @@ final class GitHubRepositoryClient {
 			|| in_array(
 				$path,
 				array(
-					ManagedReleaseBundle::WORKFLOW_PATH,
+					InitialReleaseBundle::WORKFLOW_PATH,
 					'scripts/build-release.sh',
 					'scripts/verify-release.sh',
 					'scripts/upload-release-assets.sh',

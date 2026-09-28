@@ -17,7 +17,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 	private const BLOB       = '2222222222222222222222222222222222222222';
 
 	public function testExactRepositoryBranchCommitAndSnapshotReadsAreBounded(): void {
-		$header    = "<?php\n/** Plugin Name: Example\n * Version: 1.2.3\n */\n";
+		$header    = "<?php\n/** Plugin Name: Example\n * Requires PHP: 8.2\n * Requires at least: 7.0\n * Version: 1.2.3\n */\n";
 		$transport = new D23GitHubTransport(
 			array(
 				$this->response(

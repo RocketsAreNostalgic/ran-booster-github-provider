@@ -103,19 +103,19 @@ jobs:
           path: provider
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
-      - name: Check out certified Booster host
-        # Provider API 11 certification is pinned to the released Booster v1.0.0-beta.29 tag target.
+      - name: Check out candidate Booster host
+        # Candidate-only V3 qualification under owner-approved .github#81; not released-host certification.
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: ffc11fc8e40618624a785b7fca5193029c6d492e
+          ref: 3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff
           persist-credentials: false
           path: booster
 
       - name: Verify exact source and host revisions
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: ffc11fc8e40618624a785b7fca5193029c6d492e
+          RAN_BOOSTER_HOST_SHA: 3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff
         run: |
           set -euo pipefail
           test -n "$RAN_EXPECTED_SHA"
@@ -150,18 +150,18 @@ jobs:
           path: provider
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
-      - name: Check out certified Booster host
+      - name: Check out candidate Booster host
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: ffc11fc8e40618624a785b7fca5193029c6d492e
+          ref: 3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff
           persist-credentials: false
           path: booster
 
       - name: Verify exact source and host revisions
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: ffc11fc8e40618624a785b7fca5193029c6d492e
+          RAN_BOOSTER_HOST_SHA: 3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff
         run: |
           set -euo pipefail
           test -n "$RAN_EXPECTED_SHA"
@@ -179,7 +179,7 @@ jobs:
         working-directory: provider
         run: composer install --no-interaction --prefer-dist
 
-      - name: Run certified-host quality aggregate
+      - name: Run candidate-host quality aggregate
         env:
           RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
         working-directory: provider

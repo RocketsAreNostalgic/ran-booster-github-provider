@@ -19,7 +19,7 @@ final class TemplatePackApi3Fixture {
 	public static function templates(): array {
 		return array(
 			'templates/shared/quality.yml.tmpl'        => "slug={{RAN_PACKAGE_SLUG}}\nphp={{RAN_PHP_VERSION}}\n",
-			'templates/shared/release-please.yml.tmpl' => "slug={{RAN_PACKAGE_SLUG}}\nliteral=\$(printf inert)\n",
+			'templates/shared/release-please.yml.tmpl' => "slug={{RAN_PACKAGE_SLUG}}\nuses: RocketsAreNostalgic/.github/.github/workflows/release-profile-b.yml@63c4a4b192bbb4cf203dab281b75a0907e85c3a9\nliteral=\$(printf inert)\n",
 			'templates/shared/release-please-config.json.tmpl' => '{"base":"{{RAN_BASE_SHA}}","extra-files":{{RAN_EXTRA_FILES_JSON}},"slug":"{{RAN_PACKAGE_SLUG}}"}' . "\n",
 			'templates/shared/build-release.sh.tmpl'   => "slug={{RAN_PACKAGE_SLUG}}\ntype={{RAN_PACKAGE_TYPE}}\nheader={{RAN_HEADER_PATH}}\n",
 			'templates/shared/verify-release.sh.tmpl'  => "slug={{RAN_PACKAGE_SLUG}}\ntype={{RAN_PACKAGE_TYPE}}\nheader={{RAN_HEADER_PATH}}\nupdate_uri={{RAN_UPDATE_URI}}\n",

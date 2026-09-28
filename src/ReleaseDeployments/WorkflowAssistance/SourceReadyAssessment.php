@@ -10,8 +10,6 @@ use InvalidArgumentException;
 final readonly class SourceReadyAssessment {
 	private const REFUSALS = array(
 		'package_ambiguous',
-		'managed_profile_modified',
-		'prettier_contract_custom',
 		'release_automation_conflict',
 		'release_path_conflict',
 		'repository_unsupported',
@@ -33,17 +31,20 @@ final readonly class SourceReadyAssessment {
 		private string $version,
 		private array $releaseFiles,
 		private array $modifiedFiles,
-		private array $extraFiles
+		private array $extraFiles,
+		private string $phpVersion
 	) {
 		$ready = 'source_ready' === $code;
 		if ( ( ! $ready && ! in_array( $code, self::REFUSALS, true ) )
 			|| ( ! $ready && ( '' !== $profile || '' !== $packageSlug || '' !== $headerPath || '' !== $version
 				|| array() !== $releaseFiles || array() !== $modifiedFiles || array() !== $extraFiles ) )
-			|| ( $ready && ( ! in_array( $profile, array( 'source-ready-wordpress-plugin/2', 'source-ready-wordpress-theme/2' ), true )
-				|| 1 !== preg_match( '/\A[a-z0-9](?:[a-z0-9-]{0,198}[a-z0-9])?\z/D', $packageSlug )
-				|| 1 !== preg_match( '/\A[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\z/D', $version )
+			|| ( $ready && ( ! in_array( $profile, array( 'source-ready-wordpress-plugin/3', 'source-ready-wordpress-theme/3' ), true )
+				|| 1 !== preg_match( '/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/D', $packageSlug )
+				|| ! StarterOrigin::version( $version )
+				|| strlen( $packageSlug ) > 100 || strlen( $version ) > 63
+				|| ! in_array( $phpVersion, array( '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5' ), true )
 				|| array() === $releaseFiles || count( $releaseFiles ) > 2000 || count( $modifiedFiles ) > 256
-				|| count( $extraFiles ) > 256 || ! array_is_list( $releaseFiles ) || ! array_is_list( $extraFiles )
+				|| count( $extraFiles ) > 2 || ! array_is_list( $releaseFiles ) || ! array_is_list( $extraFiles )
 				|| count( $releaseFiles ) !== count( array_unique( $releaseFiles ) ) || ! in_array( $headerPath, $releaseFiles, true ) ) ) ) {
 			throw new InvalidArgumentException( 'Source-ready assessment is incomplete.' );
 		}
@@ -51,9 +52,8 @@ final readonly class SourceReadyAssessment {
 			return;
 		}
 		foreach ( $extraFiles as $extra ) {
-			if ( ! is_array( $extra ) || ! in_array( $extra['type'] ?? null, array( 'generic', 'json' ), true )
-				|| ( 'generic' === $extra['type'] && array_keys( $extra ) !== array( 'type', 'path' ) )
-				|| ( 'json' === $extra['type'] && ( array_keys( $extra ) !== array( 'type', 'path', 'jsonpath' ) || '$.version' !== $extra['jsonpath'] ) ) ) {
+			if ( ! is_array( $extra ) || ! in_array( $extra['type'] ?? null, array( 'generic' ), true )
+				|| ( 'generic' === $extra['type'] && array_keys( $extra ) !== array( 'type', 'path' ) ) ) {
 				throw new InvalidArgumentException( 'Source-ready assessment contains an invalid version source.' );
 			}
 		}
@@ -83,15 +83,19 @@ final readonly class SourceReadyAssessment {
 		string $version,
 		array $releaseFiles,
 		array $modifiedFiles,
-		array $extraFiles
+		array $extraFiles,
+		string $phpVersion
 	): self {
-		return new self( 'source_ready', $profile, $packageSlug, $headerPath, $version, $releaseFiles, $modifiedFiles, $extraFiles );
+		return new self( 'source_ready', $profile, $packageSlug, $headerPath, $version, $releaseFiles, $modifiedFiles, $extraFiles, $phpVersion );
 	}
 	public static function refused( string $code ): self {
-		return new self( $code, '', '', '', '', array(), array(), array() );
+		return new self( $code, '', '', '', '', array(), array(), array(), '' );
 	}
 	public function readyForBootstrap(): bool {
 		return 'source_ready' === $this->code;
+	}
+	public function phpVersion(): string {
+		return $this->phpVersion;
 	}
 	public function code(): string {
 		return $this->code;

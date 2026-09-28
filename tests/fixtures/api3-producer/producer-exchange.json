@@ -1,0 +1,59 @@
+{
+  "producer_sha": "37fcee9c6707747d2b2cba5eff90a22b8f9e5968",
+  "workflow_run_id": "36435273347",
+  "run_attempt": "1",
+  "artifact_id": null,
+  "artifact_id_note": "Resolve after upload from this exact run and attempt; no synthetic transport identity.",
+  "filename": "ran-booster-release-bootstrap-templates.zip",
+  "size": 9996,
+  "zip_sha256": "f97165fc884770319f4a53d5ae3377adc94821b7bd5ed439a4023c426d92ba23",
+  "manifest_sha256": "c891421efde53f6c88625af9c5e609a7f568193773539999c4775563e67f32b1",
+  "pack_version": "0.2.1",
+  "profiles": {
+    "source-ready-wordpress-plugin/3": {
+      "quality-workflow": {
+        "sha256": "4dabd99a852c95d65ea6c076282d564421f3ab46571a77193c32f6472ab51d1c",
+        "rendered_sha256": "a894c1c32c7622c8eeb86761e6a68d257842721051d5a05d8c2f52758c2e0148"
+      },
+      "release-workflow": {
+        "sha256": "a47776aaa88a61f9319e56d6d4d7bf6763dc8b439e5553aa69cd0375eabc053c",
+        "rendered_sha256": "7ff2ee7eff5e40e21d901667e395b7204d1f2bff57e6dab757cf281e7222163f"
+      },
+      "release-please-config": {
+        "sha256": "86231f76db9d2e498e9acc86414bab641a40ced1eb53e00459287a751660c0cb",
+        "rendered_sha256": "61e09b4d1dc5ece6d16e2da102de7bed758a1064651d84fa0eceda9f163adbb8"
+      },
+      "build-release-script": {
+        "sha256": "ea26b700517c9c4783d01ce29feda6f6ad757e21049b470802cf57962b77d88f",
+        "rendered_sha256": "264395b731027994d7bcd88ae7aa5d261a1f092b397ad717554d05b2e71c1df4"
+      },
+      "verify-release-script": {
+        "sha256": "70a60c6e2bb632d8b1e05c6d027bbcb478714cdb40e8c179916f530ca0daefe2",
+        "rendered_sha256": "6c81aad5a9c6c1ab4364af37b629919a5f88d3ac2be926addb505a2db3d4462b"
+      }
+    },
+    "source-ready-wordpress-theme/3": {
+      "quality-workflow": {
+        "sha256": "4dabd99a852c95d65ea6c076282d564421f3ab46571a77193c32f6472ab51d1c",
+        "rendered_sha256": "a894c1c32c7622c8eeb86761e6a68d257842721051d5a05d8c2f52758c2e0148"
+      },
+      "release-workflow": {
+        "sha256": "a47776aaa88a61f9319e56d6d4d7bf6763dc8b439e5553aa69cd0375eabc053c",
+        "rendered_sha256": "7ff2ee7eff5e40e21d901667e395b7204d1f2bff57e6dab757cf281e7222163f"
+      },
+      "release-please-config": {
+        "sha256": "86231f76db9d2e498e9acc86414bab641a40ced1eb53e00459287a751660c0cb",
+        "rendered_sha256": "0862e6bd92838ef8b9159ebf73ea27e958203a5882199968e28d7e7b8b0de286"
+      },
+      "build-release-script": {
+        "sha256": "ea26b700517c9c4783d01ce29feda6f6ad757e21049b470802cf57962b77d88f",
+        "rendered_sha256": "3370db8c02680db60cb6d8be84758a0dfaf0de70e55c7d9fe79b52c6c86c02e2"
+      },
+      "verify-release-script": {
+        "sha256": "70a60c6e2bb632d8b1e05c6d027bbcb478714cdb40e8c179916f530ca0daefe2",
+        "rendered_sha256": "b4b04050400ab2f5de21f0008617b5d1d418e1f2cf667d166fdf711a27c54ef6"
+      }
+    }
+  },
+  "rendering": "Producer fixture proof only. Actual candidate Provider consumption remains separate."
+}

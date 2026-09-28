@@ -86,7 +86,7 @@ final class ModuleDependencyBoundaryTest extends TestCase {
 		'RAN\RepositoryProvider\RepositoryReleaseNativeTargetStatus',
 		'RAN\RepositoryProvider\RepositoryReleaseNativeTargets',
 		'RAN\RepositoryProvider\RepositoryReleaseReadUnavailable',
-		'RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV2',
+		'RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV3',
 		'RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight',
 		'RAN\RepositoryProvider\RepositoryReleaseWorkflowPreview',
 		'RAN\RepositoryProvider\RepositoryReleaseWorkflowResult',

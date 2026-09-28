@@ -32,9 +32,9 @@ final class TemplatePackRepositoryClient {
 	}
 
 	/**
-	 * Select the highest stable immutable release supporting Consumer API 2.
+	 * Select the newest eligible stable immutable release; never fall back to an older format.
 	 *
-	 * @return array{code:string, pack?:TemplatePack, newer_incompatible?:bool}
+	 * @return array{code:string, pack?:TemplatePack}
 	 */
 	public function discover( string $token = '' ): array {
 		$repository = $this->repository( $token );
@@ -68,25 +68,7 @@ final class TemplatePackRepositoryClient {
 		}
 		usort( $candidates, static fn ( array $left, array $right ): int => version_compare( $right['version'], $left['version'] ) );
 
-		$newerIncompatible = false;
-		foreach ( $candidates as $candidate ) {
-			$result = $this->verifiedRelease( $candidate, $token );
-			if ( 'template_pack_incompatible' === $result['code'] ) {
-				$newerIncompatible = true;
-				continue;
-			}
-			if ( 'ok' !== $result['code'] ) {
-				return $result;
-			}
-
-			return array(
-				'code'               => 'ok',
-				'pack'               => $result['pack'],
-				'newer_incompatible' => $newerIncompatible,
-			);
-		}
-
-		return $this->error( $newerIncompatible ? 'template_pack_incompatible' : 'template_pack_unavailable' );
+		return array() === $candidates ? $this->error( 'template_pack_unavailable' ) : $this->verifiedRelease( $candidates[0], $token );
 	}
 
 	/**

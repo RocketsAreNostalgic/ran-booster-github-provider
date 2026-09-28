@@ -6,10 +6,10 @@ namespace Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplatePackRepositoryClient;
-use Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi2Fixture;
+use Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi3Fixture;
 
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
-require_once __DIR__ . '/Support/TemplatePackApi2Fixture.php';
+require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 
 final class TemplatePackRepositoryClientTest extends TestCase {
 
@@ -17,11 +17,11 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		\RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\template_pack_repository_actions_reset();
 	}
 
-	public function testSelectsHighestCompatibleStableImmutablePackAndReportsNewerApi(): void {
-		$compatibleManifest   = TemplatePackApi2Fixture::manifest();
-		$compatibleArchive    = TemplatePackApi2Fixture::archive( $compatibleManifest );
-		$incompatibleManifest = $this->manifestIdentity( TemplatePackApi2Fixture::manifest( 3, '2.0.0' ), 42, 'v2.0.0' );
-		$incompatibleArchive  = TemplatePackApi2Fixture::archive( $incompatibleManifest );
+	public function testLatestIncompatiblePackRefusesWithoutFallingBack(): void {
+		$compatibleManifest   = TemplatePackApi3Fixture::manifest();
+		$compatibleArchive    = TemplatePackApi3Fixture::archive( $compatibleManifest );
+		$incompatibleManifest = $this->manifestIdentity( TemplatePackApi3Fixture::manifest( 4, '2.0.0' ), 42, 'v2.0.0' );
+		$incompatibleArchive  = TemplatePackApi3Fixture::archive( $incompatibleManifest );
 
 		$compatible   = $this->release( 41, 'v1.2.3', $compatibleArchive );
 		$incompatible = $this->release( 42, 'v2.0.0', $incompatibleArchive );
@@ -33,18 +33,18 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 				$this->response(
 					200,
 					array(
-						'id'        => TemplatePackApi2Fixture::REPOSITORY_ID,
-						'full_name' => TemplatePackApi2Fixture::REPOSITORY,
+						'id'        => TemplatePackApi3Fixture::REPOSITORY_ID,
+						'full_name' => TemplatePackApi3Fixture::REPOSITORY,
 					)
 				),
 				$this->response( 200, array( $draft, $prerelease, $mutable, $compatible, $incompatible ) ),
 				$this->response( 200, $incompatible ),
 				$this->tagResponse(),
-				$this->response( 200, array( 'sha' => TemplatePackApi2Fixture::COMMIT ) ),
+				$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
 				$this->binaryResponse( 200, $incompatibleArchive ),
 				$this->response( 200, $compatible ),
 				$this->tagResponse(),
-				$this->response( 200, array( 'sha' => TemplatePackApi2Fixture::COMMIT ) ),
+				$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
 				$this->binaryResponse( 200, $compatibleArchive ),
 			)
 		);
@@ -52,13 +52,10 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 
 		$result = $client->discover();
 
-		self::assertSame( 'ok', $result['code'] );
-		self::assertTrue( $result['newer_incompatible'] );
-		self::assertSame( '1.2.3', $result['pack']->packVersion() );
-		self::assertSame( TemplatePackApi2Fixture::REPOSITORY_ID, $result['pack']->identity()['repository_id'] );
-		self::assertCount( 10, $transport->requests );
+		self::assertSame( 'template_pack_incompatible', $result['code'] );
+		self::assertArrayNotHasKey( 'pack', $result );
+		self::assertCount( 6, $transport->requests );
 		self::assertStringEndsWith( '/releases/42', $transport->requests[2]['url'] );
-		self::assertStringEndsWith( '/releases/41', $transport->requests[6]['url'] );
 		self::assertSame( 'application/octet-stream', $transport->requests[5]['args']['headers']['Accept'] );
 		self::assertSame( 3, $transport->requests[5]['args']['redirection'] );
 		self::assertTrue( $transport->requests[5]['args']['reject_unsafe_urls'] );
@@ -70,25 +67,25 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	}
 
 	public function testExactRefetchRequiresEveryPinnedReleaseAndAssetIdentity(): void {
-		$archive              = TemplatePackApi2Fixture::archive();
+		$archive              = TemplatePackApi3Fixture::archive();
 		$release              = $this->release( 41, 'v1.2.3', $archive );
 		$transport            = new TemplatePackScriptedTransport(
 			array(
 				$this->response(
 					200,
 					array(
-						'id'        => TemplatePackApi2Fixture::REPOSITORY_ID,
-						'full_name' => TemplatePackApi2Fixture::REPOSITORY,
+						'id'        => TemplatePackApi3Fixture::REPOSITORY_ID,
+						'full_name' => TemplatePackApi3Fixture::REPOSITORY,
 					)
 				),
 				$this->response( 200, $release ),
 				$this->response( 200, $release ),
 				$this->tagResponse(),
-				$this->response( 200, array( 'sha' => TemplatePackApi2Fixture::COMMIT ) ),
+				$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
 				$this->binaryResponse( 200, $archive ),
 			)
 		);
-		$identity             = TemplatePackApi2Fixture::identity( $archive );
+		$identity             = TemplatePackApi3Fixture::identity( $archive );
 		$identity['asset_id'] = $release['assets'][0]['id'];
 
 		$result = $this->client( $transport )->exact( $identity );
@@ -109,8 +106,8 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 				$this->response(
 					200,
 					array(
-						'id'        => TemplatePackApi2Fixture::REPOSITORY_ID,
-						'full_name' => TemplatePackApi2Fixture::REPOSITORY,
+						'id'        => TemplatePackApi3Fixture::REPOSITORY_ID,
+						'full_name' => TemplatePackApi3Fixture::REPOSITORY,
 					)
 				),
 				$this->response( 200, $release ),
@@ -123,7 +120,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	}
 
 	public function testAuthenticatedRequestsSendTheOperationTokenForJsonAndAssetReads(): void {
-		$archive   = TemplatePackApi2Fixture::archive();
+		$archive   = TemplatePackApi3Fixture::archive();
 		$release   = $this->release( 41, 'v1.2.3', $archive );
 		$transport = new TemplatePackScriptedTransport(
 			array(
@@ -131,7 +128,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 				$this->response( 200, array( $release ) ),
 				$this->response( 200, $release ),
 				$this->tagResponse(),
-				$this->response( 200, array( 'sha' => TemplatePackApi2Fixture::COMMIT ) ),
+				$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
 				$this->binaryResponse( 200, $archive ),
 			)
 		);
@@ -144,14 +141,14 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	}
 
 	public function testAssetRedirectScrubsTheOperationTokenWithoutChangingCanonicalApiAuthentication(): void {
-		$archive   = TemplatePackApi2Fixture::archive();
+		$archive   = TemplatePackApi3Fixture::archive();
 		$release   = $this->release( 41, 'v1.2.3', $archive );
 		$responses = array(
 			$this->repositoryResponse(),
 			$this->response( 200, array( $release ) ),
 			$this->response( 200, $release ),
 			$this->tagResponse(),
-			$this->response( 200, array( 'sha' => TemplatePackApi2Fixture::COMMIT ) ),
+			$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
 			$this->binaryResponse( 200, $archive ),
 		);
 		$requests  = array();
@@ -194,7 +191,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 					200,
 					array(
 						'id'        => '123',
-						'full_name' => TemplatePackApi2Fixture::REPOSITORY,
+						'full_name' => TemplatePackApi3Fixture::REPOSITORY,
 					)
 				),
 			)
@@ -202,7 +199,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		self::assertSame( 'template_pack_changed', $this->client( $wrongRepository )->discover()['code'] );
 		self::assertCount( 1, $wrongRepository->requests );
 
-		$archive                        = TemplatePackApi2Fixture::archive();
+		$archive                        = TemplatePackApi3Fixture::archive();
 		$release                        = $this->release( 41, 'v1.2.3', $archive );
 		$release['assets'][0]['digest'] = 'sha256:' . str_repeat( '0', 64 );
 		$transport                      = new TemplatePackScriptedTransport(
@@ -210,14 +207,14 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 				$this->response(
 					200,
 					array(
-						'id'        => TemplatePackApi2Fixture::REPOSITORY_ID,
-						'full_name' => TemplatePackApi2Fixture::REPOSITORY,
+						'id'        => TemplatePackApi3Fixture::REPOSITORY_ID,
+						'full_name' => TemplatePackApi3Fixture::REPOSITORY,
 					)
 				),
 				$this->response( 200, array( $release ) ),
 				$this->response( 200, $release ),
 				$this->tagResponse(),
-				$this->response( 200, array( 'sha' => TemplatePackApi2Fixture::COMMIT ) ),
+				$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
 				$this->binaryResponse( 200, $archive ),
 			)
 		);
@@ -225,7 +222,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	}
 
 	public function testMalformedHigherStableReleaseAndDuplicateVersionRefuseFallback(): void {
-		$archive             = TemplatePackApi2Fixture::archive();
+		$archive             = TemplatePackApi3Fixture::archive();
 		$older               = $this->release( 41, 'v1.2.3', $archive );
 		$malformed           = $this->release( 42, 'v2.0.0', $archive );
 		$malformed['assets'] = array();
@@ -252,8 +249,8 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	}
 
 	public function testHistoricalApi1PackIsRefusedWithoutFallbackOrAdapter(): void {
-		$manifest  = TemplatePackApi2Fixture::manifest( 1 );
-		$archive   = TemplatePackApi2Fixture::archive( $manifest );
+		$manifest  = TemplatePackApi3Fixture::manifest( 1 );
+		$archive   = TemplatePackApi3Fixture::archive( $manifest );
 		$release   = $this->release( 41, 'v1.2.3', $archive );
 		$transport = new TemplatePackScriptedTransport(
 			array(
@@ -261,7 +258,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 				$this->response( 200, array( $release ) ),
 				$this->response( 200, $release ),
 				$this->tagResponse(),
-				$this->response( 200, array( 'sha' => TemplatePackApi2Fixture::COMMIT ) ),
+				$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
 				$this->binaryResponse( 200, $archive ),
 			)
 		);
@@ -271,9 +268,9 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	}
 
 	public function testExactRefetchKeepsRemoteUnavailabilityDistinctFromIdentityDrift(): void {
-		$archive              = TemplatePackApi2Fixture::archive();
+		$archive              = TemplatePackApi3Fixture::archive();
 		$release              = $this->release( 41, 'v1.2.3', $archive );
-		$identity             = TemplatePackApi2Fixture::identity( $archive );
+		$identity             = TemplatePackApi3Fixture::identity( $archive );
 		$identity['asset_id'] = $release['assets'][0]['id'];
 		$transport            = new TemplatePackScriptedTransport(
 			array(
@@ -296,14 +293,14 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		return array(
 			'id'               => $id,
 			'tag_name'         => $tag,
-			'target_commitish' => TemplatePackApi2Fixture::COMMIT,
+			'target_commitish' => TemplatePackApi3Fixture::COMMIT,
 			'draft'            => $draft,
 			'prerelease'       => $prerelease,
 			'immutable'        => $immutable,
 			'assets'           => array(
 				array(
-					'id'           => TemplatePackApi2Fixture::ASSET_ID + $id,
-					'name'         => TemplatePackApi2Fixture::ASSET_NAME,
+					'id'           => TemplatePackApi3Fixture::ASSET_ID + $id,
+					'name'         => TemplatePackApi3Fixture::ASSET_NAME,
 					'size'         => strlen( $archive ),
 					'state'        => 'uploaded',
 					'content_type' => 'application/zip',
@@ -314,7 +311,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	}
 
 	/** @return array<string, mixed> */
-	private function tagResponse( string $sha = TemplatePackApi2Fixture::COMMIT, string $type = 'commit' ): array {
+	private function tagResponse( string $sha = TemplatePackApi3Fixture::COMMIT, string $type = 'commit' ): array {
 		return $this->response(
 			200,
 			array(
@@ -331,15 +328,14 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		return $this->response(
 			200,
 			array(
-				'id'        => TemplatePackApi2Fixture::REPOSITORY_ID,
-				'full_name' => TemplatePackApi2Fixture::REPOSITORY,
+				'id'        => TemplatePackApi3Fixture::REPOSITORY_ID,
+				'full_name' => TemplatePackApi3Fixture::REPOSITORY,
 			)
 		);
 	}
 
 	/** @param array<string, mixed> $manifest @return array<string, mixed> */
 	private function manifestIdentity( array $manifest, int $releaseId, string $tag ): array {
-		$manifest['release']['id']  = $releaseId;
 		$manifest['release']['tag'] = $tag;
 
 		return $manifest;

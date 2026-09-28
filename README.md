@@ -59,6 +59,10 @@ The supported host baseline is:
 The package is pre-release software and should be consumed through an immutable
 tagged release, not a moving development branch.
 
+The shared repository-path dependency requires `ran/updater-support ^1.0.0-beta.4`.
+This repository locks an immutable release for qualification; consuming hosts own
+their dependency locks and must qualify their complete package composition.
+
 ## Development
 
 The canonical local gate requires PHP 8.2+ with Composer and Node **24.11.0**.
@@ -75,13 +79,13 @@ composer check
 Use `composer standards:fix` to apply PHPCBF.
 
 The implementation tests and static analysis also verify compatibility with an
-exact certified Booster checkout because the public provider contracts remain
+exact candidate Booster checkout because the public provider contracts remain
 Booster-owned. For an equivalent local pass:
 
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
-# Match the certified host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ffc11fc8e40618624a785b7fca5193029c6d492e &&
+# Match the candidate host pinned in .github/workflows/ci.yml.
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff &&
   composer check:host
 ```
 
@@ -105,3 +109,39 @@ This package is versioned and released independently from Booster. Booster
 consumes a specific immutable provider release and verifies that dependency in
 its runtime archive. Release and trust details for maintainers are documented
 in [RELEASING.md](RELEASING.md).
+
+## API 3 initial starter candidate
+
+Provider #30 implements the five-method initial-only V3 contract against Core
+#177 `3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff`, as approved in programme #81.
+This test tuple is candidate qualification, not certification against a released
+host. Core source, production dependency locks and the runtime updater protocol
+are separate ownership boundaries. UI and owner-run interactive acceptance remain
+deferred.
+
+The fixed plugin/theme starter renders five logical templates into ten generated
+files, plus bounded header/readme version annotations. Every file is mode 100644.
+The passive origin record and operator guide grant no destination paths,
+permissions, ownership or future writes. Existing automation or generated-file
+conflicts require manual integration. No update engine, managed receipt, API 2
+fallback, formatter modification or repair is provided.
+
+`StarterSecurityCheck::check()` is an on-demand read-only package service. Its
+caller must obtain origin bytes from an identity-verified exact repository
+revision. Core adoption wiring remains outstanding: this service introduces no
+new host-interface method or UI. Results are `matching_advisory`,
+`no_matching_known_advisory` or `unknown`; none grants execution readiness or
+blocks ordinary adoption. Canonical GitHub advisory endpoint/response URLs bind
+repository identity; every indexed advisory must be published and not withdrawn.
+No prose matching, background scanning, cache or write occurs.
+
+`tests/fixtures/api3-producer` contains exact bytes downloaded from producer B
+Actions run 36435273347 attempt 1, artifact 10975406751, producer commit
+`37fcee9c6707747d2b2cba5eff90a22b8f9e5968`. `ProducerExchangeTest` verifies the
+9996-byte ZIP, SHA-256
+`f97165fc884770319f4a53d5ae3377adc94821b7bd5ed439a4023c426d92ba23`, manifest and
+all ten plugin/theme render digests against the producer envelope. Numeric
+release/asset identities are explicitly simulated transport fixtures: this is
+actual producer-byte/consumer convergence, not published transport or installed
+end-to-end acceptance. Shared Profile B is pinned at
+`63c4a4b192bbb4cf203dab281b75a0907e85c3a9`.

@@ -37,7 +37,7 @@ final class SetupRecordStore {
 		'template_asset_size',
 		'template_asset_digest',
 		'manifest_digest',
-		'receipt_digest',
+		'changed_files',
 		'consumer_api',
 		'pack_version',
 		'bundle_hash',
@@ -52,10 +52,10 @@ final class SetupRecordStore {
 
 	private ?string $claimToken      = null;
 	private ?string $claimConnection = null;
-	/** @return array<string,int|string>|null */
+	/** @return array<string,mixed>|null */
 	public function find( string $repositoryId ): ?array {
 		$raw = $this->raw( $repositoryId );
-		if ( null === $raw || 2 !== ( $raw['schema_version'] ?? null ) ) {
+		if ( null === $raw || 3 !== ( $raw['schema_version'] ?? null ) ) {
 			return null;
 		}
 		$record = $this->normalize( $raw );
@@ -70,7 +70,7 @@ final class SetupRecordStore {
 		return is_array( $all ) && array_key_exists( $repositoryId, $all );
 	}
 	/** Serialize setup and the shared record write before any provider mutation. @return string|null Opaque exact-owner claim. */
-	public function claim( string $repositoryId, string $type, string $identifier, int $revision, bool $allowExistingRecord = false ): ?string {
+	public function claim( string $repositoryId, string $type, string $identifier, int $revision ): ?string {
 		$this->hasActiveClaim();
 		if ( ! $this->number( $repositoryId ) || ! in_array( $type, array( 'plugin', 'theme' ), true )
 			|| ! $this->text( $identifier, 255 ) || $revision < 1 || null !== $this->claimToken ) {
@@ -85,11 +85,7 @@ final class SetupRecordStore {
 		if ( function_exists( 'wp_cache_delete' ) ) {
 			wp_cache_delete( self::OPTION, 'options' );
 		}
-		$existing = $this->find( $repositoryId );
-		if ( $allowExistingRecord
-			? null === $existing || ! hash_equals( $type, $existing['package_type'] )
-				|| ! hash_equals( $identifier, $existing['package_identifier'] ) || $revision !== $existing['source_revision']
-			: $this->occupied( $repositoryId ) ) {
+		if ( $this->occupied( $repositoryId ) ) {
 			$this->releaseClaim( $repositoryId, $claim );
 			return null;
 		}
@@ -159,7 +155,7 @@ final class SetupRecordStore {
 	private static function claimLockName(): string {
 		return WorkflowAssistanceState::claimLockName();
 	}
-	/** Refresh only the monotonic Core source revision for the same exact package record. @return array<string,int|string>|null */
+	/** Refresh only the monotonic Core source revision for the same exact package record. @return array<string,mixed>|null */
 	public function refreshSourceRevision( string $repositoryId, string $type, string $identifier, int $revision ): ?array {
 		$acquired = ! $this->hasActiveClaim();
 		if ( $acquired && ! $this->acquireClaimLock() ) {
@@ -205,7 +201,7 @@ final class SetupRecordStore {
 		return $saved && $released;
 	}
 
-	/** @param array<string,int|string> $record */
+	/** @param array<string,mixed> $record */
 	private function persistRecord( array $record ): bool {
 		$all = get_option( self::OPTION, array() );
 		if ( ! is_array( $all ) || count( $all ) > self::MAX_RECORDS
@@ -262,7 +258,7 @@ final class SetupRecordStore {
 		}
 		return $saved && $released;
 	}
-	/** @param array<string,int|string> $observation */
+	/** @param array<string,mixed> $observation */
 	private function persistAssessmentObservation( array $observation ): bool {
 		$all = $this->assessmentObservations();
 		if ( null === $all ) {
@@ -287,7 +283,7 @@ final class SetupRecordStore {
 		return update_option( self::ASSESSMENT_OPTION, $all, false )
 			&& $this->assessmentObservation( $observation['repository_id'], $observation['package_type'], $observation['package_identifier'], $observation['source_revision'] ) === $observation;
 	}
-	/** @return array<string,int|string>|null */
+	/** @return array<string,mixed>|null */
 	public function assessmentObservation( string $repositoryId, string $type, string $identifier, int $sourceRevision ): ?array {
 		if ( ! $this->number( $repositoryId ) || ! in_array( $type, array( 'plugin', 'theme' ), true ) || ! $this->text( $identifier, 255 ) || $sourceRevision < 1 ) {
 			return null;
@@ -326,7 +322,7 @@ final class SetupRecordStore {
 		}
 		return $recorded && $released;
 	}
-	/** @param array<string,int|string> $failure */
+	/** @param array<string,mixed> $failure */
 	private function persistFailure( array $failure ): bool {
 		$history = get_option( self::FAILURE_OPTION, array() );
 		if ( ! is_array( $history ) || ! array_is_list( $history ) || count( $history ) > self::MAX_FAILURES ) {
@@ -347,7 +343,7 @@ final class SetupRecordStore {
 		$readback = $this->failureHistory( $failure['repository_id'], $failure['package_type'], $failure['package_identifier'], $failure['source_revision'] );
 		return in_array( $failure, $readback, true );
 	}
-	/** @return list<array<string,int|string>> */
+	/** @return list<array<string,mixed>> */
 	public function failureHistory( string $repositoryId, string $type, string $identifier, int $sourceRevision ): array {
 		if ( ! $this->number( $repositoryId ) || ! in_array( $type, array( 'plugin', 'theme' ), true ) || ! $this->text( $identifier, 255 ) || $sourceRevision < 1 ) {
 			return array();
@@ -377,14 +373,14 @@ final class SetupRecordStore {
 		$all = get_option( self::OPTION, array() );
 		return is_array( $all ) && count( $all ) <= self::MAX_RECORDS && is_array( $all[ $repositoryId ] ?? null ) ? $all[ $repositoryId ] : null;
 	}
-	/** @param array<string,mixed> $raw @return array<string,int|string>|null */
+	/** @param array<string,mixed> $raw @return array<string,mixed>|null */
 	private function normalize( array $raw ): ?array {
-		if ( array_keys( $raw ) !== self::FIELDS || 2 !== ( $raw['schema_version'] ?? null )
-			|| ! in_array( $raw['operation'] ?? null, array( 'bootstrap', 'template_update' ), true )
+		if ( array_keys( $raw ) !== self::FIELDS || 3 !== ( $raw['schema_version'] ?? null )
+			|| 'bootstrap' !== ( $raw['operation'] ?? null )
 			|| ! $this->currentIdentityValid( array_intersect_key( $raw, array_flip( self::IDENTITY_FIELDS ) ) )
-			|| ! str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v2-' )
+			|| ! str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v3-' )
 			|| ! $this->hash( $raw['base_sha'] ?? null, 40 )
-			|| ! in_array( $raw['profile_id'] ?? null, array( 'source-ready-wordpress-plugin/2', 'source-ready-wordpress-theme/2' ), true )
+			|| ! in_array( $raw['profile_id'] ?? null, array( 'source-ready-wordpress-plugin/3', 'source-ready-wordpress-theme/3' ), true )
 			|| 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates' !== ( $raw['template_repo_name'] ?? null )
 			|| '1322743261' !== ( $raw['template_repo_id'] ?? null )
 			|| ! $this->positiveInt( $raw['template_release_id'] ?? null ) || ! $this->textValue( $raw['template_tag'] ?? null, 191 )
@@ -392,15 +388,15 @@ final class SetupRecordStore {
 			|| 'ran-booster-release-bootstrap-templates.zip' !== ( $raw['template_asset_name'] ?? null )
 			|| ! $this->positiveInt( $raw['template_asset_size'] ?? null ) || $raw['template_asset_size'] > 2097152
 			|| ! $this->hash( $raw['template_asset_digest'] ?? null, 64 ) || ! $this->hash( $raw['manifest_digest'] ?? null, 64 )
-			|| ! $this->hash( $raw['receipt_digest'] ?? null, 64 ) || TemplatePack::CONSUMER_API !== ( $raw['consumer_api'] ?? null )
+			|| ! $this->validChangedFiles( $raw['changed_files'] ?? null ) || TemplatePack::CONSUMER_API !== ( $raw['consumer_api'] ?? null )
 			|| ! is_string( $raw['pack_version'] ?? null ) || 1 !== preg_match( '/\A[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\z/D', $raw['pack_version'] )
 			|| ! $this->hash( $raw['bundle_hash'] ?? null, 64 ) || ! $this->hash( $raw['changed_path_hash'] ?? null, 64 ) ) {
 			return null;
 		}
-		/** @var array<string,int|string> $raw */
+		/** @var array<string,mixed> $raw */
 		return $raw;
 	}
-	/** @return list<array<string,int|string>>|null */
+	/** @return list<array<string,mixed>>|null */
 	private function assessmentObservations(): ?array {
 		$all = get_option( self::ASSESSMENT_OPTION, array() );
 		if ( ! is_array( $all ) || ! array_is_list( $all ) || count( $all ) > self::MAX_OBSERVATIONS ) {
@@ -421,7 +417,7 @@ final class SetupRecordStore {
 		}
 		return $all;
 	}
-	/** @param array<string,mixed> $observation @return array<string,int|string>|null */
+	/** @param array<string,mixed> $observation @return array<string,mixed>|null */
 	private function normalizeObservation( array $observation ): ?array {
 		if ( array_keys( $observation ) !== self::OBSERVATION_FIELDS || ! in_array( $observation['kind'] ?? null, self::OBSERVATION_STATUSES, true )
 			|| ! $this->number( $observation['repository_id'] ?? null )
@@ -430,18 +426,18 @@ final class SetupRecordStore {
 			|| ! is_string( $observation['observed_at'] ?? null ) || 1 !== preg_match( '/\A[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\z/D', $observation['observed_at'] ) ) {
 			return null;
 		}
-		/** @var array<string,int|string> $observation */
+		/** @var array<string,mixed> $observation */
 		return $observation;
 	}
-	/** @param array<string,int|string> $first @param array<string,int|string> $second */
+	/** @param array<string,mixed> $first @param array<string,mixed> $second */
 	private function sameAssessmentPackage( array $first, array $second ): bool {
 		return $first['repository_id'] === $second['repository_id'] && $first['package_type'] === $second['package_type']
 			&& $first['package_identifier'] === $second['package_identifier'];
 	}
-	/** @param array<string,mixed> $failure @return array<string,int|string>|null */
+	/** @param array<string,mixed> $failure @return array<string,mixed>|null */
 	private function normalizeFailure( array $failure ): ?array {
 		if ( array_keys( $failure ) !== self::FAILURE_FIELDS
-			|| ! in_array( $failure['operation'] ?? null, array( 'inspect', 'setup', 'outcome', 'update_inspect', 'update_setup' ), true )
+			|| ! in_array( $failure['operation'] ?? null, array( 'inspect', 'setup', 'outcome' ), true )
 			|| ! is_string( $failure['outcome_code'] ?? null ) || 1 !== preg_match( '/\Aworkflow_[a-z0-9_]{1,55}\z/D', $failure['outcome_code'] )
 			|| ! in_array( $failure['failure_stage'] ?? null, self::FAILURE_STAGES, true )
 			|| ! in_array( $failure['package_type'] ?? null, array( 'plugin', 'theme' ), true )
@@ -453,7 +449,7 @@ final class SetupRecordStore {
 			|| ! is_string( $failure['recorded_at'] ?? null ) || 1 !== preg_match( '/\A[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\z/D', $failure['recorded_at'] ) ) {
 			return null;
 		}
-		/** @var array<string,int|string> $failure */
+		/** @var array<string,mixed> $failure */
 		return $failure;
 	}
 	/** @param array<string,mixed> $raw */
@@ -462,9 +458,27 @@ final class SetupRecordStore {
 			&& $this->repository( $raw['repository'] ?? null ) && in_array( $raw['package_type'] ?? null, array( 'plugin', 'theme' ), true )
 			&& $this->textValue( $raw['package_identifier'] ?? null, 255 ) && $this->positiveInt( $raw['source_revision'] ?? null )
 			&& $this->branch( $raw['default_branch'] ?? null ) && $this->branch( $raw['setup_branch'] ?? null )
-			&& str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v2-' )
+			&& str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v3-' )
 			&& $this->hash( $raw['head_sha'] ?? null, 40 ) && $this->positiveInt( $raw['pr_number'] ?? null );
 	}
+	private function validChangedFiles( mixed $files ): bool {
+		if ( ! is_array( $files ) || ! array_is_list( $files ) || array() === $files || count( $files ) > 32 ) {
+			return false;
+		}
+		$previous = '';
+		foreach ( $files as $file ) {
+			if ( ! is_array( $file ) || array_keys( $file ) !== array( 'path', 'status', 'sha' )
+				|| ! is_string( $file['path'] ) || '' === $file['path'] || strlen( $file['path'] ) > 512
+				|| str_starts_with( $file['path'], '/' ) || str_contains( $file['path'], '\\' )
+				|| 1 === preg_match( '#(?:\A|/)\.\.?(/|\z)|[\x00-\x1F\x7F]#', $file['path'] )
+				|| strcmp( $previous, $file['path'] ) >= 0 || ! in_array( $file['status'], array( 'added', 'modified' ), true ) || ! $this->hash( $file['sha'], 40 ) ) {
+				return false;
+			}
+			$previous = $file['path'];
+		}
+		return true;
+	}
+
 	private function repository( mixed $value ): bool {
 		return is_string( $value ) && 1 === preg_match( '#\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z#D', $value );
 	}

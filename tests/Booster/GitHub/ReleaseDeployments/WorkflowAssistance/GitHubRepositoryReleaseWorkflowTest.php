@@ -80,15 +80,15 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		self::assertTrue( $result->recordOccupied() );
 	}
 
-	public function testInvalidUpdateLifecycleRequestsDoNotReadCredentialMaterial(): void {
+	public function testInvalidOutcomeDoesNotReadCredentialMaterial(): void {
 		$credentials = new WorkflowCredentialStore();
 		$workflow    = $this->workflow( $credentials );
 		$status      = WorkflowProviderFixtures::target();
 
 		self::assertSame( 'workflow_invalid_request', $workflow->outcome( $status, 'eligible' )->workflowCode() );
-		self::assertSame( 'workflow_invalid_request', $workflow->inspectUpdate( $status, 'eligible' )->workflowCode() );
-		self::assertSame( 'workflow_invalid_request', $workflow->setupUpdate( $status, str_repeat( 'a', 32 ), 'owner/example-plugin', 'eligible' )->workflowCode() );
 		self::assertSame( array(), $credentials->materialReads );
+		self::assertFalse( method_exists( $workflow, 'inspectUpdate' ) );
+		self::assertFalse( method_exists( $workflow, 'setupUpdate' ) );
 	}
 
 	public function testUnavailableSelectedCredentialRefusesCurrentReadOperationsBeforeTransport(): void {
@@ -102,29 +102,10 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 
 		self::assertSame( 'workflow_unauthorised', $workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), 'eligible' )->workflowCode() );
 		self::assertSame( 'workflow_unauthorised', $workflow->outcome( $status, 'eligible' )->workflowCode() );
-		self::assertSame( 'workflow_unauthorised', $workflow->inspectUpdate( $status, 'eligible' )->workflowCode() );
-		self::assertSame( array( 'eligible', 'eligible', 'eligible' ), $credentials->materialReads );
+		self::assertSame( array( 'eligible', 'eligible' ), $credentials->materialReads );
 		self::assertSame( array(), $transport->requests );
 	}
 
-	public function testUnavailableSelectedCredentialClassifiesUpdateSetupAsUnauthorised(): void {
-		$credentials = new WorkflowCredentialStore();
-		$records     = new SetupRecordStore();
-		$transport   = new D23ApplicationTransport();
-		$status      = WorkflowProviderFixtures::target();
-		$workflow    = $this->workflow( $credentials, $records, $transport );
-		$preflight   = WorkflowProviderFixtures::preflight();
-		$preview     = $workflow->inspect( $status, 'stable', $preflight, 'eligible' );
-		self::assertTrue( $workflow->setup( $status, $preview->previewKey(), 'owner/example-plugin', $preflight, 'eligible' )->successful() );
-		$transport->mergePull();
-		$transport->offerTemplateUpdate();
-		$update = $workflow->inspectUpdate( $status, 'eligible' );
-		self::assertTrue( $update->successful() );
-
-		$credentials->eligibleMaterial = null;
-
-		self::assertSame( 'workflow_unauthorised', $workflow->setupUpdate( $status, $update->previewKey(), 'owner/example-plugin', 'eligible' )->workflowCode() );
-	}
 
 	public function testCredentialChoiceLabelIsUtf8SafeAndBoundedToStatusContract(): void {
 		$credentials           = new WorkflowCredentialStore();
@@ -174,7 +155,7 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 	private function record( array $overrides = array() ): array {
 		return array_replace(
 			array(
-				'schema_version'        => 2,
+				'schema_version'        => 3,
 				'operation'             => 'bootstrap',
 				'repo_id'               => '101',
 				'repository'            => 'RocketsAreNostalgic/example-plugin',
@@ -183,10 +164,10 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 				'source_revision'       => 3,
 				'default_branch'        => 'main',
 				'base_sha'              => str_repeat( 'a', 40 ),
-				'setup_branch'          => 'ran-booster/release-setup-v2-aaaaaaaaaaaa-deadbeef',
+				'setup_branch'          => 'ran-booster/release-setup-v3-aaaaaaaaaaaa-deadbeef',
 				'head_sha'              => str_repeat( 'b', 40 ),
 				'pr_number'             => 42,
-				'profile_id'            => 'source-ready-wordpress-plugin/2',
+				'profile_id'            => 'source-ready-wordpress-plugin/3',
 				'template_repo_name'    => 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates',
 				'template_repo_id'      => '1322743261',
 				'template_release_id'   => 41,
@@ -197,8 +178,14 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 				'template_asset_size'   => 1000,
 				'template_asset_digest' => str_repeat( 'd', 64 ),
 				'manifest_digest'       => str_repeat( 'e', 64 ),
-				'receipt_digest'        => str_repeat( 'f', 64 ),
-				'consumer_api'          => 2,
+				'changed_files'         => array(
+					array(
+						'path'   => 'version.txt',
+						'status' => 'added',
+						'sha'    => str_repeat( 'f', 40 ),
+					),
+				),
+				'consumer_api'          => 3,
 				'pack_version'          => '1.2.3',
 				'bundle_hash'           => str_repeat( '1', 64 ),
 				'changed_path_hash'     => str_repeat( '2', 64 ),
