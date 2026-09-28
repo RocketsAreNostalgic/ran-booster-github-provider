@@ -41,6 +41,42 @@ final class SourceReadyAssessorTest extends TestCase {
 		self::assertSame( array( 'example-plugin.php', 'readme.txt' ), array_column( $first->extraFiles(), 'path' ) );
 	}
 
+	public function testSourceEligibilityMatchesTheFixedBuildAndVerifySyntax(): void {
+		foreach ( array( 'assets/with space.css', 'assets/é.css', 'assets/two..dots.css', 'assets/name.', 'assets/CON.css' ) as $path ) {
+			$assessment = ( new SourceReadyAssessor() )->assess(
+				$this->snapshot(
+					array(
+						'example-plugin.php' => $this->pluginHeader(),
+						$path                => 'body{}',
+					)
+				),
+				'plugin',
+				'example-plugin',
+				self::VERSION,
+				'https://github.com/' . self::REPOSITORY
+			);
+			self::assertFalse( $assessment->readyForBootstrap(), $path );
+		}
+		$header = str_replace( 'https://github.com/owner/example-plugin', 'https://github.com/owner/example-plugin/', $this->pluginHeader() );
+		self::assertSame( 'repository_unsupported', ( new SourceReadyAssessor() )->assess( $this->snapshot( array( 'example-plugin.php' => $header ) ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code() );
+		$theme = "/*\n * Theme Name: Example\n * Requires PHP: 8.2\n * Requires at least: 7.0\n * Version: 1.2.3\n * Update URI: https://github.com/owner/example-plugin\n */\n";
+		self::assertSame(
+			'package_ambiguous',
+			( new SourceReadyAssessor() )->assess(
+				$this->snapshot(
+					array(
+						'style.css'            => $theme,
+						'templates/index.html' => '',
+					)
+				),
+				'theme',
+				'example-theme',
+				self::VERSION,
+				'https://github.com/' . self::REPOSITORY
+			)->code()
+		);
+	}
+
 	public function testThemeProfileUsesStyleHeaderAndThemeRuntimePaths(): void {
 		$assessment = ( new SourceReadyAssessor() )->assess(
 			$this->snapshot(

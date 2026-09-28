@@ -6,10 +6,13 @@ namespace Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplatePack;
+use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\RepositorySnapshot;
+use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SourceReadyAssessor;
+use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\InitialReleaseBundle;
 
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 
-// phpcs:disable WordPress.WP.AlternativeFunctions -- Exact local producer evidence; no network or execution.
+// phpcs:disable WordPress.WP.AlternativeFunctions -- Exact local producer evidence and isolated disposable build fixtures; no network or target writes.
 final class ProducerExchangeTest extends TestCase {
 	public function testActualQualifiedProducerZipAndAllTenRenderedDigests(): void {
 		$dir   = dirname( __DIR__, 4 ) . '/fixtures/api3-producer';
@@ -49,6 +52,7 @@ final class ProducerExchangeTest extends TestCase {
 		}
 
 		foreach ( array( 'plugin', 'theme' ) as $type ) {
+			$this->verifyBundleExecution( $p, $type );
 			$profile = 'source-ready-wordpress-' . $type . '/3';
 			$header  = $type === 'plugin' ? 'example-package.php' : 'style.css';
 			$values  = array(
@@ -88,5 +92,80 @@ final class ProducerExchangeTest extends TestCase {
 					self::fail( 'Render mismatch: ' . $profile . '/' . $logical );
 				}self::assertSame( $e['profiles'][ $profile ][ $logical ]['rendered_sha256'], hash( 'sha256', $rendered['content'] ) );}
 		}
+	}
+	private function verifyBundleExecution( TemplatePack $pack, string $type ): void {
+		$header    = 'plugin' === $type ? 'example-package.php' : 'style.css';
+		$content   = 'plugin' === $type
+			? "<?php\n/**\n * Plugin Name: Example\n * Requires PHP: 8.0\n * Requires at least: 7.0\n * Version: 1.2.3\n * Update URI: https://github.com/example/example-package\n */\n"
+			: "/*\nTheme Name: Example\nRequires PHP: 8.0\nRequires at least: 7.0\nVersion: 1.2.3\nUpdate URI: https://github.com/example/example-package\n*/\n";
+		$documents = array( $header => $content );
+		if ( 'theme' === $type ) {
+			$documents['templates/index.html'] = '<!-- wp:post-content /-->'; }
+		$entries = array();
+		foreach ( $documents as $path => $bytes ) {
+			$entries[ $path ] = array(
+				'type' => 'blob',
+				'mode' => '100644',
+				'sha'  => sha1( 'blob ' . strlen( $bytes ) . "\0" . $bytes ),
+				'size' => strlen( $bytes ),
+			);
+		}
+		$snapshot   = new RepositorySnapshot( '101', 'example/example-package', 'main', str_repeat( 'a', 40 ), $entries, $documents );
+		$assessment = ( new SourceReadyAssessor() )->assess( $snapshot, $type, 'example-package', '1.2.3', 'https://github.com/example/example-package' );
+		self::assertTrue( $assessment->readyForBootstrap() );
+		$result = InitialReleaseBundle::bootstrap( $pack, $assessment, $snapshot, 'https://github.com/example/example-package' );
+		self::assertSame( 'ok', $result['code'] );
+		$files = $result['bundle']->files();
+		self::assertSame( implode( "\n", $assessment->releaseFiles() ) . "\n", $files['release-contents.txt']['content'] );
+		$root = sys_get_temp_dir() . '/ran-api3-build-' . bin2hex( random_bytes( 8 ) );
+		mkdir( $root, 0700 );
+		try {
+			foreach ( $files as $path => $file ) {
+				$documents[ $path ] = $file['content'];
+				self::assertSame( '100644', $file['mode'] ); }
+			foreach ( $documents as $path => $bytes ) {
+				if ( ! is_dir( dirname( $root . '/' . $path ) ) ) {
+					mkdir( dirname( $root . '/' . $path ), 0700, true ); }
+				file_put_contents( $root . '/' . $path, $bytes );
+				chmod( $root . '/' . $path, 0644 );
+			}
+			$this->command( array( 'git', 'init', '-q' ), $root );
+			$this->command( array( 'git', 'add', '.' ), $root );
+			$this->command( array( 'git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'fixture' ), $root );
+			$commit = trim( $this->command( array( 'git', 'rev-parse', 'HEAD' ), $root ) );
+			foreach ( array( 'one', 'two' ) as $build ) {
+				$this->command( array( 'bash', 'scripts/build-release.sh', $commit, '1.2.3', $root . '/dist-' . $build ), $root );
+				$this->command( array( 'bash', 'scripts/verify-release.sh', $root . '/dist-' . $build . '/example-package-1.2.3.zip', '1.2.3', $commit ), $root );
+			}
+			self::assertSame( hash_file( 'sha256', $root . '/dist-one/example-package-1.2.3.zip' ), hash_file( 'sha256', $root . '/dist-two/example-package-1.2.3.zip' ) );
+		} finally {
+			$iterator = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::CHILD_FIRST );
+			foreach ( $iterator as $file ) {
+				$file->isDir() ? rmdir( $file->getPathname() ) : unlink( $file->getPathname() ); }
+			rmdir( $root );
+		}
+	}
+
+	/** @param list<string> $arguments */
+	private function command( array $arguments, string $directory ): string {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Argument-vector process runs only the reviewed committed fixture in a disposable local repository.
+		$process = proc_open(
+			$arguments,
+			array(
+				0 => array( 'pipe', 'r' ),
+				1 => array( 'pipe', 'w' ),
+				2 => array( 'pipe', 'w' ),
+			),
+			$pipes,
+			$directory
+		);
+		self::assertIsResource( $process );
+		fclose( $pipes[0] );
+		$output = stream_get_contents( $pipes[1] );
+		$error  = stream_get_contents( $pipes[2] );
+		fclose( $pipes[1] );
+		fclose( $pipes[2] );
+		self::assertSame( 0, proc_close( $process ), $output . $error );
+		return $output;
 	}
 }

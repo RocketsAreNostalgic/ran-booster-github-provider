@@ -145,3 +145,10 @@ release/asset identities are explicitly simulated transport fixtures: this is
 actual producer-byte/consumer convergence, not published transport or installed
 end-to-end acceptance. Shared Profile B is pinned at
 `63c4a4b192bbb4cf203dab281b75a0907e85c3a9`.
+
+The actual producer exchange regression also executes the generated build and
+verification scripts in disposable local Git repositories for both package types,
+then compares two generated ZIPs byte-for-byte. Host-backed tests therefore need
+Bash, Git, jq, zip, unzip and shasum alongside PHP/ZipArchive. No remote repository
+or installed site is modified by these tests. The runtime allowlist contains only
+sorted explicit paths; human guidance lives in RELEASE-STARTER.md.

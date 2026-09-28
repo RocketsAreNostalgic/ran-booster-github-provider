@@ -64,3 +64,10 @@ Do not manually create/move release tags, bypass failed release checks, or reint
 ## Agent/tooling boundary
 
 Do not invoke Blacksmith [code]smith or Autofix/AI-agent features. Blacksmith may be used only as ordinary GitHub Actions runner infrastructure when a reviewed workflow selects it. Diagnose CI from GitHub Actions evidence directly.
+
+The actual producer exchange regression also executes the generated build and
+verification scripts in disposable local Git repositories for both package types,
+then compares two generated ZIPs byte-for-byte. Host-backed tests therefore need
+Bash, Git, jq, zip, unzip and shasum alongside PHP/ZipArchive. No remote repository
+or installed site is modified by these tests. The runtime allowlist contains only
+sorted explicit paths; human guidance lives in RELEASE-STARTER.md.

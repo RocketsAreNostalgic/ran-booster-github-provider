@@ -201,11 +201,15 @@ final class SourceReadyAssessor {
 		}
 
 		$label = 'theme' === $type ? 'Theme Name' : 'Plugin Name';
+		// The fixed theme verifier accepts the ordinary unstarred style.css header.
+		if ( 'theme' === $type && 1 !== preg_match( '/^[ \t]*Theme Name:[ \t]*\S/im', $document ) ) {
+			return 'package_ambiguous';
+		}
 		if ( 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?' . preg_quote( $label, '/' ) . ':[ \t]*\S/im', $document ) ) {
 			return 'package_ambiguous';
 		}
 		if ( 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Update URI:[ \t]*(\S+)[ \t]*$/im', $document, $uriMatch )
-			|| ! hash_equals( $updateUri, rtrim( $uriMatch[1][0], '/' ) ) ) {
+			|| ! hash_equals( $updateUri, $uriMatch[1][0] ) ) {
 			return 'repository_unsupported';
 		}
 		if ( strlen( $path ) > 255 || 1 !== preg_match( '/\A[A-Za-z0-9._-]+\z/D', $path )
@@ -395,8 +399,14 @@ final class SourceReadyAssessor {
 			}
 			$runtime = in_array( $root, $runtimeRoots, true )
 				|| ( ! str_contains( $path, '/' ) && $this->runtimeRootFile( $path, $type, $headerPath ) );
-			if ( ! $runtime || '100644' !== $entry['mode'] ) {
+			if ( ! $runtime || '100644' !== $entry['mode']
+				|| 1 !== preg_match( '~\A[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\z~D', $path ) || str_contains( $path, '..' ) ) {
 				return null;
+			}
+			foreach ( explode( '/', $path ) as $segment ) {
+				if ( strlen( $segment ) > 255 || str_ends_with( $segment, '.' )
+					|| 1 === preg_match( '/\A(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|\z)/i', $segment ) ) {
+					return null; }
 			}
 			$document = $snapshot->document( $path );
 			if ( null !== $document && str_starts_with( $document, 'version https://git-lfs.github.com/spec/v1' ) ) {

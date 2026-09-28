@@ -125,8 +125,7 @@ final readonly class InitialReleaseBundle {
 				return array( 'code' => 'invalid_bundle' );
 			}
 
-			$allowlist = '# Review and maintain this explicit runtime allowlist for ' . $assessment->packageSlug() . ".\n\n"
-			. implode( "\n", $assessment->releaseFiles() ) . "\n";
+			$allowlist = implode( "\n", $assessment->releaseFiles() ) . "\n";
 			$generated = array_merge(
 				$rendered,
 				array(
