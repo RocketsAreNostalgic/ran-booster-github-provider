@@ -66,6 +66,26 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		}
 	}
 
+	public function testDiscoveryIgnoresUnprefixedAndOversizedTagsBeforeFetchingAssets(): void {
+		$archive = TemplatePackApi3Fixture::archive();
+		foreach ( array( '1.2.3', 'v' . str_repeat( '1', 64 ) . '.2.3' ) as $tag ) {
+			$transport = new TemplatePackScriptedTransport(
+				array(
+					$this->response(
+						200,
+						array(
+							'id'        => 1322743261,
+							'full_name' => TemplatePackApi3Fixture::REPOSITORY,
+						)
+					),
+					$this->response( 200, array( $this->release( 41, $tag, $archive ) ) ),
+				)
+			);
+			self::assertSame( 'template_pack_unavailable', $this->client( $transport )->discover()['code'] );
+			self::assertCount( 2, $transport->requests );
+		}
+	}
+
 	public function testExactRefetchRequiresEveryPinnedReleaseAndAssetIdentity(): void {
 		$archive              = TemplatePackApi3Fixture::archive();
 		$release              = $this->release( 41, 'v1.2.3', $archive );
@@ -236,7 +256,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		self::assertSame( 'template_pack_invalid', $this->client( $transport )->discover()['code'] );
 		self::assertCount( 2, $transport->requests );
 
-		$duplicate = $this->release( 43, '1.2.3', $archive );
+		$duplicate = $this->release( 43, 'v1.2.3', $archive );
 		$transport = new TemplatePackScriptedTransport(
 			array(
 				$this->repositoryResponse(),

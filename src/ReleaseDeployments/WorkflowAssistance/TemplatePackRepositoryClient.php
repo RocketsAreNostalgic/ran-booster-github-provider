@@ -405,8 +405,8 @@ final class TemplatePackRepositoryClient {
 	}
 
 	private function versionFromTag( string $tag ): ?string {
-		$version = str_starts_with( $tag, 'v' ) ? substr( $tag, 1 ) : $tag;
-		return 1 === preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $version ) ? $version : null;
+		$version = substr( $tag, 1 );
+		return str_starts_with( $tag, 'v' ) && StarterOrigin::version( $version ) ? $version : null;
 	}
 
 	/** @param array<string, mixed> $values @return array<string, mixed> */

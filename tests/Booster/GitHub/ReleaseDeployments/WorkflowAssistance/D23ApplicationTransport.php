@@ -46,7 +46,7 @@ final class D23ApplicationTransport {
 	private array $archives    = array();
 	private int $latestRelease = TemplatePackApi3Fixture::RELEASE_ID;
 
-	public function __construct( private readonly bool $lostAcknowledgements = false, string $packageType = 'plugin' ) {
+	public function __construct( private readonly bool $lostAcknowledgements = false, string $packageType = 'plugin', private readonly string $assetContentType = 'application/zip' ) {
 		$this->archives[ TemplatePackApi3Fixture::RELEASE_ID ] = TemplatePackApi3Fixture::archive();
 		if ( 'theme' === $packageType ) {
 			$this->addBase( 'style.css', "/*\nTheme Name: Example Theme\nRequires PHP: 8.2\nRequires at least: 7.0\nVersion: 1.2.3\nUpdate URI: https://github.com/owner/example-plugin\n*/\n" );
@@ -268,7 +268,7 @@ final class D23ApplicationTransport {
 					'name'         => TemplatePackApi3Fixture::ASSET_NAME,
 					'size'         => strlen( $archive ),
 					'state'        => 'uploaded',
-					'content_type' => 'application/zip',
+					'content_type' => $this->assetContentType,
 					'digest'       => 'sha256:' . hash( 'sha256', $archive ),
 				),
 			),

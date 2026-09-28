@@ -171,6 +171,17 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		}
 	}
 
+	public function testOctetStreamPackSurvivesPreviewExactRefetchAndSetup(): void {
+		$transport   = new D23ApplicationTransport( assetContentType: 'application/octet-stream' );
+		$coordinator = $this->coordinator( new D23ReleaseFacade(), $transport, new SetupRecordStore() );
+		$status      = WorkflowProviderFixtures::target();
+		$inspect     = $coordinator->inspect( $status, 'stable', $this->readyPreflight(), 'token' );
+		self::assertSame( 'workflow_inspected', $inspect['code'] );
+		$preview = $coordinator->preview( $inspect['preview_key'], $status );
+		self::assertSame( 'application/octet-stream', $preview['template_identity']['asset_content_type'] );
+		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->readyPreflight(), 'token' )['code'] );
+	}
+
 	public function testExistingStarterDoesNotGrantAdoptionOrWriteAuthority(): void {
 		$transport   = new D23ApplicationTransport();
 		$facade      = new D23ReleaseFacade();
