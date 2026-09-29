@@ -138,10 +138,10 @@ an anonymous check returns `unknown` without claiming a clean result.
 No prose matching, background scanning, cache or write occurs.
 
 `tests/fixtures/api3-producer` contains exact bytes from producer B Quality run
-36535763167 attempt 1, artifact 11018446507, commit
-`d6f00d87f22659519a57449c0c38da7a898eaced`; two local builds match that CI ZIP byte for byte.
-`ProducerExchangeTest` verifies the 10000-byte ZIP, SHA-256
-`ba321c508e8d2f9f1c86989b88af81f6fb225a62498a07ab728221bc36ccff75`, manifest and
+36557578901 attempt 1, artifact 11028139668, commit
+`16fbb31666d7342bceef68ec942ff68916cdd1c6`; two local builds match that CI ZIP byte for byte.
+`ProducerExchangeTest` verifies the 10045-byte ZIP, SHA-256
+`6f07e39ae2fe4014f696016ab3f11af827d1b4aebc639c3a713d8b79f621b9ab`, manifest and
 all ten plugin/theme render digests against the producer envelope. Numeric
 release/asset identities are explicitly simulated transport fixtures: this is
 actual producer-byte/consumer convergence, not published transport or installed

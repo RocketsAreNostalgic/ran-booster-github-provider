@@ -8,7 +8,10 @@ use Throwable;
 
 /** Fixed API 3 source-ready rules for repository-root plugins and themes. */
 final class SourceReadyAssessor {
-	private const GENERATED_PATHS = array(
+	// The setup writes six files that GitHubRepositoryClient reads as assessment documents:
+	// two workflows, the origin record, RP config, and the build and verify scripts.
+	private const MAX_SOURCE_INSPECTED_BLOBS = 250;
+	private const GENERATED_PATHS            = array(
 		'.github/workflows/release-please.yml',
 		'.github/workflows/quality.yml',
 		'.ran-booster-release-starter.json',
@@ -130,6 +133,9 @@ final class SourceReadyAssessor {
 			|| 1 !== preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $installedVersion )
 			|| ! hash_equals( 'https://github.com/' . $snapshot->repository(), $expectedUpdateUri ) ) {
 			return SourceReadyAssessment::refused( 'repository_unsupported' );
+		}
+		if ( $snapshot->inspectedBlobCount() > self::MAX_SOURCE_INSPECTED_BLOBS ) {
+			return SourceReadyAssessment::refused( 'runtime_paths_unknown' );
 		}
 
 		if ( $this->hasCompetingReleaseAutomation( $snapshot ) ) {

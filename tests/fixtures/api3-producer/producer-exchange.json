@@ -1,13 +1,13 @@
 {
-  "producer_sha": "d6f00d87f22659519a57449c0c38da7a898eaced",
-  "workflow_run_id": "36535763167",
+  "producer_sha": "16fbb31666d7342bceef68ec942ff68916cdd1c6",
+  "workflow_run_id": "36557578901",
   "run_attempt": "1",
-  "artifact_id": null,
-  "artifact_id_note": "Resolve after upload from this exact run and attempt; no synthetic transport identity.",
+  "artifact_id": 11028139668,
+  "artifact_id_note": "Actual Actions artifact ID from producer Quality run 36557578901 attempt 1; release and asset IDs in consumer fixture remain explicitly simulated.",
   "filename": "ran-booster-release-bootstrap-templates.zip",
-  "size": 10000,
-  "zip_sha256": "ba321c508e8d2f9f1c86989b88af81f6fb225a62498a07ab728221bc36ccff75",
-  "manifest_sha256": "f6e8f0c22753c4f89d0060441ab8d139bf52717caecc5faf20b411bbd36e91a4",
+  "size": 10045,
+  "zip_sha256": "6f07e39ae2fe4014f696016ab3f11af827d1b4aebc639c3a713d8b79f621b9ab",
+  "manifest_sha256": "b44fe5e101f923aa6f0b743f66501c45e092a8c98ffba39440ba1e905ee754b4",
   "pack_version": "0.2.1",
   "profiles": {
     "source-ready-wordpress-plugin/3": {
@@ -24,12 +24,12 @@
         "rendered_sha256": "61e09b4d1dc5ece6d16e2da102de7bed758a1064651d84fa0eceda9f163adbb8"
       },
       "build-release-script": {
-        "sha256": "2dff8a27d68cbb11bcfe3e463cacb625ca625b4371a9e530d3f4815f9d877dab",
-        "rendered_sha256": "62505a40cdbff0b6376a2d6bdfee4d3c85036893fd145e1b350fa4ea2d835222"
+        "sha256": "b1d8c114f30edf7ea1b8a9416d4178d9aacea5c9d7a8970bca16eae4af3accfe",
+        "rendered_sha256": "87fae247f383c312e10f48111b82a5266f74bbb639fb919b79c5e5c2a8da30f7"
       },
       "verify-release-script": {
-        "sha256": "70a60c6e2bb632d8b1e05c6d027bbcb478714cdb40e8c179916f530ca0daefe2",
-        "rendered_sha256": "6c81aad5a9c6c1ab4364af37b629919a5f88d3ac2be926addb505a2db3d4462b"
+        "sha256": "aef3748ebe0623980636f4bef2a1a8f7c982f38a5e6fc80b8029f4ba1164fe6d",
+        "rendered_sha256": "da388fab3f459c76f984942fa15f6ee9ad38f3ec0032c2d124e77d5a7849d65d"
       }
     },
     "source-ready-wordpress-theme/3": {
@@ -46,12 +46,12 @@
         "rendered_sha256": "0862e6bd92838ef8b9159ebf73ea27e958203a5882199968e28d7e7b8b0de286"
       },
       "build-release-script": {
-        "sha256": "2dff8a27d68cbb11bcfe3e463cacb625ca625b4371a9e530d3f4815f9d877dab",
-        "rendered_sha256": "53631c33347bbb71e55415ae7f485d8c3164b1a33dcb9ea8e38fe1697a64887e"
+        "sha256": "b1d8c114f30edf7ea1b8a9416d4178d9aacea5c9d7a8970bca16eae4af3accfe",
+        "rendered_sha256": "cdd5a9f27ecfe687362eb8b3985b0d9b2e87a3836485155cab5a5abc09c17802"
       },
       "verify-release-script": {
-        "sha256": "70a60c6e2bb632d8b1e05c6d027bbcb478714cdb40e8c179916f530ca0daefe2",
-        "rendered_sha256": "b4b04050400ab2f5de21f0008617b5d1d418e1f2cf667d166fdf711a27c54ef6"
+        "sha256": "aef3748ebe0623980636f4bef2a1a8f7c982f38a5e6fc80b8029f4ba1164fe6d",
+        "rendered_sha256": "6d2a414b6f2efcaeb4fc6d828f498f1e324d35abf22ef488aa7be75135bc5fe2"
       }
     }
   },

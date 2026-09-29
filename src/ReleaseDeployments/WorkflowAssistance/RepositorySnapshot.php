@@ -94,6 +94,10 @@ final readonly class RepositorySnapshot {
 		sort( $paths, SORT_STRING );
 		return $paths;
 	}
+	/** Number of inspected blobs consumed by the GitHub client readback budget. */
+	public function inspectedBlobCount(): int {
+		return count( $this->documents ) + count( $this->blobPrefixes );
+	}
 	private static function validPath( string $path ): bool {
 		return '' !== $path && strlen( $path ) <= 512 && ! str_starts_with( $path, '/' )
 			&& ! str_contains( $path, "\0" ) && ! str_contains( $path, '\\' )
