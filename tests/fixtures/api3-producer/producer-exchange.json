@@ -1,0 +1,59 @@
+{
+  "producer_sha": "b511fae06eba4092034d0ddb4ff475279ebd2898",
+  "workflow_run_id": "36559291561",
+  "run_attempt": "1",
+  "artifact_id": 11028442531,
+  "artifact_id_note": "Actual Actions artifact ID from producer Quality run 36559291561 attempt 1; release and asset IDs in consumer fixture remain explicitly simulated.",
+  "filename": "ran-booster-release-bootstrap-templates.zip",
+  "size": 10132,
+  "zip_sha256": "2da459b63715660226b43914d3466f8b176bf645961dc0009fb51168c21ae7cf",
+  "manifest_sha256": "4d11d7756f811212fe93de4aae296342815a810c47867d7d49a30304a9092bef",
+  "pack_version": "0.2.1",
+  "profiles": {
+    "source-ready-wordpress-plugin/3": {
+      "quality-workflow": {
+        "sha256": "e7e3c11d695c4e2dd5b083e2cebf3c4bc5b339d9393e890e7796f9ce4ddca809",
+        "rendered_sha256": "8ed73fe78ac74c0a34545301c9ef6dd1c3e8a44385669eb38876594253db5e28"
+      },
+      "release-workflow": {
+        "sha256": "a47776aaa88a61f9319e56d6d4d7bf6763dc8b439e5553aa69cd0375eabc053c",
+        "rendered_sha256": "7ff2ee7eff5e40e21d901667e395b7204d1f2bff57e6dab757cf281e7222163f"
+      },
+      "release-please-config": {
+        "sha256": "86231f76db9d2e498e9acc86414bab641a40ced1eb53e00459287a751660c0cb",
+        "rendered_sha256": "61e09b4d1dc5ece6d16e2da102de7bed758a1064651d84fa0eceda9f163adbb8"
+      },
+      "build-release-script": {
+        "sha256": "b1d8c114f30edf7ea1b8a9416d4178d9aacea5c9d7a8970bca16eae4af3accfe",
+        "rendered_sha256": "87fae247f383c312e10f48111b82a5266f74bbb639fb919b79c5e5c2a8da30f7"
+      },
+      "verify-release-script": {
+        "sha256": "88ed94ad9790d11ec7f7fd747aed1c3de188152b3afc14e31d7ffd36c41dcf71",
+        "rendered_sha256": "911685109f159b8a10adf09353fd3dfe5fe69ed93a2aa401daccb01b351a6dd6"
+      }
+    },
+    "source-ready-wordpress-theme/3": {
+      "quality-workflow": {
+        "sha256": "e7e3c11d695c4e2dd5b083e2cebf3c4bc5b339d9393e890e7796f9ce4ddca809",
+        "rendered_sha256": "8ed73fe78ac74c0a34545301c9ef6dd1c3e8a44385669eb38876594253db5e28"
+      },
+      "release-workflow": {
+        "sha256": "a47776aaa88a61f9319e56d6d4d7bf6763dc8b439e5553aa69cd0375eabc053c",
+        "rendered_sha256": "7ff2ee7eff5e40e21d901667e395b7204d1f2bff57e6dab757cf281e7222163f"
+      },
+      "release-please-config": {
+        "sha256": "86231f76db9d2e498e9acc86414bab641a40ced1eb53e00459287a751660c0cb",
+        "rendered_sha256": "0862e6bd92838ef8b9159ebf73ea27e958203a5882199968e28d7e7b8b0de286"
+      },
+      "build-release-script": {
+        "sha256": "b1d8c114f30edf7ea1b8a9416d4178d9aacea5c9d7a8970bca16eae4af3accfe",
+        "rendered_sha256": "cdd5a9f27ecfe687362eb8b3985b0d9b2e87a3836485155cab5a5abc09c17802"
+      },
+      "verify-release-script": {
+        "sha256": "88ed94ad9790d11ec7f7fd747aed1c3de188152b3afc14e31d7ffd36c41dcf71",
+        "rendered_sha256": "8b55c105615411f297843dcf818f9261e488c57dc1420bc69bec6af971e26b47"
+      }
+    }
+  },
+  "rendering": "Producer fixture proof only. Actual candidate Provider consumption remains separate."
+}

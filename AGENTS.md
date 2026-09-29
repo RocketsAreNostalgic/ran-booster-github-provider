@@ -8,7 +8,7 @@ The supported baseline follows the current Booster host: PHP 8.2+ and WordPress 
 
 ## Architecture boundary
 
-Production package code must not depend on the whole `ran/booster` Composer package or import Booster private Admin/Internal/Logging/Secrets/Storage/WordPress implementation namespaces. Booster owns the provider contracts and host orchestration; this package implements the GitHub-specific side of those contracts. Test-only CI may check out an exact certified Booster revision to prove the host contract.
+Production package code must not depend on the whole `ran/booster` Composer package or import Booster private Admin/Internal/Logging/Secrets/Storage/WordPress implementation namespaces. Booster owns the provider contracts and host orchestration; this package implements the GitHub-specific side of those contracts. Test-only CI may check out an exact candidate Booster revision to prove the host contract.
 
 The package may depend on explicit shared libraries where the dependency is genuinely host-neutral. `ran/updater-support` currently supplies the reviewed repository-relative path primitive. Core remains responsible for host policy and final release-artifact custody.
 
@@ -31,18 +31,23 @@ composer check
 
 Use `composer standards:fix` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-owned deterministic foundation contract, and the release workflow/classification contracts.
 
-The implementation consumes Booster-owned provider contracts, so implementation static analysis and the provider PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
+The implementation consumes Booster-owned provider contracts, so implementation static analysis and the provider PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the candidate Booster checkout and run:
 
 ```sh
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
-# Match the certified host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ffc11fc8e40618624a785b7fca5193029c6d492e &&
+# Match the candidate host pinned in .github/workflows/ci.yml.
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff &&
   composer check:host
 ```
 
 `composer test` aggregates the host-independent foundation and release-control tests. `composer check:host` aggregates `test:host-contract`, `analyze` and `test:implementation`; the focused commands remain available.
 
-CI pins and verifies the certified Booster revision before running those host-backed gates, separately verifies the host contract, validates mutable PR release classification, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
+CI pins and verifies the candidate Booster revision before running those host-backed gates, separately verifies the host contract, validates mutable PR release classification, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
+
+The candidate-only V3 host tuple above is explicitly approved by programme #81
+for Provider #30. It supersedes the historical beta.29/V2 qualification pin for
+this candidate only; it does not certify a released host or authorise Core/UI
+changes. Preserve the full PHP 8.2/8.5 matrix and all terminal gates.
 
 ## Review and merge discipline
 
@@ -59,3 +64,10 @@ Do not manually create/move release tags, bypass failed release checks, or reint
 ## Agent/tooling boundary
 
 Do not invoke Blacksmith [code]smith or Autofix/AI-agent features. Blacksmith may be used only as ordinary GitHub Actions runner infrastructure when a reviewed workflow selects it. Diagnose CI from GitHub Actions evidence directly.
+
+The actual producer exchange regression also executes the generated build and
+verification scripts in disposable local Git repositories for both package types,
+then compares two generated ZIPs byte-for-byte. Host-backed tests therefore need
+Bash, Git, jq, zip, unzip and shasum alongside PHP/ZipArchive. No remote repository
+or installed site is modified by these tests. The runtime allowlist contains only
+sorted explicit paths; human guidance lives in RELEASE-STARTER.md.

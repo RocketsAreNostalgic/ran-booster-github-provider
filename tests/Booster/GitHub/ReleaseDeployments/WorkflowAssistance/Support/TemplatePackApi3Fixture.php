@@ -6,7 +6,7 @@ namespace Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support;
 
 use ZipArchive;
 
-final class TemplatePackApi2Fixture {
+final class TemplatePackApi3Fixture {
 
 	public const REPOSITORY    = 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates';
 	public const REPOSITORY_ID = '1322743261';
@@ -18,28 +18,34 @@ final class TemplatePackApi2Fixture {
 	/** @return array<string, string> */
 	public static function templates(): array {
 		return array(
-			'templates/shared/release-please.yml.tmpl' => "branch={{RAN_DEFAULT_BRANCH}}\nslug={{RAN_PACKAGE_SLUG}}\nliteral=\$(printf inert)\n",
-			'templates/profiles/wordpress-plugin/release-please-config.json.tmpl' => '{"base":"{{RAN_BASE_SHA}}","extra-files":{{RAN_EXTRA_FILES_JSON}},"slug":"{{RAN_PACKAGE_SLUG}}"}' . "\n",
-			'templates/profiles/wordpress-theme/release-please-config.json.tmpl' => '{"base":"{{RAN_BASE_SHA}}","extra-files":{{RAN_EXTRA_FILES_JSON}},"slug":"{{RAN_PACKAGE_SLUG}}"}' . "\n",
+			'templates/shared/quality.yml.tmpl'        => "slug={{RAN_PACKAGE_SLUG}}\nphp={{RAN_PHP_VERSION}}\n",
+			'templates/shared/release-please.yml.tmpl' => "name: Release Please\n# slug={{RAN_PACKAGE_SLUG}} literal=\$(printf inert)\non:\n  workflow_dispatch:\npermissions: {}\njobs:\n  release:\n    uses: RocketsAreNostalgic/.github/.github/workflows/release-profile-b.yml@63c4a4b192bbb4cf203dab281b75a0907e85c3a9\n",
+			'templates/shared/release-please-config.json.tmpl' => '{"base":"{{RAN_BASE_SHA}}","extra-files":{{RAN_EXTRA_FILES_JSON}},"slug":"{{RAN_PACKAGE_SLUG}}"}' . "\n",
 			'templates/shared/build-release.sh.tmpl'   => "slug={{RAN_PACKAGE_SLUG}}\ntype={{RAN_PACKAGE_TYPE}}\nheader={{RAN_HEADER_PATH}}\n",
 			'templates/shared/verify-release.sh.tmpl'  => "slug={{RAN_PACKAGE_SLUG}}\ntype={{RAN_PACKAGE_TYPE}}\nheader={{RAN_HEADER_PATH}}\nupdate_uri={{RAN_UPDATE_URI}}\n",
-			'templates/shared/upload-release-assets.sh.tmpl' => "printf '%s\\n' 'fixed uploader bytes'\n",
 		);
 	}
 
 	/** @return array<string, mixed> */
-	public static function manifest( int $consumerApi = 2, string $version = '1.2.3' ): array {
+	public static function manifest( int $consumerApi = 3, string $version = '1.2.3' ): array {
 		$templates     = self::templates();
 		$sharedEntries = array(
-			'release-workflow'             => self::entry(
+			'quality-workflow'      => self::entry(
+				'templates/shared/quality.yml.tmpl',
+				$templates['templates/shared/quality.yml.tmpl'],
+				array(
+					'PACKAGE_SLUG' => 'slug',
+					'PHP_VERSION'  => 'php_version',
+				)
+			),
+			'release-workflow'      => self::entry(
 				'templates/shared/release-please.yml.tmpl',
 				$templates['templates/shared/release-please.yml.tmpl'],
 				array(
-					'DEFAULT_BRANCH' => 'branch',
-					'PACKAGE_SLUG'   => 'slug',
+					'PACKAGE_SLUG' => 'slug',
 				)
 			),
-			'build-release-script'         => self::entry(
+			'build-release-script'  => self::entry(
 				'templates/shared/build-release.sh.tmpl',
 				$templates['templates/shared/build-release.sh.tmpl'],
 				array(
@@ -48,7 +54,7 @@ final class TemplatePackApi2Fixture {
 					'PACKAGE_TYPE' => 'package_type',
 				)
 			),
-			'verify-release-script'        => self::entry(
+			'verify-release-script' => self::entry(
 				'templates/shared/verify-release.sh.tmpl',
 				$templates['templates/shared/verify-release.sh.tmpl'],
 				array(
@@ -58,18 +64,15 @@ final class TemplatePackApi2Fixture {
 					'UPDATE_URI'   => 'github_uri',
 				)
 			),
-			'upload-release-assets-script' => self::entry(
-				'templates/shared/upload-release-assets.sh.tmpl',
-				$templates['templates/shared/upload-release-assets.sh.tmpl'],
-				array()
-			),
+
 		);
-		$profiles      = array();
+		$profiles = array();
 		foreach ( array( 'plugin', 'theme' ) as $type ) {
-			$configPath = 'templates/profiles/wordpress-' . $type . '/release-please-config.json.tmpl';
+			$configPath = 'templates/shared/release-please-config.json.tmpl';
 			$entries    = array(
-				'release-workflow'             => $sharedEntries['release-workflow'],
-				'release-please-config'        => self::entry(
+				'quality-workflow'      => $sharedEntries['quality-workflow'],
+				'release-workflow'      => $sharedEntries['release-workflow'],
+				'release-please-config' => self::entry(
 					$configPath,
 					$templates[ $configPath ],
 					array(
@@ -78,11 +81,10 @@ final class TemplatePackApi2Fixture {
 						'PACKAGE_SLUG'     => 'slug',
 					)
 				),
-				'build-release-script'         => $sharedEntries['build-release-script'],
-				'verify-release-script'        => $sharedEntries['verify-release-script'],
-				'upload-release-assets-script' => $sharedEntries['upload-release-assets-script'],
+				'build-release-script'  => $sharedEntries['build-release-script'],
+				'verify-release-script' => $sharedEntries['verify-release-script'],
 			);
-			$profiles[ 'source-ready-wordpress-' . $type . '/2' ] = array(
+			$profiles[ 'source-ready-wordpress-' . $type . '/3' ] = array(
 				'profile_version' => 1,
 				'entries'         => $entries,
 			);
@@ -97,7 +99,6 @@ final class TemplatePackApi2Fixture {
 				'id'   => self::REPOSITORY_ID,
 			),
 			'release'        => array(
-				'id'     => self::RELEASE_ID,
 				'tag'    => 'v' . $version,
 				'commit' => self::COMMIT,
 			),

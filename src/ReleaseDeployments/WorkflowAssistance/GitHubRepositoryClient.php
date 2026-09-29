@@ -12,7 +12,9 @@ final class GitHubRepositoryClient {
 	private const MAX_BODY      = 262144;
 	private const MAX_TREE      = 2000;
 	private const MAX_DOCUMENTS = 256;
-	private const MAX_CHANGES   = 32;
+	// Leave room in GitHub's anonymous 60-request hourly quota for target and pack discovery.
+	private const MAX_ANONYMOUS_DOCUMENTS = 24;
+	private const MAX_CHANGES             = 32;
 	/** @var Closure(string,string,array<string,mixed>):mixed */
 	private Closure $send;
 	public function __construct( ?callable $send = null ) {
@@ -76,8 +78,9 @@ final class GitHubRepositoryClient {
 			|| count( $data['tree'] ) > self::MAX_TREE ) {
 			return $this->error( 'invalid_response' );
 		}
-		$entries    = array();
-		$candidates = array();
+		$entries          = array();
+		$candidates       = array();
+		$prefixCandidates = array();
 		foreach ( $data['tree'] as $item ) {
 			if ( ! is_array( $item ) || ! $this->validPath( $item['path'] ?? null )
 				|| isset( $entries[ $item['path'] ] )
@@ -86,7 +89,7 @@ final class GitHubRepositoryClient {
 				|| ! $this->validSha( $item['sha'] ?? null ) ) {
 				return $this->error( 'invalid_response' );
 			}
-			$size = $item['size'] ?? 0;
+			$size = $item['size'] ?? ( 'tree' === $item['type'] ? 0 : null );
 			if ( ! is_int( $size ) || $size < 0 ) {
 				return $this->error( 'invalid_response' );
 			}
@@ -99,10 +102,15 @@ final class GitHubRepositoryClient {
 			);
 			if ( 'blob' === $item['type'] && $this->assessmentDocument( $path ) ) {
 				$candidates[ $path ] = $item['sha'];
+			} elseif ( 'blob' === $item['type'] && $size >= 42 && SourceReadyAssessor::potentialRuntimeBlob( $path ) ) {
+				$prefixCandidates[ $path ] = $item['sha'];
 			}
 		}
-		if ( count( $candidates ) > self::MAX_DOCUMENTS ) {
+		if ( count( $candidates ) + count( $prefixCandidates ) > self::MAX_DOCUMENTS ) {
 			return $this->error( 'invalid_response' );
+		}
+		if ( '' === $token && count( $candidates ) + count( $prefixCandidates ) > self::MAX_ANONYMOUS_DOCUMENTS ) {
+			return $this->error( 'unauthorised' );
 		}
 		$documents = array();
 		foreach ( $candidates as $path => $blobSha ) {
@@ -113,8 +121,16 @@ final class GitHubRepositoryClient {
 			$documents[ $path ] = $blob['content'];
 		}
 
+		$prefixes = array();
+		foreach ( $prefixCandidates as $path => $blobSha ) {
+			$prefix = $this->request( 'GET', '/repos/' . $repository . '/git/blobs/' . $blobSha, $token, null, array(), true );
+			if ( 'ok' !== $prefix['code'] ) {
+				return $prefix;
+			}
+			$prefixes[ $path ] = $prefix['content'];
+		}
 		try {
-			$snapshot = new RepositorySnapshot( $repositoryId, $repository, $defaultBranch, $sha, $entries, $documents );
+			$snapshot = new RepositorySnapshot( $repositoryId, $repository, $defaultBranch, $sha, $entries, $documents, $prefixes );
 		} catch ( Throwable ) {
 			return $this->error( 'invalid_response' );
 		}
@@ -331,12 +347,12 @@ final class GitHubRepositoryClient {
 			: $this->ok( array( 'pull' => $pull ) ) );
 	}
 	/** @param array<string,mixed>|null $body @param array<int,string> $special @return array<string,mixed> */
-	private function request( string $method, string $path, string $token, ?array $body = null, array $special = array() ): array {
+	private function request( string $method, string $path, string $token, ?array $body = null, array $special = array(), bool $rawPrefix = false ): array {
 		if ( ! $this->validToken( $token ) || ! str_starts_with( $path, '/repos/' ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		$headers = array(
-			'Accept'               => 'application/vnd.github+json',
+			'Accept'               => $rawPrefix ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
 			'X-GitHub-Api-Version' => '2026-03-10',
 			'User-Agent'           => 'RAN-Booster-Release-Deployments',
 		);
@@ -348,7 +364,7 @@ final class GitHubRepositoryClient {
 			'timeout'             => 12,
 			'redirection'         => 0,
 			'reject_unsafe_urls'  => true,
-			'limit_response_size' => self::MAX_BODY,
+			'limit_response_size' => $rawPrefix ? 43 : self::MAX_BODY,
 		);
 		if ( null !== $body ) {
 			$args['headers']['Content-Type'] = 'application/json';
@@ -381,6 +397,9 @@ final class GitHubRepositoryClient {
 		}
 		if ( $status < 200 || $status >= 300 || ! is_string( $raw ) || strlen( $raw ) > self::MAX_BODY ) {
 			return $this->error( 'remote_unavailable' );
+		}
+		if ( $rawPrefix ) {
+			return 200 === $status && strlen( $raw ) <= 43 ? $this->ok( array( 'content' => $raw ) ) : $this->error( 'invalid_response' );
 		}
 		try {
 			$data = json_decode( $raw, true, 32, JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING );
@@ -421,7 +440,7 @@ final class GitHubRepositoryClient {
 	}
 	private function assessmentDocument( string $path ): bool {
 		return ( ! str_contains( $path, '/' ) && ( str_ends_with( strtolower( $path ), '.php' )
-			|| in_array( $path, array( 'style.css', 'package.json', 'readme.txt', '.prettierignore', ManagedReleaseBundle::RECEIPT_PATH, 'release-please-config.json' ), true ) ) )
+			|| in_array( $path, array( 'style.css', 'package.json', 'readme.txt', '.prettierignore', InitialReleaseBundle::ORIGIN_PATH, 'release-please-config.json' ), true ) ) )
 			|| ( str_starts_with( $path, '.github/workflows/' ) && 1 === preg_match( '/\.ya?ml\z/i', $path ) )
 			|| ( ( str_starts_with( $path, 'scripts/' ) || str_starts_with( $path, '.github/scripts/' ) || str_starts_with( $path, '.ci/' ) )
 				&& str_ends_with( strtolower( $path ), '.sh' ) )
@@ -429,7 +448,7 @@ final class GitHubRepositoryClient {
 			|| in_array(
 				$path,
 				array(
-					ManagedReleaseBundle::WORKFLOW_PATH,
+					InitialReleaseBundle::WORKFLOW_PATH,
 					'scripts/build-release.sh',
 					'scripts/verify-release.sh',
 					'scripts/upload-release-assets.sh',

@@ -6,10 +6,19 @@ namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 use Throwable;
 
-/** Fixed API 2 source-ready rules for repository-root plugins and themes. */
+/** Fixed API 3 source-ready rules for repository-root plugins and themes. */
 final class SourceReadyAssessor {
-	private const GENERATED_PATHS = array(
+	// The setup writes six files that GitHubRepositoryClient reads as assessment documents:
+	// two workflows, the origin record, RP config, and the build and verify scripts.
+	private const MAX_SOURCE_INSPECTED_BLOBS = 250;
+	// Ten generated files and up to three missing parents (.github, workflows, scripts).
+	// Readback uses the GitHub client's 2,000-entry recursive tree limit.
+	private const MAX_SOURCE_TREE_ENTRIES = 1987;
+	private const GENERATED_PATHS         = array(
 		'.github/workflows/release-please.yml',
+		'.github/workflows/quality.yml',
+		'.ran-booster-release-starter.json',
+		'RELEASE-STARTER.md',
 		'.ran-booster-release-profile.json',
 		'.release-please-manifest.json',
 		'release-please-config.json',
@@ -18,20 +27,6 @@ final class SourceReadyAssessor {
 		'scripts/build-release.sh',
 		'scripts/verify-release.sh',
 		'scripts/upload-release-assets.sh',
-	);
-
-	private const RELEASE_ACTIONS = array(
-		'actions/create-release',
-		'actions/upload-release-asset',
-		'changesets/action',
-		'cycjimmy/semantic-release-action',
-		'googleapis/release-please-action',
-		'goreleaser/goreleaser-action',
-		'marvinpinto/action-automatic-releases',
-		'ncipollo/release-action',
-		'release-drafter/release-drafter',
-		'softprops/action-gh-release',
-		'svenstaro/upload-release-action',
 	);
 
 	private const DEVELOPMENT_ROOTS = array(
@@ -107,6 +102,15 @@ final class SourceReadyAssessor {
 		'vendor',
 	);
 
+	/** Only paths which a supported plugin/theme could place in the release allowlist. */
+	public static function potentialRuntimeBlob( string $path ): bool {
+		$parts = explode( '/', $path, 2 );
+		if ( 2 === count( $parts ) ) {
+			return in_array( $parts[0], self::PLUGIN_RUNTIME_ROOTS, true ) || in_array( $parts[0], self::THEME_RUNTIME_ROOTS, true );
+		}
+		return in_array( $path, array( 'theme.json', 'screenshot.png' ), true );
+	}
+
 	public function assess(
 		RepositorySnapshot $snapshot,
 		string $type,
@@ -114,18 +118,7 @@ final class SourceReadyAssessor {
 		string $installedVersion,
 		string $expectedUpdateUri
 	): SourceReadyAssessment {
-		return $this->assessSnapshot( $snapshot, $type, $packageSlug, $installedVersion, $expectedUpdateUri, false );
-	}
-
-	/** Validate an existing managed setup while ignoring only Booster's known generated paths. */
-	public function assessManaged(
-		RepositorySnapshot $snapshot,
-		string $type,
-		string $packageSlug,
-		string $installedVersion,
-		string $expectedUpdateUri
-	): SourceReadyAssessment {
-		return $this->assessSnapshot( $snapshot, $type, $packageSlug, $installedVersion, $expectedUpdateUri, true );
+		return $this->assessSnapshot( $snapshot, $type, $packageSlug, $installedVersion, $expectedUpdateUri );
 	}
 
 	private function assessSnapshot(
@@ -133,35 +126,31 @@ final class SourceReadyAssessor {
 		string $type,
 		string $packageSlug,
 		string $installedVersion,
-		string $expectedUpdateUri,
-		bool $allowKnownGeneratedPaths
+		string $expectedUpdateUri
 	): SourceReadyAssessment {
 		$expectedUpdateUri = rtrim( $expectedUpdateUri, '/' );
 		if ( ! in_array( $type, array( 'plugin', 'theme' ), true )
-			|| 1 !== preg_match( '/\A[a-z0-9](?:[a-z0-9-]{0,198}[a-z0-9])?\z/D', $packageSlug )
-			|| 1 !== preg_match( '/\A[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\z/D', $installedVersion )
+			|| 'main' !== $snapshot->defaultBranch() || strlen( $packageSlug ) > 100 || strlen( $installedVersion ) > 63
+			|| 1 !== preg_match( '/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/D', $packageSlug )
+			|| 1 === preg_match( '/\A(?:con|prn|aux|nul|com[1-9]|lpt[1-9])\z/iD', $packageSlug )
+			|| 1 !== preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $installedVersion )
 			|| ! hash_equals( 'https://github.com/' . $snapshot->repository(), $expectedUpdateUri ) ) {
 			return SourceReadyAssessment::refused( 'repository_unsupported' );
 		}
+		if ( $snapshot->inspectedBlobCount() > self::MAX_SOURCE_INSPECTED_BLOBS
+			|| count( $snapshot->entries() ) > self::MAX_SOURCE_TREE_ENTRIES ) {
+			return SourceReadyAssessment::refused( 'runtime_paths_unknown' );
+		}
 
-		if ( $this->hasCompetingReleaseAutomation( $snapshot, $allowKnownGeneratedPaths ) ) {
+		if ( $this->hasCompetingReleaseAutomation( $snapshot ) ) {
 			return SourceReadyAssessment::refused( 'release_automation_conflict' );
 		}
-		if ( $allowKnownGeneratedPaths ) {
-			foreach ( ManagedReleaseBundle::REQUIRED_GENERATED_CONTRACT_PATHS as $path ) {
-				if ( ! $snapshot->has( $path ) ) {
-					return SourceReadyAssessment::refused( 'managed_profile_modified' );
-				}
-			}
-		}
-		if ( ! $allowKnownGeneratedPaths ) {
-			foreach ( self::GENERATED_PATHS as $path ) {
-				if ( $snapshot->has( $path ) ) {
-					return SourceReadyAssessment::refused( 'release_path_conflict' );
-				}
-			}
-		}
 
+		foreach ( self::GENERATED_PATHS as $path ) {
+			if ( $snapshot->has( $path ) ) {
+				return SourceReadyAssessment::refused( 'release_path_conflict' );
+			}
+		}
 		$header = $this->header( $snapshot, $type, $installedVersion, $expectedUpdateUri );
 		if ( is_string( $header ) ) {
 			return SourceReadyAssessment::refused( $header );
@@ -172,22 +161,17 @@ final class SourceReadyAssessor {
 			return SourceReadyAssessment::refused( $versionSources );
 		}
 
-		$prettier = $this->prettierIgnore( $snapshot );
-		if ( null === $prettier ) {
-			return SourceReadyAssessment::refused( 'prettier_contract_custom' );
-		}
-
-		$releaseFiles = $this->releaseFiles( $snapshot, $type, $header['path'], $allowKnownGeneratedPaths );
+		$releaseFiles = $this->releaseFiles( $snapshot, $type, $header['path'] );
 		if ( null === $releaseFiles ) {
 			return SourceReadyAssessment::refused( 'runtime_paths_unknown' );
 		}
 
-		$modified = array( $header['path'] => $header['content'] );
+		$modified = array();
+		if ( $header['content'] !== $snapshot->document( $header['path'] ) ) {
+			$modified[ $header['path'] ] = $header['content'];
+		}
 		foreach ( $versionSources['modified'] as $path => $content ) {
 			$modified[ $path ] = $content;
-		}
-		if ( null !== $prettier['content'] ) {
-			$modified['.prettierignore'] = $prettier['content'];
 		}
 
 		$extraFiles   = array_merge(
@@ -203,13 +187,14 @@ final class SourceReadyAssessor {
 		sort( $releaseFiles, SORT_STRING );
 
 		return SourceReadyAssessment::ready(
-			'source-ready-wordpress-' . $type . '/2',
+			'source-ready-wordpress-' . $type . '/3',
 			$packageSlug,
 			$header['path'],
 			$installedVersion,
 			$releaseFiles,
 			$modified,
-			$extraFiles
+			$extraFiles,
+			$header['php_version']
 		);
 	}
 
@@ -222,7 +207,7 @@ final class SourceReadyAssessor {
 			foreach ( $snapshot->documentPaths() as $path ) {
 				if ( ! str_contains( $path, '/' ) && str_ends_with( strtolower( $path ), '.php' ) ) {
 					$document = $snapshot->document( $path );
-					if ( is_string( $document ) && 1 === preg_match( '/^[ \t]*\*[ \t]*Plugin Name:[ \t]*\S/im', $document ) ) {
+					if ( is_string( $document ) && 1 === preg_match( '/^[ \t]*\*[ \t]*Plugin Name:[ \t]*\S/m', $document ) ) {
 						$candidates[] = $path;
 					}
 				}
@@ -239,17 +224,29 @@ final class SourceReadyAssessor {
 		}
 
 		$label = 'theme' === $type ? 'Theme Name' : 'Plugin Name';
-		if ( 1 !== preg_match( '/^[ \t]*(?:\*[ \t]*)?' . preg_quote( $label, '/' ) . ':[ \t]*\S/im', $document ) ) {
+		// The fixed theme verifier accepts the ordinary unstarred style.css header.
+		if ( 'theme' === $type && 1 !== preg_match( '/^[ \t]*Theme Name:[ \t]*\S/m', $document ) ) {
 			return 'package_ambiguous';
 		}
-		if ( 1 !== preg_match( '/^[ \t]*(?:\*[ \t]*)?Update URI:[ \t]*(\S+)[ \t]*$/im', $document, $uriMatch )
-			|| ! hash_equals( $updateUri, rtrim( $uriMatch[1], '/' ) ) ) {
+		if ( 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?' . preg_quote( $label, '/' ) . ':[ \t]*\S/m', $document ) ) {
+			return 'package_ambiguous';
+		}
+		if ( 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Update URI:[ \t]*(\S+)[ \t]*$/m', $document, $uriMatch )
+			|| ! hash_equals( $updateUri, $uriMatch[1][0] ) ) {
+			return 'repository_unsupported';
+		}
+		if ( strlen( $path ) > 255 || 1 !== preg_match( '/\A[A-Za-z0-9._-]+\z/D', $path )
+			|| 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Requires PHP:[ \t]*(\S+)[ \t]*$/m', $document, $php )
+			|| ! in_array( $php[1][0], array( '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5' ), true )
+			|| 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Requires at least:[ \t]*[0-9]+\.[0-9]+(?:\.[0-9]+)?[ \t]*$/m', $document )
+			|| ( 'theme' === $type && ! $snapshot->has( 'index.php' ) && ! $snapshot->has( 'templates/index.html' ) ) ) {
 			return 'repository_unsupported';
 		}
 		$annotated = $this->annotateVersionLine( $document, 'Version', $version );
 		return null === $annotated ? 'version_mismatch' : array(
-			'path'    => $path,
-			'content' => $annotated,
+			'path'        => $path,
+			'content'     => $annotated,
+			'php_version' => $php[1][0],
 		);
 	}
 
@@ -266,21 +263,18 @@ final class SourceReadyAssessor {
 			return 'version_contract_custom';
 		}
 
-		$package = $snapshot->document( 'package.json' );
-		if ( is_string( $package ) ) {
-			try {
-				$data = json_decode( $package, true, 32, JSON_THROW_ON_ERROR );
-			} catch ( Throwable ) {
-				return 'version_contract_custom';
+		foreach ( array( 'package.json', 'composer.json' ) as $manifest ) {
+			$bytes = $snapshot->document( $manifest );
+			if ( null !== $bytes ) {
+				try {
+					$data = json_decode( $bytes, true, 32, JSON_THROW_ON_ERROR );
+				} catch ( Throwable ) {
+					return 'version_contract_custom';
+				}
+				if ( ! is_array( $data ) || isset( $data['version'] ) ) {
+					return 'version_contract_custom';
+				}
 			}
-			if ( ! is_array( $data ) || ! is_string( $data['version'] ?? null ) || ! hash_equals( $version, $data['version'] ) ) {
-				return 'version_contract_custom';
-			}
-			$extra[] = array(
-				'type'     => 'json',
-				'path'     => 'package.json',
-				'jsonpath' => '$.version',
-			);
 		}
 
 		$readme = $snapshot->document( 'readme.txt' );
@@ -289,9 +283,11 @@ final class SourceReadyAssessor {
 			if ( null === $annotated ) {
 				return 'version_contract_custom';
 			}
-			$modified['readme.txt'] = $annotated;
-			$runtime['readme.txt']  = true;
-			$extra[]                = array(
+			if ( $annotated !== $readme ) {
+				$modified['readme.txt'] = $annotated;
+			}
+			$runtime['readme.txt'] = true;
+			$extra[]               = array(
 				'type' => 'generic',
 				'path' => 'readme.txt',
 			);
@@ -305,15 +301,9 @@ final class SourceReadyAssessor {
 				} catch ( Throwable ) {
 					return 'version_contract_custom';
 				}
-				if ( ! is_array( $data ) || ! is_string( $data['version'] ?? null ) || ! hash_equals( $version, $data['version'] ) ) {
+				if ( ! is_array( $data ) || isset( $data['version'] ) ) {
 					return 'version_contract_custom';
 				}
-				$extra[]          = array(
-					'type'     => 'json',
-					'path'     => $path,
-					'jsonpath' => '$.version',
-				);
-				$runtime[ $path ] = true;
 			}
 			if ( str_ends_with( strtolower( $path ), '.pot' ) ) {
 				return 'version_contract_custom';
@@ -327,42 +317,8 @@ final class SourceReadyAssessor {
 		);
 	}
 
-	/** @return array{content:?string}|null */
-	private function prettierIgnore( RepositorySnapshot $snapshot ): ?array {
-		$package = $snapshot->document( 'package.json' );
-		if ( is_string( $package ) && preg_match_all( '/--ignore-path(?:=|[ \t]+)([^ \t\r\n\"\']+)/', $package, $matches ) ) {
-			foreach ( $matches[1] as $path ) {
-				if ( ! in_array( $path, array( '.prettierignore', './.prettierignore' ), true ) ) {
-					return null;
-				}
-			}
-		}
-
-		$current = $snapshot->document( '.prettierignore' );
-		if ( null === $current ) {
-			return array( 'content' => "# RAN Booster release bootstrap: Release Please owns this generated file.\n/CHANGELOG.md\n" );
-		}
-		if ( 1 === preg_match( '/^[ \t]*![\/]?CHANGELOG\.md[ \t]*$/mi', $current ) ) {
-			return null;
-		}
-		if ( 1 === preg_match( '/^[ \t]*\/?CHANGELOG\.md[ \t]*$/mi', $current ) ) {
-			return array( 'content' => null );
-		}
-
-		$newline = str_contains( $current, "\r\n" ) ? "\r\n" : "\n";
-		$prefix  = '' === $current || str_ends_with( $current, "\n" ) ? '' : $newline;
-		return array(
-			'content' => $current . $prefix
-				. '# RAN Booster release bootstrap: Release Please owns this generated file.' . $newline
-				. '/CHANGELOG.md' . $newline,
-		);
-	}
-
-	public function hasCompetingReleaseAutomation( RepositorySnapshot $snapshot, bool $allowKnownGeneratedPaths = false ): bool {
+	public function hasCompetingReleaseAutomation( RepositorySnapshot $snapshot ): bool {
 		foreach ( array_keys( $snapshot->entries() ) as $path ) {
-			if ( $allowKnownGeneratedPaths && in_array( $path, self::GENERATED_PATHS, true ) ) {
-				continue;
-			}
 			if ( ! in_array( $path, self::GENERATED_PATHS, true )
 				&& in_array( basename( $path ), array( '.release-please-manifest.json', 'release-please-config.json' ), true ) ) {
 				return true;
@@ -370,9 +326,6 @@ final class SourceReadyAssessor {
 		}
 
 		foreach ( $snapshot->documentPaths() as $path ) {
-			if ( $allowKnownGeneratedPaths && in_array( $path, self::GENERATED_PATHS, true ) ) {
-				continue;
-			}
 			$workflow = str_starts_with( $path, '.github/workflows/' ) && 1 === preg_match( '/\.ya?ml\z/i', $path );
 			$script   = ( str_starts_with( $path, 'scripts/' ) || str_starts_with( $path, '.github/scripts/' ) || str_starts_with( $path, '.ci/' ) )
 				&& str_ends_with( strtolower( $path ), '.sh' );
@@ -383,17 +336,7 @@ final class SourceReadyAssessor {
 
 			$content = $snapshot->document( $path ) ?? '';
 			if ( $workflow ) {
-				foreach ( self::RELEASE_ACTIONS as $action ) {
-					if ( 1 === preg_match( '/^[ \t-]*uses[ \t]*:[ \t]*[\'\"]?' . preg_quote( $action, '/' ) . '@[^\r\n\'\"]+/mi', $content ) ) {
-						return true;
-					}
-				}
-				if ( 1 === preg_match( '/^[ \t-]*uses[ \t]*:[^\r\n]*(?:release|publish)[^\r\n]*\.ya?ml@[^\r\n]+/mi', $content )
-					&& ( 1 === preg_match( '/^[ \t]*contents[ \t]*:[ \t]*[\'\"]?write\b/mi', $content )
-						|| 1 === preg_match( '/^[ \t]*permissions[ \t]*:[ \t]*[\'\"]?write-all\b/mi', $content )
-						|| 1 === preg_match( '/^[ \t]*permissions[ \t]*:[ \t]*\{[^}\r\n]*\bcontents[ \t]*:[ \t]*[\'\"]?write\b[^}\r\n]*\}/mi', $content ) ) ) {
-					return true;
-				}
+				return true;
 			}
 
 			$commands = $content;
@@ -466,14 +409,16 @@ final class SourceReadyAssessor {
 	}
 
 	/** @return list<string>|null */
-	private function releaseFiles( RepositorySnapshot $snapshot, string $type, string $headerPath, bool $allowKnownGeneratedPaths ): ?array {
+	private function releaseFiles( RepositorySnapshot $snapshot, string $type, string $headerPath ): ?array {
 		$runtimeRoots = 'plugin' === $type ? self::PLUGIN_RUNTIME_ROOTS : self::THEME_RUNTIME_ROOTS;
 		$files        = array();
+		$normalized   = array();
+		$directories  = array();
+		// Reserve 4 MiB for ZIP records, slug/path names and the bounded version annotations.
+		// Staying below 46 MiB uncompressed is conservative even for stored/incompressible ZIPs.
+		$remaining = 46 * 1024 * 1024;
 		foreach ( $snapshot->entries() as $path => $entry ) {
 			if ( 'blob' !== $entry['type'] ) {
-				continue;
-			}
-			if ( $allowKnownGeneratedPaths && in_array( $path, self::GENERATED_PATHS, true ) ) {
 				continue;
 			}
 			$parts = explode( '/', $path, 2 );
@@ -484,10 +429,45 @@ final class SourceReadyAssessor {
 			}
 			$runtime = in_array( $root, $runtimeRoots, true )
 				|| ( ! str_contains( $path, '/' ) && $this->runtimeRootFile( $path, $type, $headerPath ) );
-			if ( ! $runtime || '100644' !== $entry['mode'] ) {
+			if ( ! $runtime || '100644' !== $entry['mode']
+				|| 1 !== preg_match( '~\A[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\z~D', $path ) || str_contains( $path, '..' ) ) {
+				return null;
+			}
+			foreach ( explode( '/', $path ) as $segment ) {
+				if ( strlen( $segment ) > 255 || str_ends_with( $segment, '.' )
+					|| 1 === preg_match( '/\A(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|\z)/i', $segment ) ) {
+					return null; }
+			}
+			$logical = strtolower( $path );
+			if ( isset( $normalized[ $logical ] ) || $entry['size'] > $remaining ) {
+				return null;
+			}
+			$parent = dirname( $path );
+			while ( '.' !== $parent ) {
+				$folded = strtolower( $parent );
+				if ( isset( $directories[ $folded ] ) && $directories[ $folded ] !== $parent ) {
+					return null;
+				}
+				$directories[ $folded ] = $parent;
+				$parent                 = dirname( $parent );
+			}
+			$normalized[ $logical ] = true;
+			$remaining             -= $entry['size'];
+			$prefix                 = $snapshot->blobPrefix( $path );
+			if ( ( $entry['size'] >= 42 && null === $prefix )
+				|| ( null !== $prefix && str_starts_with( $prefix, 'version https://git-lfs.github.com/spec/v1' ) ) ) {
 				return null;
 			}
 			$files[] = $path;
+		}
+		foreach ( array_keys( $normalized ) as $logical ) {
+			$parent = dirname( $logical );
+			while ( '.' !== $parent ) {
+				if ( isset( $normalized[ $parent ] ) ) {
+					return null;
+				}
+				$parent = dirname( $parent );
+			}
 		}
 		return in_array( $headerPath, $files, true ) ? $files : null;
 	}
@@ -499,11 +479,11 @@ final class SourceReadyAssessor {
 		if ( 'plugin' === $type ) {
 			return str_ends_with( strtolower( $path ), '.php' );
 		}
-		return in_array( $path, array( 'functions.php', 'style.css', 'theme.json', 'screenshot.png' ), true );
+		return in_array( $path, array( 'index.php', 'functions.php', 'style.css', 'theme.json', 'screenshot.png' ), true );
 	}
 
 	private function annotateVersionLine( string $document, string $label, string $expectedVersion ): ?string {
-		$pattern = '/^[ \t]*(?:\*[ \t]*)?' . preg_quote( $label, '/' ) . ':[ \t]*([^\s]+)[ \t]*$/mi';
+		$pattern = '/^[ \t]*(?:\*[ \t]*)?' . preg_quote( $label, '/' ) . ':[ \t]*([^\s]+)[ \t]*$/' . ( 'Version' === $label ? 'm' : 'mi' );
 		if ( 1 !== preg_match_all( $pattern, $document, $matches, PREG_OFFSET_CAPTURE )
 			|| ! hash_equals( $expectedVersion, $matches[1][0][0] ) ) {
 			return null;

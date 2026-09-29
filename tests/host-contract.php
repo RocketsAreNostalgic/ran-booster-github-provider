@@ -13,7 +13,7 @@ use RAN\RepositoryProvider\RepositoryLookupRequest;
 use RAN\RepositoryProvider\RepositoryProvider;
 use RAN\RepositoryProvider\RepositoryReleaseArtifact;
 use RAN\RepositoryProvider\RepositoryReleaseArtifactCustody;
-use RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV2;
+use RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV3;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreview;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowResult;
@@ -100,14 +100,12 @@ $contracts = array(
 		'size'        => array( array(), 'int' ),
 		'sha256'      => array( array(), 'string' ),
 	),
-	RepositoryReleaseWorkflowManagementV2::class => array(
-		'workflowStatus'        => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ) ), RepositoryReleaseWorkflowStatus::class ),
-		'workflowPreview'       => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ) ), '?' . RepositoryReleaseWorkflowPreview::class ),
-		'workflowInspect'       => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'channel', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflowSetup'         => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ), array( 'confirmation', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflowOutcome'       => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflowInspectUpdate' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflowSetupUpdate'   => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ), array( 'confirmation', 'string' ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+	RepositoryReleaseWorkflowManagementV3::class => array(
+		'workflowStatus'  => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ) ), RepositoryReleaseWorkflowStatus::class ),
+		'workflowPreview' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ) ), '?' . RepositoryReleaseWorkflowPreview::class ),
+		'workflowInspect' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'channel', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflowSetup'   => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ), array( 'confirmation', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflowOutcome' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
 	),
 );
 
@@ -129,9 +127,9 @@ foreach ( $contracts as $interfaceName => $methods ) {
 	}
 }
 
-if ( 2 !== RepositoryReleaseWorkflowManagementV2::RELEASE_WORKFLOW_API_VERSION ) {
+if ( 3 !== RepositoryReleaseWorkflowManagementV3::RELEASE_WORKFLOW_API_VERSION ) {
 	throw new RuntimeException( 'Unexpected release-workflow API generation.' );
 }
-if ( ! is_subclass_of( RepositoryReleaseWorkflowManagementV2::class, ProviderCapability::class ) ) {
-	throw new RuntimeException( 'Release workflow V2 must remain a provider capability.' );
+if ( ! is_subclass_of( RepositoryReleaseWorkflowManagementV3::class, ProviderCapability::class ) ) {
+	throw new RuntimeException( 'Release workflow V3 must remain a provider capability.' );
 }

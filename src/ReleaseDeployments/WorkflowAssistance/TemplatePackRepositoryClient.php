@@ -32,9 +32,9 @@ final class TemplatePackRepositoryClient {
 	}
 
 	/**
-	 * Select the highest stable immutable release supporting Consumer API 2.
+	 * Select the newest eligible stable immutable release; never fall back to an older format.
 	 *
-	 * @return array{code:string, pack?:TemplatePack, newer_incompatible?:bool}
+	 * @return array{code:string, pack?:TemplatePack}
 	 */
 	public function discover( string $token = '' ): array {
 		$repository = $this->repository( $token );
@@ -68,25 +68,7 @@ final class TemplatePackRepositoryClient {
 		}
 		usort( $candidates, static fn ( array $left, array $right ): int => version_compare( $right['version'], $left['version'] ) );
 
-		$newerIncompatible = false;
-		foreach ( $candidates as $candidate ) {
-			$result = $this->verifiedRelease( $candidate, $token );
-			if ( 'template_pack_incompatible' === $result['code'] ) {
-				$newerIncompatible = true;
-				continue;
-			}
-			if ( 'ok' !== $result['code'] ) {
-				return $result;
-			}
-
-			return array(
-				'code'               => 'ok',
-				'pack'               => $result['pack'],
-				'newer_incompatible' => $newerIncompatible,
-			);
-		}
-
-		return $this->error( $newerIncompatible ? 'template_pack_incompatible' : 'template_pack_unavailable' );
+		return array() === $candidates ? $this->error( 'template_pack_unavailable' ) : $this->verifiedRelease( $candidates[0], $token );
 	}
 
 	/**
@@ -254,7 +236,7 @@ final class TemplatePackRepositoryClient {
 		$contentType = $asset['content_type'] ?? null;
 		$digest      = is_string( $asset['digest'] ?? null ) ? $asset['digest'] : '';
 		if ( null === $assetId || null === $assetSize || $assetSize > self::ASSET_BODY_LIMIT || 'uploaded' !== $assetState
-			|| 'application/zip' !== $contentType || 1 !== preg_match( '/\Asha256:([a-f0-9]{64})\z/D', $digest, $digestMatch ) ) {
+			|| ! in_array( $contentType, array( 'application/zip', 'application/octet-stream' ), true ) || 1 !== preg_match( '/\Asha256:([a-f0-9]{64})\z/D', $digest, $digestMatch ) ) {
 			return null;
 		}
 
@@ -308,7 +290,7 @@ final class TemplatePackRepositoryClient {
 			&& true === ( $expected['release_immutable'] ?? null ) && 1 === ( $expected['asset_count'] ?? null )
 			&& is_int( $expected['asset_id'] ?? null ) && $expected['asset_id'] > 0
 			&& ( $expected['asset_name'] ?? null ) === self::ASSET_NAME
-			&& 'uploaded' === ( $expected['asset_state'] ?? null ) && 'application/zip' === ( $expected['asset_content_type'] ?? null )
+			&& 'uploaded' === ( $expected['asset_state'] ?? null ) && in_array( $expected['asset_content_type'] ?? null, array( 'application/zip', 'application/octet-stream' ), true )
 			&& is_int( $expected['asset_size'] ?? null ) && $expected['asset_size'] > 0 && $expected['asset_size'] <= self::ASSET_BODY_LIMIT
 			&& is_string( $expected['asset_sha256'] ?? null ) && 1 === preg_match( '/\A[a-f0-9]{64}\z/D', $expected['asset_sha256'] )
 			&& 'sha256:' . $expected['asset_sha256'] === ( $expected['asset_digest'] ?? null );
@@ -423,8 +405,8 @@ final class TemplatePackRepositoryClient {
 	}
 
 	private function versionFromTag( string $tag ): ?string {
-		$version = str_starts_with( $tag, 'v' ) ? substr( $tag, 1 ) : $tag;
-		return 1 === preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $version ) ? $version : null;
+		$version = substr( $tag, 1 );
+		return str_starts_with( $tag, 'v' ) && StarterOrigin::version( $version ) ? $version : null;
 	}
 
 	/** @param array<string, mixed> $values @return array<string, mixed> */

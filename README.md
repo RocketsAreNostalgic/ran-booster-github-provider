@@ -43,7 +43,7 @@ host-neutral callable composition boundary used by released Booster beta.29;
 there is no API-10 two-argument registration compatibility path.
 
 Workflow-assistance persistence has a single current pre-1.0 baseline: setup
-records use schema 2 under the provider-owned option namespace, and failure
+records use schema 3 under the provider-owned option namespace, and failure
 history uses the current diagnostic-bearing record shape. Earlier prerelease
 option names and record shapes are not migration contracts.
 
@@ -79,13 +79,13 @@ composer check
 Use `composer standards:fix` to apply PHPCBF.
 
 The implementation tests and static analysis also verify compatibility with an
-exact certified Booster checkout because the public provider contracts remain
+exact candidate Booster checkout because the public provider contracts remain
 Booster-owned. For an equivalent local pass:
 
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
-# Match the certified host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ffc11fc8e40618624a785b7fca5193029c6d492e &&
+# Match the candidate host pinned in .github/workflows/ci.yml.
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff &&
   composer check:host
 ```
 
@@ -109,3 +109,56 @@ This package is versioned and released independently from Booster. Booster
 consumes a specific immutable provider release and verifies that dependency in
 its runtime archive. Release and trust details for maintainers are documented
 in [RELEASING.md](RELEASING.md).
+
+## API 3 initial starter candidate
+
+Provider #30 implements the five-method initial-only V3 contract against Core
+#177 `3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff`, as approved in programme #81.
+This test tuple is candidate qualification, not certification against a released
+host. Core source, production dependency locks and the runtime updater protocol
+are separate ownership boundaries. UI and owner-run interactive acceptance remain
+deferred.
+
+The fixed plugin/theme starter renders five logical templates into ten generated
+files, plus bounded header/readme version annotations. Every file is mode 100644.
+The passive origin record and operator guide grant no destination paths,
+permissions, ownership or future writes. Existing automation or generated-file
+conflicts require manual integration. No update engine, managed receipt, API 2
+fallback, formatter modification or repair is provided.
+
+`StarterSecurityCheck::check()` is an on-demand read-only package service. Its
+caller must obtain origin bytes from an identity-verified exact repository
+revision. Core adoption wiring remains outstanding: this service introduces no
+new host-interface method or UI. Results are `matching_advisory`,
+`no_matching_known_advisory` or `unknown`; none grants execution readiness or
+blocks ordinary adoption. Canonical GitHub advisory endpoint/response URLs bind
+repository identity; every indexed advisory must be published and not withdrawn.
+Indexes above 58 entries require an authenticated read to verify every advisory;
+an anonymous check returns `unknown` without claiming a clean result.
+No prose matching, background scanning, cache or write occurs.
+
+`tests/fixtures/api3-producer` contains exact bytes from producer B Quality run
+36559291561 attempt 1, artifact 11028442531, commit
+`b511fae06eba4092034d0ddb4ff475279ebd2898`; two local builds match that CI ZIP byte for byte.
+`ProducerExchangeTest` verifies the 10132-byte ZIP, SHA-256
+`2da459b63715660226b43914d3466f8b176bf645961dc0009fb51168c21ae7cf`, manifest and
+all ten plugin/theme render digests against the producer envelope. Numeric
+release/asset identities are explicitly simulated transport fixtures: this is
+actual producer-byte/consumer convergence, not published transport or installed
+end-to-end acceptance. Shared Profile B is pinned at
+`63c4a4b192bbb4cf203dab281b75a0907e85c3a9`.
+
+The actual producer exchange regression also executes the generated build and
+verification scripts in disposable local Git repositories for both package types,
+then compares two generated ZIPs byte-for-byte. Host-backed tests therefore need
+Bash, Git, jq, zip, unzip and shasum alongside PHP/ZipArchive. No remote repository
+or installed site is modified by these tests. The runtime allowlist contains only
+sorted explicit paths; human guidance lives in RELEASE-STARTER.md.
+
+Source readiness uses a conservative 46 MiB aggregate runtime-file budget,
+leaving 4 MiB below the generated verifier's 50 MiB ZIP ceiling for archive
+records, deflate overhead and version annotations. Case-folding file/directory
+collisions are refused. Prospective runtime, non-document Git blobs large enough to contain an LFS
+marker receive a binary-safe 43-byte prefix read at their exact tree blob SHA;
+missing/truncated evidence fails closed. Full document and prefix reads share
+the existing 256-blob snapshot bound. No LFS payload is fetched or executed.

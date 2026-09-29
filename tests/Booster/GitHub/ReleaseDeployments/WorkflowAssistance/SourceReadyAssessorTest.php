@@ -21,8 +21,8 @@ final class SourceReadyAssessorTest extends TestCase {
 		$documents = array(
 			'example-plugin.php' => $this->pluginHeader(),
 			'assets/app.css'     => 'body{}',
-			'build/block.json'   => '{"name":"ran/example","version":"1.2.3"}',
-			'package.json'       => '{"name":"example-plugin","version":"1.2.3"}',
+			'build/block.json'   => '{"name":"ran/example"}',
+			'package.json'       => '{"name":"example-plugin"}',
 			'readme.txt'         => "=== Example ===\nStable tag: 1.2.3\n",
 			'.prettierignore'    => "vendor/\n",
 			'tests/Test.php'     => '<?php',
@@ -31,25 +31,213 @@ final class SourceReadyAssessorTest extends TestCase {
 		$second    = ( new SourceReadyAssessor() )->assess( $this->snapshot( array_reverse( $documents, true ) ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
 
 		self::assertTrue( $first->readyForBootstrap() );
-		self::assertSame( 'source-ready-wordpress-plugin/2', $first->profile() );
+		self::assertSame( 'source-ready-wordpress-plugin/3', $first->profile() );
 		self::assertSame( $first->releaseFiles(), $second->releaseFiles() );
 		self::assertSame( $first->extraFiles(), $second->extraFiles() );
 		self::assertSame( array( 'assets/app.css', 'build/block.json', 'example-plugin.php', 'readme.txt' ), $first->releaseFiles() );
 		self::assertStringContainsString( " * x-release-please-start-version\n * Version: 1.2.3\n * x-release-please-end", $first->modifiedFiles()['example-plugin.php'] );
 		self::assertStringContainsString( "x-release-please-start-version\nStable tag: 1.2.3\nx-release-please-end", $first->modifiedFiles()['readme.txt'] );
-		self::assertSame( "vendor/\n# RAN Booster release bootstrap: Release Please owns this generated file.\n/CHANGELOG.md\n", $first->modifiedFiles()['.prettierignore'] );
-		self::assertSame( array( 'example-plugin.php', 'package.json', 'readme.txt', 'build/block.json' ), array_column( $first->extraFiles(), 'path' ) );
+		self::assertArrayNotHasKey( '.prettierignore', $first->modifiedFiles() );
+		self::assertSame( array( 'example-plugin.php', 'readme.txt' ), array_column( $first->extraFiles(), 'path' ) );
+	}
+
+	public function testSourceEligibilityMatchesTheFixedBuildAndVerifySyntax(): void {
+		foreach ( array( 'con', 'prn', 'aux', 'nul', 'com1', 'lpt9' ) as $slug ) {
+			self::assertSame( 'repository_unsupported', ( new SourceReadyAssessor() )->assess( $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) ), 'plugin', $slug, self::VERSION, 'https://github.com/' . self::REPOSITORY )->code(), $slug );
+		}
+		foreach ( array( 'assets/with space.css', 'assets/é.css', 'assets/two..dots.css', 'assets/name.', 'assets/CON.css' ) as $path ) {
+			$assessment = ( new SourceReadyAssessor() )->assess(
+				$this->snapshot(
+					array(
+						'example-plugin.php' => $this->pluginHeader(),
+						$path                => 'body{}',
+					)
+				),
+				'plugin',
+				'example-plugin',
+				self::VERSION,
+				'https://github.com/' . self::REPOSITORY
+			);
+			self::assertFalse( $assessment->readyForBootstrap(), $path );
+		}
+		$header = str_replace( 'https://github.com/owner/example-plugin', 'https://github.com/owner/example-plugin/', $this->pluginHeader() );
+		self::assertSame( 'repository_unsupported', ( new SourceReadyAssessor() )->assess( $this->snapshot( array( 'example-plugin.php' => $header ) ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code() );
+		$theme = "/*\n * Theme Name: Example\n * Requires PHP: 8.2\n * Requires at least: 7.0\n * Version: 1.2.3\n * Update URI: https://github.com/owner/example-plugin\n */\n";
+		self::assertSame(
+			'package_ambiguous',
+			( new SourceReadyAssessor() )->assess(
+				$this->snapshot(
+					array(
+						'style.css'            => $theme,
+						'templates/index.html' => '',
+					)
+				),
+				'theme',
+				'example-theme',
+				self::VERSION,
+				'https://github.com/' . self::REPOSITORY
+			)->code()
+		);
+	}
+
+	public function testAlreadyAnnotatedVersionSourcesDoNotAppearAsChanges(): void {
+		$header     = str_replace( ' * Version: 1.2.3', " * x-release-please-start-version\n * Version: 1.2.3\n * x-release-please-end", $this->pluginHeader() );
+		$readme     = "=== Example ===\nx-release-please-start-version\nStable tag: 1.2.3\nx-release-please-end\n";
+		$assessment = ( new SourceReadyAssessor() )->assess(
+			$this->snapshot(
+				array(
+					'example-plugin.php' => $header,
+					'readme.txt'         => $readme,
+				)
+			),
+			'plugin',
+			'example-plugin',
+			self::VERSION,
+			'https://github.com/' . self::REPOSITORY
+		);
+		self::assertTrue( $assessment->readyForBootstrap() );
+		self::assertSame( array(), $assessment->modifiedFiles() );
+		self::assertContains( 'readme.txt', $assessment->releaseFiles() );
+	}
+
+	public function testRuntimeCaseCollisionsAreRefusedIncludingFileDirectoryCollisions(): void {
+		foreach ( array( array( 'assets/Icon.svg', 'assets/icon.svg' ), array( 'assets/Icons', 'assets/icons/logo.svg' ), array( 'assets/Icons/a.svg', 'assets/icons/b.svg' ) ) as $paths ) {
+			$documents = array( 'example-plugin.php' => $this->pluginHeader() );
+			foreach ( $paths as $path ) {
+				$documents[ $path ] = 'data';
+			}
+			self::assertSame( 'runtime_paths_unknown', ( new SourceReadyAssessor() )->assess( $this->snapshot( $documents ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code() );
+		}
+	}
+
+	public function testRuntimeSizeBudgetUsesMetadataAndReservesZipOverhead(): void {
+		foreach ( array( array( 127826408 ), array( 52428800 ), array( 26000000, 26000000 ), array( 1000000 ) ) as $sizes ) {
+			$base     = $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) );
+			$entries  = $base->entries();
+			$prefixes = array();
+			foreach ( $sizes as $index => $size ) {
+				$path              = 'assets/file-' . $index . '.bin';
+				$entries[ $path ]  = array(
+					'type' => 'blob',
+					'mode' => '100644',
+					'sha'  => sha1( $path ),
+					'size' => $size,
+				);
+				$prefixes[ $path ] = str_repeat( "\0", 43 );
+			}
+			$snapshot = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->pluginHeader() ), $prefixes );
+			$result   = ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
+			self::assertSame( array( 1000000 ) === $sizes, $result->readyForBootstrap() );
+		}
+	}
+
+	public function testSourceAdmissionReservesSixGeneratedAssessmentDocumentsBeforeWrites(): void {
+		$base = $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) );
+		foreach ( array(
+			249 => true,
+			250 => false,
+		) as $assetCount => $ready ) {
+			$entries  = $base->entries();
+			$prefixes = array();
+			for ( $index = 0; $index < $assetCount; ++$index ) {
+				$path              = sprintf( 'assets/file-%03d.bin', $index );
+				$entries[ $path ]  = array(
+					'type' => 'blob',
+					'mode' => '100644',
+					'sha'  => sha1( $path ),
+					'size' => 43,
+				);
+				$prefixes[ $path ] = str_repeat( 'a', 43 );
+			}
+			$snapshot   = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->pluginHeader() ), $prefixes );
+			$assessment = ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
+			self::assertSame( $ready, $assessment->readyForBootstrap(), (string) $assetCount );
+			if ( ! $ready ) {
+				self::assertSame( 'runtime_paths_unknown', $assessment->code() );
+			}
+		}
+	}
+
+	public function testSourceAdmissionReservesGeneratedFilesAndParentTreesBeforeReadback(): void {
+		$base    = $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) );
+		$entries = $base->entries();
+		for ( $index = 0; $index < 1987; ++$index ) {
+			$path             = sprintf( 'docs/filler-%04d.bin', $index );
+			$entries[ $path ] = array(
+				'type' => 'blob',
+				'mode' => '100644',
+				'sha'  => sha1( $path ),
+				'size' => 0,
+			);
+		}
+		$documents = array( 'example-plugin.php' => $this->pluginHeader() );
+		foreach ( array(
+			1987 => true,
+			1988 => false,
+		) as $entryCount => $ready ) {
+			$snapshot   = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), array_slice( $entries, 0, $entryCount, true ), $documents );
+			$assessment = ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
+			self::assertSame( $ready, $assessment->readyForBootstrap(), (string) $entryCount );
+			if ( ! $ready ) {
+				self::assertSame( 'runtime_paths_unknown', $assessment->code() );
+			}
+		}
+	}
+
+	public function testUninspectedRuntimeBlobAndLfsPrefixRefuseBeforeSetup(): void {
+		$base                       = $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) );
+		$entries                    = $base->entries();
+		$entries['assets/logo.png'] = array(
+			'type' => 'blob',
+			'mode' => '100644',
+			'sha'  => str_repeat( 'b', 40 ),
+			'size' => 123,
+		);
+		foreach ( array( array(), array( 'assets/logo.png' => "version https://git-lfs.github.com/spec/v1\n" ) ) as $prefixes ) {
+			$snapshot = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->pluginHeader() ), $prefixes );
+			self::assertSame( 'runtime_paths_unknown', ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code() );
+		}
+	}
+
+	public function testHeaderLabelsMustMatchTheGeneratedVerifierCasing(): void {
+		$header = $this->pluginHeader();
+		foreach ( array(
+			'Plugin Name'       => 'package_ambiguous',
+			'Requires PHP'      => 'repository_unsupported',
+			'Requires at least' => 'repository_unsupported',
+			'Update URI'        => 'repository_unsupported',
+			'Version'           => 'version_mismatch',
+		) as $label => $code ) {
+			$changed = str_replace( $label . ':', strtolower( $label ) . ':', $header );
+			self::assertSame( $code, ( new SourceReadyAssessor() )->assess( $this->snapshot( array( 'example-plugin.php' => $changed ) ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code(), $label );
+		}
+		$theme = "/*\nTheme Name: Example\nRequires PHP: 8.2\nRequires at least: 7.0\nVersion: 1.2.3\nUpdate URI: https://github.com/owner/example-plugin\n*/\n";
+		self::assertSame(
+			'package_ambiguous',
+			( new SourceReadyAssessor() )->assess(
+				$this->snapshot(
+					array(
+						'style.css'            => str_replace( 'Theme Name:', 'theme name:', $theme ),
+						'templates/index.html' => '',
+					)
+				),
+				'theme',
+				'example-plugin',
+				self::VERSION,
+				'https://github.com/' . self::REPOSITORY
+			)->code()
+		);
 	}
 
 	public function testThemeProfileUsesStyleHeaderAndThemeRuntimePaths(): void {
 		$assessment = ( new SourceReadyAssessor() )->assess(
 			$this->snapshot(
 				array(
-					'style.css'            => "/*\nTheme Name: Example\nVersion: 1.2.3\nUpdate URI: https://github.com/owner/example-plugin\n*/\n",
+					'style.css'            => "/*\nTheme Name: Example\nRequires PHP: 8.2\nRequires at least: 7.0\nVersion: 1.2.3\nUpdate URI: https://github.com/owner/example-plugin\n*/\n",
 					'functions.php'        => '<?php',
 					'theme.json'           => '{}',
 					'templates/index.html' => '<!-- wp:post-content /-->',
-					'package.json'         => '{"version":"1.2.3"}',
+					'package.json'         => '{}',
 				)
 			),
 			'theme',
@@ -59,7 +247,7 @@ final class SourceReadyAssessorTest extends TestCase {
 		);
 
 		self::assertTrue( $assessment->readyForBootstrap() );
-		self::assertSame( 'source-ready-wordpress-theme/2', $assessment->profile() );
+		self::assertSame( 'source-ready-wordpress-theme/3', $assessment->profile() );
 		self::assertContains( 'templates/index.html', $assessment->releaseFiles() );
 	}
 
@@ -136,41 +324,6 @@ final class SourceReadyAssessorTest extends TestCase {
 		self::assertSame( 'release_automation_conflict', $result->code() );
 	}
 
-	public function testManagedAssessmentAdoptsOnlyTheCanonicalGeneratedAutomation(): void {
-		$documents = array(
-			'example-plugin.php'                   => $this->pluginHeader(),
-			'.github/workflows/release-please.yml' => "steps:\n  - uses: googleapis/release-please-action@v4\n",
-			'.ran-booster-release-profile.json'    => '{}',
-			'.release-please-manifest.json'        => '{}',
-			'release-please-config.json'           => '{}',
-			'version.txt'                          => self::VERSION,
-			'release-contents.txt'                 => 'example-plugin.php',
-			'scripts/build-release.sh'             => "#!/bin/sh\ngh release create v1.2.3\n",
-			'scripts/verify-release.sh'            => '#!/bin/sh',
-			'scripts/upload-release-assets.sh'     => '#!/bin/sh',
-		);
-		$assessor  = new SourceReadyAssessor();
-		$adoptable = $assessor->assessManaged(
-			$this->snapshot( $documents ),
-			'plugin',
-			'example-plugin',
-			self::VERSION,
-			'https://github.com/' . self::REPOSITORY
-		);
-
-		self::assertTrue( $adoptable->readyForBootstrap() );
-
-		$documents['.github/workflows/other-release.yml'] = "steps:\n  - uses: softprops/action-gh-release@v2\n";
-		$conflict = $assessor->assessManaged(
-			$this->snapshot( $documents ),
-			'plugin',
-			'example-plugin',
-			self::VERSION,
-			'https://github.com/' . self::REPOSITORY
-		);
-
-		self::assertSame( 'release_automation_conflict', $conflict->code() );
-	}
 
 	public function testCustomPrettierOwnershipAndPotVersioningRefuse(): void {
 		$assessor = new SourceReadyAssessor();
@@ -211,12 +364,13 @@ final class SourceReadyAssessorTest extends TestCase {
 			'https://github.com/' . self::REPOSITORY
 		);
 
-		self::assertSame( 'prettier_contract_custom', $custom->code() );
-		self::assertSame( 'prettier_contract_custom', $negated->code() );
+		self::assertSame( 'version_contract_custom', $custom->code() );
+		self::assertTrue( $negated->readyForBootstrap() );
+		self::assertArrayNotHasKey( '.prettierignore', $negated->modifiedFiles() );
 		self::assertSame( 'version_contract_custom', $pot->code() );
 	}
 
-	public function testBenignReleaseVocabularyAndReadOnlyInspectionRemainAdmissible(): void {
+	public function testExistingWorkflowGraphsRequireManualIntegration(): void {
 		$result = ( new SourceReadyAssessor() )->assess(
 			$this->snapshot(
 				array(
@@ -237,7 +391,7 @@ final class SourceReadyAssessorTest extends TestCase {
 			'https://github.com/' . self::REPOSITORY
 		);
 
-		self::assertTrue( $result->readyForBootstrap() );
+		self::assertSame( 'release_automation_conflict', $result->code() );
 	}
 
 	#[DataProvider( 'existingReleaseAutomationProvider' )]
@@ -312,7 +466,7 @@ final class SourceReadyAssessorTest extends TestCase {
 		}
 		$this->expectException( InvalidArgumentException::class );
 		SourceReadyAssessment::ready(
-			'source-ready-wordpress-plugin/2',
+			'source-ready-wordpress-plugin/3',
 			'example-plugin',
 			'../example-plugin.php',
 			self::VERSION,
@@ -323,7 +477,8 @@ final class SourceReadyAssessorTest extends TestCase {
 					'type' => 'generic',
 					'path' => '../example-plugin.php',
 				),
-			)
+			),
+			'8.2'
 		);
 	}
 
@@ -331,7 +486,7 @@ final class SourceReadyAssessorTest extends TestCase {
 	public function testAssessmentRejectsUnsafePathEncoding( string $path ): void {
 		$this->expectException( InvalidArgumentException::class );
 		SourceReadyAssessment::ready(
-			'source-ready-wordpress-plugin/2',
+			'source-ready-wordpress-plugin/3',
 			'example-plugin',
 			$path,
 			self::VERSION,
@@ -342,7 +497,8 @@ final class SourceReadyAssessorTest extends TestCase {
 					'type' => 'generic',
 					'path' => $path,
 				),
-			)
+			),
+			'8.2'
 		);
 	}
 
@@ -367,6 +523,6 @@ final class SourceReadyAssessorTest extends TestCase {
 	}
 
 	private function pluginHeader(): string {
-		return "<?php\n/**\n * Plugin Name: Example\n * Version: 1.2.3\n * Update URI: https://github.com/owner/example-plugin\n */\n";
+		return "<?php\n/**\n * Plugin Name: Example\n * Requires PHP: 8.2\n * Requires at least: 7.0\n * Version: 1.2.3\n * Update URI: https://github.com/owner/example-plugin\n */\n";
 	}
 }

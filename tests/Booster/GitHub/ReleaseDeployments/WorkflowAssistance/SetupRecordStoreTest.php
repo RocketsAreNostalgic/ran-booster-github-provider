@@ -25,7 +25,7 @@ final class SetupRecordStoreTest extends TestCase {
 		$GLOBALS['wpdb']->disconnect();
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
 	}
-	public function testSchemaTwoIsExactBoundedAndNonAutoloaded(): void {
+	public function testSchemaThreeIsExactBoundedAndNonAutoloaded(): void {
 		$store  = new SetupRecordStore();
 		$record = $this->record();
 		self::assertTrue( $store->save( $record ) );
@@ -261,14 +261,13 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertNotNull( $other->find( '987654321' ) );
 		self::assertCount( 2, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
 	}
-	public function testExistingRecordClaimRequiresItsExactPackageAndRevision(): void {
+	public function testExistingRecordCannotBeClaimedAgainEvenByTheSamePackage(): void {
 		$store = new SetupRecordStore();
 		self::assertTrue( $store->save( $this->record() ) );
-		self::assertNull( $store->claim( '987654321', 'plugin', 'example-plugin/example-plugin.php', 3, true ) );
-		self::assertNull( $store->claim( '123456789', 'theme', 'example-plugin/example-plugin.php', 3, true ) );
-		self::assertNull( $store->claim( '123456789', 'plugin', 'other/other.php', 3, true ) );
-		self::assertNull( $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4, true ) );
-		self::assertNotNull( $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3, true ) );
+		self::assertNull( $store->claim( '123456789', 'theme', 'example-plugin/example-plugin.php', 3 ) );
+		self::assertNull( $store->claim( '123456789', 'plugin', 'other/other.php', 3 ) );
+		self::assertNull( $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 ) );
+		self::assertNull( $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 	}
 	public function testSaveNeverTransfersARepositoryRecordToAnotherPackage(): void {
 		$store = new SetupRecordStore();
@@ -517,7 +516,7 @@ final class SetupRecordStoreTest extends TestCase {
 	/** @return array<string,int|string> */
 	private function record(): array {
 		return array(
-			'schema_version'        => 2,
+			'schema_version'        => 3,
 			'operation'             => 'bootstrap',
 			'repo_id'               => '123456789',
 			'repository'            => 'RocketsAreNostalgic/example-plugin',
@@ -526,10 +525,10 @@ final class SetupRecordStoreTest extends TestCase {
 			'source_revision'       => 3,
 			'default_branch'        => 'main',
 			'base_sha'              => str_repeat( 'a', 40 ),
-			'setup_branch'          => 'ran-booster/release-setup-v2-aaaaaaaaaaaa-deadbeef',
+			'setup_branch'          => 'ran-booster/release-setup-v3-aaaaaaaaaaaa-deadbeef',
 			'head_sha'              => str_repeat( 'b', 40 ),
 			'pr_number'             => 42,
-			'profile_id'            => 'source-ready-wordpress-plugin/2',
+			'profile_id'            => 'source-ready-wordpress-plugin/3',
 			'template_repo_name'    => 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates',
 			'template_repo_id'      => '1322743261',
 			'template_release_id'   => 41,
@@ -540,8 +539,14 @@ final class SetupRecordStoreTest extends TestCase {
 			'template_asset_size'   => 1000,
 			'template_asset_digest' => str_repeat( 'd', 64 ),
 			'manifest_digest'       => str_repeat( 'e', 64 ),
-			'receipt_digest'        => str_repeat( 'f', 64 ),
-			'consumer_api'          => 2,
+			'changed_files'         => array(
+				array(
+					'path'   => 'version.txt',
+					'status' => 'added',
+					'sha'    => str_repeat( 'f', 40 ),
+				),
+			),
+			'consumer_api'          => 3,
 			'pack_version'          => '1.2.3',
 			'bundle_hash'           => str_repeat( '1', 64 ),
 			'changed_path_hash'     => str_repeat( '2', 64 ),

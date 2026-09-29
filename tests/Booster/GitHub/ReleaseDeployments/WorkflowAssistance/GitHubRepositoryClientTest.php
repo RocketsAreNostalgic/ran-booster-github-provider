@@ -17,7 +17,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 	private const BLOB       = '2222222222222222222222222222222222222222';
 
 	public function testExactRepositoryBranchCommitAndSnapshotReadsAreBounded(): void {
-		$header    = "<?php\n/** Plugin Name: Example\n * Version: 1.2.3\n */\n";
+		$header    = "<?php\n/** Plugin Name: Example\n * Requires PHP: 8.2\n * Requires at least: 7.0\n * Version: 1.2.3\n */\n";
 		$transport = new D23GitHubTransport(
 			array(
 				$this->response(
@@ -188,7 +188,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertCount( 8, $transport->requests );
 	}
 
-	public function testSnapshotRetainsLargeRuntimeBlobMetadataWithoutDownloadingIt(): void {
+	public function testSnapshotReadsOnlyABoundedPrefixOfLargeRuntimeBlobs(): void {
 		$transport = new D23GitHubTransport(
 			array(
 				$this->response(
@@ -203,8 +203,33 @@ final class GitHubRepositoryClientTest extends TestCase {
 								'sha'  => self::BLOB,
 								'size' => 1048576,
 							),
+							array(
+								'path' => 'tests/large-fixture.bin',
+								'type' => 'blob',
+								'mode' => '100644',
+								'sha'  => str_repeat( 'c', 40 ),
+								'size' => 1048576,
+							),
+							array(
+								'path' => 'docs/screenshot.png',
+								'type' => 'blob',
+								'mode' => '100644',
+								'sha'  => str_repeat( 'd', 40 ),
+								'size' => 1048576,
+							),
+							array(
+								'path' => 'other/data.bin',
+								'type' => 'blob',
+								'mode' => '100644',
+								'sha'  => str_repeat( 'e', 40 ),
+								'size' => 1048576,
+							),
 						),
 					)
+				),
+				array(
+					'response' => array( 'code' => 200 ),
+					'body'     => str_repeat( 'a', 43 ),
 				),
 			)
 		);
@@ -213,7 +238,63 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertSame( 'ok', $result['code'] );
 		self::assertSame( 1048576, $result['snapshot']->entries()['build/application.js.map']['size'] );
 		self::assertSame( array(), $result['snapshot']->documentPaths() );
-		self::assertCount( 1, $transport->requests );
+		self::assertCount( 2, $transport->requests );
+		self::assertSame( 43, $transport->requests[1]['args']['limit_response_size'] );
+		self::assertSame( 'application/vnd.github.raw+json', $transport->requests[1]['args']['headers']['Accept'] );
+		self::assertSame( str_repeat( 'a', 43 ), $result['snapshot']->blobPrefix( 'build/application.js.map' ) );
+		self::assertNull( $result['snapshot']->blobPrefix( 'tests/large-fixture.bin' ) );
+	}
+
+	public function testRuntimeAssetPrefixIsInspectedBeforeSourceReadiness(): void {
+		foreach ( array( "version https://git-lfs.github.com/spec/v1\n" . str_repeat( 'x', 2048 ), str_repeat( "\0", 2048 ) ) as $content ) {
+			$transport = new D23ApplicationTransport();
+			$transport->mutateDefaultDocument( 'assets/logo.png', $content );
+			$result = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', str_repeat( 'a', 40 ) );
+			self::assertSame( 'ok', $result['code'] );
+			self::assertNull( $result['snapshot']->document( 'assets/logo.png' ) );
+			$assessment = ( new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SourceReadyAssessor() )->assess( $result['snapshot'], 'plugin', 'example-plugin', '1.2.3', 'https://github.com/' . self::REPOSITORY );
+			self::assertSame( str_starts_with( $content, "\0" ), $assessment->readyForBootstrap() );
+			foreach ( $transport->requests as $request ) {
+				self::assertSame( 'GET', $request['method'] );
+				self::assertSame( 0, $request['args']['redirection'] );
+			}
+		}
+	}
+
+	public function testThemeRootJsonPrefixIsFetchedWithoutReadingDevelopmentBlobs(): void {
+		$transport = new D23ApplicationTransport();
+		$transport->mutateDefaultDocument( 'theme.json', str_repeat( '{', 2048 ) );
+		$result = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', str_repeat( 'a', 40 ) );
+		self::assertSame( 'ok', $result['code'] );
+		self::assertSame( str_repeat( '{', 43 ), $result['snapshot']->blobPrefix( 'theme.json' ) );
+	}
+
+	public function testShortOversizedOrUnavailableBlobPrefixFailsClosed(): void {
+		$entry = array(
+			'path' => 'assets/logo.png',
+			'type' => 'blob',
+			'mode' => '100644',
+			'sha'  => self::BLOB,
+			'size' => 1234,
+		);
+		foreach ( array( array( 200, '' ), array( 200, str_repeat( 'a', 42 ) ), array( 200, str_repeat( 'a', 44 ) ), array( 503, '' ), array( 302, '' ) ) as [ $status, $body ] ) {
+			$transport = new D23GitHubTransport(
+				array(
+					$this->response(
+						200,
+						array(
+							'truncated' => false,
+							'tree'      => array( $entry ),
+						)
+					),
+					array(
+						'response' => array( 'code' => $status ),
+						'body'     => $body,
+					),
+				)
+			);
+			self::assertNotSame( 'ok', ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA )['code'] );
+		}
 	}
 
 	public function testSnapshotRefusesMoreThanTheBoundedAdmissionDocumentSetBeforeBlobReads(): void {
@@ -242,6 +323,43 @@ final class GitHubRepositoryClientTest extends TestCase {
 
 		self::assertSame( 'invalid_response', $result['code'] );
 		self::assertCount( 1, $transport->requests );
+	}
+
+	public function testAnonymousSnapshotRequiresCredentialBeforeExceedingItsRequestBudget(): void {
+		$tree      = array();
+		$responses = array();
+		for ( $index = 0; $index < 25; ++$index ) {
+			$tree[]      = array(
+				'path' => 'assets/image-' . $index . '.png',
+				'type' => 'blob',
+				'mode' => '100644',
+				'sha'  => sha1( 'asset-' . $index ),
+				'size' => 1024,
+			);
+			$responses[] = array(
+				'response' => array( 'code' => 200 ),
+				'body'     => str_repeat( 'x', 43 ),
+			);
+		}
+		$treeResponse = $this->response(
+			200,
+			array(
+				'truncated' => false,
+				'tree'      => $tree,
+			)
+		);
+		$anonymous    = new D23GitHubTransport( array( $treeResponse ) );
+		$result       = ( new GitHubRepositoryClient( $anonymous ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA );
+		self::assertSame( 'unauthorised', $result['code'] );
+		self::assertCount( 1, $anonymous->requests );
+
+		$authenticated = new D23GitHubTransport( array_merge( array( $treeResponse ), $responses ) );
+		$result        = ( new GitHubRepositoryClient( $authenticated ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA, 'selected-token' );
+		self::assertSame( 'ok', $result['code'] );
+		self::assertCount( 26, $authenticated->requests );
+		foreach ( $authenticated->requests as $request ) {
+			self::assertSame( 'Bearer selected-token', $request['args']['headers']['Authorization'] );
+		}
 	}
 
 	public function testGitObjectDraftAndRefWritesHaveNoUpdateMergeOrSecretAuthority(): void {
