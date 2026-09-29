@@ -158,6 +158,32 @@ final class SourceReadyAssessorTest extends TestCase {
 		}
 	}
 
+	public function testSourceAdmissionReservesGeneratedFilesAndParentTreesBeforeReadback(): void {
+		$base    = $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) );
+		$entries = $base->entries();
+		for ( $index = 0; $index < 1987; ++$index ) {
+			$path             = sprintf( 'docs/filler-%04d.bin', $index );
+			$entries[ $path ] = array(
+				'type' => 'blob',
+				'mode' => '100644',
+				'sha'  => sha1( $path ),
+				'size' => 0,
+			);
+		}
+		$documents = array( 'example-plugin.php' => $this->pluginHeader() );
+		foreach ( array(
+			1987 => true,
+			1988 => false,
+		) as $entryCount => $ready ) {
+			$snapshot   = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), array_slice( $entries, 0, $entryCount, true ), $documents );
+			$assessment = ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
+			self::assertSame( $ready, $assessment->readyForBootstrap(), (string) $entryCount );
+			if ( ! $ready ) {
+				self::assertSame( 'runtime_paths_unknown', $assessment->code() );
+			}
+		}
+	}
+
 	public function testUninspectedRuntimeBlobAndLfsPrefixRefuseBeforeSetup(): void {
 		$base                       = $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) );
 		$entries                    = $base->entries();

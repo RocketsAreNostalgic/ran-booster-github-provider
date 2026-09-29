@@ -11,7 +11,10 @@ final class SourceReadyAssessor {
 	// The setup writes six files that GitHubRepositoryClient reads as assessment documents:
 	// two workflows, the origin record, RP config, and the build and verify scripts.
 	private const MAX_SOURCE_INSPECTED_BLOBS = 250;
-	private const GENERATED_PATHS            = array(
+	// Ten generated files and up to three missing parents (.github, workflows, scripts).
+	// Readback uses the GitHub client's 2,000-entry recursive tree limit.
+	private const MAX_SOURCE_TREE_ENTRIES = 1987;
+	private const GENERATED_PATHS         = array(
 		'.github/workflows/release-please.yml',
 		'.github/workflows/quality.yml',
 		'.ran-booster-release-starter.json',
@@ -134,7 +137,8 @@ final class SourceReadyAssessor {
 			|| ! hash_equals( 'https://github.com/' . $snapshot->repository(), $expectedUpdateUri ) ) {
 			return SourceReadyAssessment::refused( 'repository_unsupported' );
 		}
-		if ( $snapshot->inspectedBlobCount() > self::MAX_SOURCE_INSPECTED_BLOBS ) {
+		if ( $snapshot->inspectedBlobCount() > self::MAX_SOURCE_INSPECTED_BLOBS
+			|| count( $snapshot->entries() ) > self::MAX_SOURCE_TREE_ENTRIES ) {
 			return SourceReadyAssessment::refused( 'runtime_paths_unknown' );
 		}
 
