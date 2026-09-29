@@ -18,7 +18,7 @@ final class ProducerExchangeTest extends TestCase {
 		$dir   = dirname( __DIR__, 4 ) . '/fixtures/api3-producer';
 		$bytes = file_get_contents( $dir . '/ran-booster-release-bootstrap-templates.zip' );
 		$e     = json_decode( file_get_contents( $dir . '/producer-exchange.json' ), true, 512, JSON_THROW_ON_ERROR );
-		if ( strlen( $bytes ) !== 9996 || hash( 'sha256', $bytes ) !== 'f97165fc884770319f4a53d5ae3377adc94821b7bd5ed439a4023c426d92ba23' ) {
+		if ( strlen( $bytes ) !== 9996 || hash( 'sha256', $bytes ) !== '2d6296a53169a157116c97a905faac2f4cec085783249f6a780a8a970a71ca82' ) {
 			throw new \RuntimeException( 'ZIP mismatch' );
 		}
 		// Unpublished candidate only: simulated numeric transport facts, never production discovery.

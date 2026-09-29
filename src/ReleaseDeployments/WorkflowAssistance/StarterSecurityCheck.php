@@ -69,8 +69,7 @@ final class StarterSecurityCheck {
 			|| ! is_array( $index['advisories'] ) || ! array_is_list( $index['advisories'] ) || count( $index['advisories'] ) > 64 ) {
 			return false;
 		}
-		$seen     = array();
-		$affected = array();
+		$seen = array();
 		foreach ( $index['advisories'] as $entry ) {
 			if ( ! is_array( $entry ) || ! self::keys( $entry, array( 'ghsa_id', 'repository', 'affected', 'fixed' ) )
 				|| ! is_string( $entry['ghsa_id'] ) || 1 !== preg_match( '/\AGHSA-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4}\z/D', $entry['ghsa_id'] )
@@ -96,11 +95,6 @@ final class StarterSecurityCheck {
 					return false;
 				}
 				$identities[ $value ] = true;
-				$key                  = $entry['repository'] . ':' . $value;
-				if ( isset( $affected[ $key ] ) && $affected[ $key ] !== $fixed ) {
-					return false;
-				}
-				$affected[ $key ] = $fixed;
 			}
 		}
 		return true;

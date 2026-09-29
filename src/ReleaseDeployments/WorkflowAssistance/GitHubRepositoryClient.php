@@ -100,7 +100,7 @@ final class GitHubRepositoryClient {
 			);
 			if ( 'blob' === $item['type'] && $this->assessmentDocument( $path ) ) {
 				$candidates[ $path ] = $item['sha'];
-			} elseif ( 'blob' === $item['type'] && $size >= 42 ) {
+			} elseif ( 'blob' === $item['type'] && $size >= 42 && SourceReadyAssessor::potentialRuntimeBlob( $path ) ) {
 				$prefixCandidates[ $path ] = $item['sha'];
 			}
 		}

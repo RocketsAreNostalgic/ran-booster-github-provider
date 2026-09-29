@@ -136,10 +136,10 @@ repository identity; every indexed advisory must be published and not withdrawn.
 No prose matching, background scanning, cache or write occurs.
 
 `tests/fixtures/api3-producer` contains exact bytes downloaded from producer B
-Actions run 36435273347 attempt 1, artifact 10975406751, producer commit
-`37fcee9c6707747d2b2cba5eff90a22b8f9e5968`. `ProducerExchangeTest` verifies the
+Actions run 36528715837 attempt 1, artifact 11015861304, producer commit
+`9ce0765b0cf83836c7f03b5985389ca90e13e91c`. `ProducerExchangeTest` verifies the
 9996-byte ZIP, SHA-256
-`f97165fc884770319f4a53d5ae3377adc94821b7bd5ed439a4023c426d92ba23`, manifest and
+`2d6296a53169a157116c97a905faac2f4cec085783249f6a780a8a970a71ca82`, manifest and
 all ten plugin/theme render digests against the producer envelope. Numeric
 release/asset identities are explicitly simulated transport fixtures: this is
 actual producer-byte/consumer convergence, not published transport or installed
@@ -156,7 +156,7 @@ sorted explicit paths; human guidance lives in RELEASE-STARTER.md.
 Source readiness uses a conservative 46 MiB aggregate runtime-file budget,
 leaving 4 MiB below the generated verifier's 50 MiB ZIP ceiling for archive
 records, deflate overhead and version annotations. Case-folding file/directory
-collisions are refused. Non-document Git blobs large enough to contain an LFS
+collisions are refused. Prospective runtime, non-document Git blobs large enough to contain an LFS
 marker receive a binary-safe 43-byte prefix read at their exact tree blob SHA;
 missing/truncated evidence fails closed. Full document and prefix reads share
 the existing 256-blob snapshot bound. No LFS payload is fetched or executed.

@@ -123,6 +123,36 @@ final class SourceReadyAssessorTest extends TestCase {
 		}
 	}
 
+	public function testHeaderLabelsMustMatchTheGeneratedVerifierCasing(): void {
+		$header = $this->pluginHeader();
+		foreach ( array(
+			'Plugin Name'       => 'package_ambiguous',
+			'Requires PHP'      => 'repository_unsupported',
+			'Requires at least' => 'repository_unsupported',
+			'Update URI'        => 'repository_unsupported',
+			'Version'           => 'version_mismatch',
+		) as $label => $code ) {
+			$changed = str_replace( $label . ':', strtolower( $label ) . ':', $header );
+			self::assertSame( $code, ( new SourceReadyAssessor() )->assess( $this->snapshot( array( 'example-plugin.php' => $changed ) ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code(), $label );
+		}
+		$theme = "/*\nTheme Name: Example\nRequires PHP: 8.2\nRequires at least: 7.0\nVersion: 1.2.3\nUpdate URI: https://github.com/owner/example-plugin\n*/\n";
+		self::assertSame(
+			'package_ambiguous',
+			( new SourceReadyAssessor() )->assess(
+				$this->snapshot(
+					array(
+						'style.css'            => str_replace( 'Theme Name:', 'theme name:', $theme ),
+						'templates/index.html' => '',
+					)
+				),
+				'theme',
+				'example-plugin',
+				self::VERSION,
+				'https://github.com/' . self::REPOSITORY
+			)->code()
+		);
+	}
+
 	public function testThemeProfileUsesStyleHeaderAndThemeRuntimePaths(): void {
 		$assessment = ( new SourceReadyAssessor() )->assess(
 			$this->snapshot(

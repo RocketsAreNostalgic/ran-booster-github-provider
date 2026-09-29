@@ -203,6 +203,27 @@ final class GitHubRepositoryClientTest extends TestCase {
 								'sha'  => self::BLOB,
 								'size' => 1048576,
 							),
+							array(
+								'path' => 'tests/large-fixture.bin',
+								'type' => 'blob',
+								'mode' => '100644',
+								'sha'  => str_repeat( 'c', 40 ),
+								'size' => 1048576,
+							),
+							array(
+								'path' => 'docs/screenshot.png',
+								'type' => 'blob',
+								'mode' => '100644',
+								'sha'  => str_repeat( 'd', 40 ),
+								'size' => 1048576,
+							),
+							array(
+								'path' => 'other/data.bin',
+								'type' => 'blob',
+								'mode' => '100644',
+								'sha'  => str_repeat( 'e', 40 ),
+								'size' => 1048576,
+							),
 						),
 					)
 				),
@@ -221,6 +242,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertSame( 43, $transport->requests[1]['args']['limit_response_size'] );
 		self::assertSame( 'application/vnd.github.raw+json', $transport->requests[1]['args']['headers']['Accept'] );
 		self::assertSame( str_repeat( 'a', 43 ), $result['snapshot']->blobPrefix( 'build/application.js.map' ) );
+		self::assertNull( $result['snapshot']->blobPrefix( 'tests/large-fixture.bin' ) );
 	}
 
 	public function testRuntimeAssetPrefixIsInspectedBeforeSourceReadiness(): void {

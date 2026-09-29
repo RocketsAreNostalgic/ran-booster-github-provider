@@ -96,6 +96,15 @@ final class SourceReadyAssessor {
 		'vendor',
 	);
 
+	/** Only paths which a supported plugin/theme could place in the release allowlist. */
+	public static function potentialRuntimeBlob( string $path ): bool {
+		$parts = explode( '/', $path, 2 );
+		if ( 2 === count( $parts ) ) {
+			return in_array( $parts[0], self::PLUGIN_RUNTIME_ROOTS, true ) || in_array( $parts[0], self::THEME_RUNTIME_ROOTS, true );
+		}
+		return 'screenshot.png' === $path;
+	}
+
 	public function assess(
 		RepositorySnapshot $snapshot,
 		string $type,
@@ -184,7 +193,7 @@ final class SourceReadyAssessor {
 			foreach ( $snapshot->documentPaths() as $path ) {
 				if ( ! str_contains( $path, '/' ) && str_ends_with( strtolower( $path ), '.php' ) ) {
 					$document = $snapshot->document( $path );
-					if ( is_string( $document ) && 1 === preg_match( '/^[ \t]*\*[ \t]*Plugin Name:[ \t]*\S/im', $document ) ) {
+					if ( is_string( $document ) && 1 === preg_match( '/^[ \t]*\*[ \t]*Plugin Name:[ \t]*\S/m', $document ) ) {
 						$candidates[] = $path;
 					}
 				}
@@ -202,20 +211,20 @@ final class SourceReadyAssessor {
 
 		$label = 'theme' === $type ? 'Theme Name' : 'Plugin Name';
 		// The fixed theme verifier accepts the ordinary unstarred style.css header.
-		if ( 'theme' === $type && 1 !== preg_match( '/^[ \t]*Theme Name:[ \t]*\S/im', $document ) ) {
+		if ( 'theme' === $type && 1 !== preg_match( '/^[ \t]*Theme Name:[ \t]*\S/m', $document ) ) {
 			return 'package_ambiguous';
 		}
-		if ( 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?' . preg_quote( $label, '/' ) . ':[ \t]*\S/im', $document ) ) {
+		if ( 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?' . preg_quote( $label, '/' ) . ':[ \t]*\S/m', $document ) ) {
 			return 'package_ambiguous';
 		}
-		if ( 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Update URI:[ \t]*(\S+)[ \t]*$/im', $document, $uriMatch )
+		if ( 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Update URI:[ \t]*(\S+)[ \t]*$/m', $document, $uriMatch )
 			|| ! hash_equals( $updateUri, $uriMatch[1][0] ) ) {
 			return 'repository_unsupported';
 		}
 		if ( strlen( $path ) > 255 || 1 !== preg_match( '/\A[A-Za-z0-9._-]+\z/D', $path )
-			|| 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Requires PHP:[ \t]*(\S+)[ \t]*$/im', $document, $php )
+			|| 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Requires PHP:[ \t]*(\S+)[ \t]*$/m', $document, $php )
 			|| ! in_array( $php[1][0], array( '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5' ), true )
-			|| 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Requires at least:[ \t]*[0-9]+\.[0-9]+(?:\.[0-9]+)?[ \t]*$/im', $document )
+			|| 1 !== preg_match_all( '/^[ \t]*(?:\*[ \t]*)?Requires at least:[ \t]*[0-9]+\.[0-9]+(?:\.[0-9]+)?[ \t]*$/m', $document )
 			|| ( 'theme' === $type && ! $snapshot->has( 'index.php' ) && ! $snapshot->has( 'templates/index.html' ) ) ) {
 			return 'repository_unsupported';
 		}
@@ -458,7 +467,7 @@ final class SourceReadyAssessor {
 	}
 
 	private function annotateVersionLine( string $document, string $label, string $expectedVersion ): ?string {
-		$pattern = '/^[ \t]*(?:\*[ \t]*)?' . preg_quote( $label, '/' ) . ':[ \t]*([^\s]+)[ \t]*$/mi';
+		$pattern = '/^[ \t]*(?:\*[ \t]*)?' . preg_quote( $label, '/' ) . ':[ \t]*([^\s]+)[ \t]*$/' . ( 'Version' === $label ? 'm' : 'mi' );
 		if ( 1 !== preg_match_all( $pattern, $document, $matches, PREG_OFFSET_CAPTURE )
 			|| ! hash_equals( $expectedVersion, $matches[1][0][0] ) ) {
 			return null;

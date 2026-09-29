@@ -1,13 +1,13 @@
 {
-  "producer_sha": "37fcee9c6707747d2b2cba5eff90a22b8f9e5968",
-  "workflow_run_id": "36435273347",
+  "producer_sha": "9ce0765b0cf83836c7f03b5985389ca90e13e91c",
+  "workflow_run_id": "36528715837",
   "run_attempt": "1",
   "artifact_id": null,
   "artifact_id_note": "Resolve after upload from this exact run and attempt; no synthetic transport identity.",
   "filename": "ran-booster-release-bootstrap-templates.zip",
   "size": 9996,
-  "zip_sha256": "f97165fc884770319f4a53d5ae3377adc94821b7bd5ed439a4023c426d92ba23",
-  "manifest_sha256": "c891421efde53f6c88625af9c5e609a7f568193773539999c4775563e67f32b1",
+  "zip_sha256": "2d6296a53169a157116c97a905faac2f4cec085783249f6a780a8a970a71ca82",
+  "manifest_sha256": "ba480144c49c9fd1000f64aa6e1bcc0a514a37b57059013b3e2b019cfaa957a6",
   "pack_version": "0.2.1",
   "profiles": {
     "source-ready-wordpress-plugin/3": {

@@ -85,6 +85,21 @@ final class StarterSecurityCheckTest extends TestCase {
 		self::assertSame( '1.2.4', $result['matches'][0]['fixed']['pack_version'] );
 		self::assertSame( str_repeat( 'a', 40 ), $result['matches'][1]['fixed']['shared_profile_b_commit'] );
 	}
+	public function testIndependentPublishedAdvisoriesMayOverlapTheSameRevision(): void {
+		$packA                                       = $this->entry();
+		$packB                                       = $packA;
+		$packB['ghsa_id']                            = 'GHSA-4444-5555-6666';
+		$packB['fixed']['pack_version']              = '1.2.5';
+		$sharedA                                     = $this->entry( true );
+		$sharedB                                     = $sharedA;
+		$sharedB['ghsa_id']                          = 'GHSA-5555-6666-7777';
+		$sharedB['fixed']['shared_profile_b_commit'] = str_repeat( 'b', 40 );
+		$result                                      = $this->runCheck( $this->index( array( $packA, $packB, $sharedA, $sharedB ) ) );
+		self::assertSame( 'matching_advisory', $result['status'] );
+		self::assertCount( 4, $result['matches'] );
+		self::assertSame( array( '1.2.4', '1.2.5', null, null ), array_column( array_column( $result['matches'], 'fixed' ), 'pack_version' ) );
+		self::assertSame( str_repeat( 'b', 40 ), $result['matches'][3]['fixed']['shared_profile_b_commit'] );
+	}
 	public function testNoMatchIsNotASafetyCertificate(): void {
 		$entry                              = $this->entry();
 		$entry['affected']['pack_versions'] = array( '1.0.0' );
@@ -100,11 +115,8 @@ final class StarterSecurityCheckTest extends TestCase {
 		}
 	}
 	public function testMalformedDuplicateContradictoryAndOversizedIndexIsUnknown(): void {
-		$entry                          = $this->entry();
-		$other                          = $entry;
-		$other['ghsa_id']               = 'GHSA-4444-5555-6666';
-		$other['fixed']['pack_version'] = '1.2.5';
-		$cases                          = array( '{"schema":"ran-release-starter-advisories","schema_version":1,"advisories":{}}', '{}', '{"schema":1,"schema":2}', '{"schema":1,"schem\\u0061":2}', str_repeat( ' ', 65537 ), $this->index( array_fill( 0, 65, $entry ) ), $this->index( array( $entry, $entry ) ), $this->index( array( $entry, $other ) ), $this->index( array( $entry ) ) + array( 'authority' => 'write' ) );
+		$entry = $this->entry();
+		$cases = array( '{"schema":"ran-release-starter-advisories","schema_version":1,"advisories":{}}', '{}', '{"schema":1,"schema":2}', '{"schema":1,"schem\\u0061":2}', str_repeat( ' ', 65537 ), $this->index( array_fill( 0, 65, $entry ) ), $this->index( array( $entry, $entry ) ), $this->index( array( $entry ) ) + array( 'authority' => 'write' ) );
 		foreach ( array( 'latest', '01.2.3', '1.2.3-beta.1', '*', str_repeat( '1', 64 ) ) as $value ) {
 			$bad                              = $entry;
 			$bad['affected']['pack_versions'] = array( $value );

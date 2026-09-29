@@ -15,7 +15,8 @@ final class StarterOrigin {
 	public static function encode( TemplatePack $pack, string $profile ): string {
 		$identity = $pack->identity();
 		$rendered = $pack->render( $profile, 'release-workflow', array( 'PACKAGE_SLUG' => 'origin-check' ) );
-		if ( 'ok' !== $rendered['code'] || 1 !== preg_match( '~uses: RocketsAreNostalgic/\.github/\.github/workflows/release-profile-b\.yml@([a-f0-9]{40})~', $rendered['content'], $match ) ) {
+		$pattern  = '~^[ \t]*uses[ \t]*:[ \t]*(["\x27]?)RocketsAreNostalgic/\.github/\.github/workflows/release-profile-b\.yml@([a-f0-9]{40})\1[ \t]*(?:\#[^\r\n]*)?\r?$~m';
+		if ( 'ok' !== $rendered['code'] || 1 !== preg_match_all( $pattern, $rendered['content'], $match ) ) {
 			throw new \RuntimeException( 'Shared workflow provenance is unavailable.' );
 		}
 		$origin = array(
@@ -32,7 +33,7 @@ final class StarterOrigin {
 			),
 			'shared_profile_b' => array(
 				'repository' => self::SHARED_REPOSITORY,
-				'commit'     => $match[1],
+				'commit'     => $match[2][0],
 			),
 		);
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Exact deterministic passive metadata.
