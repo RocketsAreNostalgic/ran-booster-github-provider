@@ -40,14 +40,18 @@ final class StarterSecurityCheckTest extends TestCase {
 			'advisories'     => $entries,
 		);
 	}
-	private function runCheck( array|string $index, array $advisoryOverride = array(), int $status = 200 ): array {
+	private function runCheck( array|string $index, array $advisoryOverride = array(), int $status = 200, string $token = '' ): array {
 		$requests = array();
 		$checker  = new StarterSecurityCheck(
-			static function ( string $url, array $args ) use ( $index, $advisoryOverride, $status, &$requests ): array {
+			static function ( string $url, array $args ) use ( $index, $advisoryOverride, $status, $token, &$requests ): array {
 				$requests[] = $url;
 				self::assertSame( 0, $args['redirection'] );
 				self::assertSame( 65537, $args['limit_response_size'] );
-				self::assertArrayNotHasKey( 'Authorization', $args['headers'] );
+				if ( '' === $token ) {
+					self::assertArrayNotHasKey( 'Authorization', $args['headers'] );
+				} else {
+					self::assertSame( 'Bearer ' . $token, $args['headers']['Authorization'] );
+				}
 				if ( str_contains( $url, '/contents/' ) ) {
 					$data = $index; } elseif ( str_contains( $url, '/security-advisories/' ) ) {
 								$id         = basename( $url );
@@ -76,7 +80,20 @@ final class StarterSecurityCheckTest extends TestCase {
 					);
 			}
 		);
-		return $checker->check( $this->origin() );
+		return $checker->check( $this->origin(), $token );
+	}
+	public function testMaximumIndexRequiresAuthenticationForEveryPublishedAdvisoryCheck(): void {
+		$alphabet = '23456789cfghjmpqrvwx';
+		$entries  = array();
+		for ( $i = 0; $i < 64; ++$i ) {
+			$entry            = $this->entry();
+			$entry['ghsa_id'] = 'GHSA-2222-3333-22' . $alphabet[ intdiv( $i, strlen( $alphabet ) ) ] . $alphabet[ $i % strlen( $alphabet ) ];
+			$entries[]        = $entry;
+		}
+		self::assertSame( 'unknown', $this->runCheck( $this->index( $entries ) )['status'] );
+		$verified = $this->runCheck( $this->index( $entries ), array(), 200, 'fixture-token' );
+		self::assertSame( 'matching_advisory', $verified['status'] );
+		self::assertCount( 64, $verified['matches'] );
 	}
 	public function testExactPackAndSharedMatchesDisplayOnlyExplicitManualTargets(): void {
 		$result = $this->runCheck( $this->index( array( $this->entry(), $this->entry( true ) ) ) );

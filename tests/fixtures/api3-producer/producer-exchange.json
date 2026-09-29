@@ -1,13 +1,13 @@
 {
-  "producer_sha": "9ce0765b0cf83836c7f03b5985389ca90e13e91c",
-  "workflow_run_id": "36528715837",
+  "producer_sha": "d6f00d87f22659519a57449c0c38da7a898eaced",
+  "workflow_run_id": "36535763167",
   "run_attempt": "1",
   "artifact_id": null,
   "artifact_id_note": "Resolve after upload from this exact run and attempt; no synthetic transport identity.",
   "filename": "ran-booster-release-bootstrap-templates.zip",
-  "size": 9996,
-  "zip_sha256": "2d6296a53169a157116c97a905faac2f4cec085783249f6a780a8a970a71ca82",
-  "manifest_sha256": "ba480144c49c9fd1000f64aa6e1bcc0a514a37b57059013b3e2b019cfaa957a6",
+  "size": 10000,
+  "zip_sha256": "ba321c508e8d2f9f1c86989b88af81f6fb225a62498a07ab728221bc36ccff75",
+  "manifest_sha256": "f6e8f0c22753c4f89d0060441ab8d139bf52717caecc5faf20b411bbd36e91a4",
   "pack_version": "0.2.1",
   "profiles": {
     "source-ready-wordpress-plugin/3": {
@@ -24,8 +24,8 @@
         "rendered_sha256": "61e09b4d1dc5ece6d16e2da102de7bed758a1064651d84fa0eceda9f163adbb8"
       },
       "build-release-script": {
-        "sha256": "ea26b700517c9c4783d01ce29feda6f6ad757e21049b470802cf57962b77d88f",
-        "rendered_sha256": "264395b731027994d7bcd88ae7aa5d261a1f092b397ad717554d05b2e71c1df4"
+        "sha256": "2dff8a27d68cbb11bcfe3e463cacb625ca625b4371a9e530d3f4815f9d877dab",
+        "rendered_sha256": "62505a40cdbff0b6376a2d6bdfee4d3c85036893fd145e1b350fa4ea2d835222"
       },
       "verify-release-script": {
         "sha256": "70a60c6e2bb632d8b1e05c6d027bbcb478714cdb40e8c179916f530ca0daefe2",
@@ -46,8 +46,8 @@
         "rendered_sha256": "0862e6bd92838ef8b9159ebf73ea27e958203a5882199968e28d7e7b8b0de286"
       },
       "build-release-script": {
-        "sha256": "ea26b700517c9c4783d01ce29feda6f6ad757e21049b470802cf57962b77d88f",
-        "rendered_sha256": "3370db8c02680db60cb6d8be84758a0dfaf0de70e55c7d9fe79b52c6c86c02e2"
+        "sha256": "2dff8a27d68cbb11bcfe3e463cacb625ca625b4371a9e530d3f4815f9d877dab",
+        "rendered_sha256": "53631c33347bbb71e55415ae7f485d8c3164b1a33dcb9ea8e38fe1697a64887e"
       },
       "verify-release-script": {
         "sha256": "70a60c6e2bb632d8b1e05c6d027bbcb478714cdb40e8c179916f530ca0daefe2",

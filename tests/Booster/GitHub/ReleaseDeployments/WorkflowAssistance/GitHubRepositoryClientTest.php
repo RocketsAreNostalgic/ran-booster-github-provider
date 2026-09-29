@@ -261,6 +261,14 @@ final class GitHubRepositoryClientTest extends TestCase {
 		}
 	}
 
+	public function testThemeRootJsonPrefixIsFetchedWithoutReadingDevelopmentBlobs(): void {
+		$transport = new D23ApplicationTransport();
+		$transport->mutateDefaultDocument( 'theme.json', str_repeat( '{', 2048 ) );
+		$result = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', str_repeat( 'a', 40 ) );
+		self::assertSame( 'ok', $result['code'] );
+		self::assertSame( str_repeat( '{', 43 ), $result['snapshot']->blobPrefix( 'theme.json' ) );
+	}
+
 	public function testShortOversizedOrUnavailableBlobPrefixFailsClosed(): void {
 		$entry = array(
 			'path' => 'assets/logo.png',

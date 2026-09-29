@@ -105,6 +105,27 @@ final class InitialReleaseBundleTest extends TestCase {
 		}
 	}
 
+	public function testBlockScalarPinDecoyCannotBecomeOriginProvenance(): void {
+		$path     = 'templates/shared/release-please.yml.tmpl';
+		$original = TemplatePackApi3Fixture::templates()[ $path ];
+		foreach ( array(
+			str_replace( "  release:\n", "  release: |\n", $original ),
+			str_replace( "jobs:\n  release:\n", "note: |\n    uses: RocketsAreNostalgic/.github/.github/workflows/release-profile-b.yml@" . str_repeat( 'a', 40 ) . "\njobs:\n  release:\n", str_replace( 'uses: RocketsAreNostalgic/.github/.github/workflows/release-profile-b.yml@', 'uses: attacker/fork/.github/workflows/release.yml@', $original ) ),
+		) as $template ) {
+			$manifest = TemplatePackApi3Fixture::manifest();
+			foreach ( $manifest['profiles'] as &$profile ) {
+				$profile['entries']['release-workflow']['sha256'] = hash( 'sha256', $template );
+				$profile['entries']['release-workflow']['size']   = strlen( $template );
+			}
+			unset( $profile );
+			$archive = TemplatePackApi3Fixture::archive( $manifest, array( $path => $template ) );
+			$pack    = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+			self::assertSame( 'ok', $pack['code'] );
+			$snapshot = $this->snapshot();
+			self::assertSame( 'invalid_bundle', InitialReleaseBundle::bootstrap( $pack['pack'], $this->assessment( $snapshot ), $snapshot, 'https://github.com/owner/example-plugin' )['code'] );
+		}
+	}
+
 	public function testRefusesNonReadyAssessmentAndOccupiedGeneratedPath(): void {
 		$archive = TemplatePackApi3Fixture::archive();
 		$pack    = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['pack'];

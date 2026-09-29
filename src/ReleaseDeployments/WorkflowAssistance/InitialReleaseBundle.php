@@ -145,6 +145,9 @@ final readonly class InitialReleaseBundle {
 				$files[ $path ] = self::file( $path, $content, '100644', 'added' );
 			}
 			foreach ( $assessment->modifiedFiles() as $path => $content ) {
+				if ( $snapshot->has( $path ) && $snapshot->document( $path ) === $content ) {
+					continue;
+				}
 				$files[ $path ] = self::file( $path, $content, '100644', $snapshot->has( $path ) ? 'modified' : 'added' );
 			}
 

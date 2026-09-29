@@ -43,7 +43,7 @@ host-neutral callable composition boundary used by released Booster beta.29;
 there is no API-10 two-argument registration compatibility path.
 
 Workflow-assistance persistence has a single current pre-1.0 baseline: setup
-records use schema 2 under the provider-owned option namespace, and failure
+records use schema 3 under the provider-owned option namespace, and failure
 history uses the current diagnostic-bearing record shape. Earlier prerelease
 option names and record shapes are not migration contracts.
 
@@ -133,13 +133,15 @@ new host-interface method or UI. Results are `matching_advisory`,
 `no_matching_known_advisory` or `unknown`; none grants execution readiness or
 blocks ordinary adoption. Canonical GitHub advisory endpoint/response URLs bind
 repository identity; every indexed advisory must be published and not withdrawn.
+Indexes above 58 entries require an authenticated read to verify every advisory;
+an anonymous check returns `unknown` without claiming a clean result.
 No prose matching, background scanning, cache or write occurs.
 
-`tests/fixtures/api3-producer` contains exact bytes downloaded from producer B
-Actions run 36528715837 attempt 1, artifact 11015861304, producer commit
-`9ce0765b0cf83836c7f03b5985389ca90e13e91c`. `ProducerExchangeTest` verifies the
-9996-byte ZIP, SHA-256
-`2d6296a53169a157116c97a905faac2f4cec085783249f6a780a8a970a71ca82`, manifest and
+`tests/fixtures/api3-producer` contains exact bytes from producer B Quality run
+36535763167 attempt 1, artifact 11018446507, commit
+`d6f00d87f22659519a57449c0c38da7a898eaced`; two local builds match that CI ZIP byte for byte.
+`ProducerExchangeTest` verifies the 10000-byte ZIP, SHA-256
+`ba321c508e8d2f9f1c86989b88af81f6fb225a62498a07ab728221bc36ccff75`, manifest and
 all ten plugin/theme render digests against the producer envelope. Numeric
 release/asset identities are explicitly simulated transport fixtures: this is
 actual producer-byte/consumer convergence, not published transport or installed

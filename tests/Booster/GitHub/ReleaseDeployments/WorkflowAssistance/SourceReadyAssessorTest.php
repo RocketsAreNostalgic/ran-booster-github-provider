@@ -42,6 +42,9 @@ final class SourceReadyAssessorTest extends TestCase {
 	}
 
 	public function testSourceEligibilityMatchesTheFixedBuildAndVerifySyntax(): void {
+		foreach ( array( 'con', 'prn', 'aux', 'nul', 'com1', 'lpt9' ) as $slug ) {
+			self::assertSame( 'repository_unsupported', ( new SourceReadyAssessor() )->assess( $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) ), 'plugin', $slug, self::VERSION, 'https://github.com/' . self::REPOSITORY )->code(), $slug );
+		}
 		foreach ( array( 'assets/with space.css', 'assets/é.css', 'assets/two..dots.css', 'assets/name.', 'assets/CON.css' ) as $path ) {
 			$assessment = ( new SourceReadyAssessor() )->assess(
 				$this->snapshot(
@@ -75,6 +78,26 @@ final class SourceReadyAssessorTest extends TestCase {
 				'https://github.com/' . self::REPOSITORY
 			)->code()
 		);
+	}
+
+	public function testAlreadyAnnotatedVersionSourcesDoNotAppearAsChanges(): void {
+		$header     = str_replace( ' * Version: 1.2.3', " * x-release-please-start-version\n * Version: 1.2.3\n * x-release-please-end", $this->pluginHeader() );
+		$readme     = "=== Example ===\nx-release-please-start-version\nStable tag: 1.2.3\nx-release-please-end\n";
+		$assessment = ( new SourceReadyAssessor() )->assess(
+			$this->snapshot(
+				array(
+					'example-plugin.php' => $header,
+					'readme.txt'         => $readme,
+				)
+			),
+			'plugin',
+			'example-plugin',
+			self::VERSION,
+			'https://github.com/' . self::REPOSITORY
+		);
+		self::assertTrue( $assessment->readyForBootstrap() );
+		self::assertSame( array(), $assessment->modifiedFiles() );
+		self::assertContains( 'readme.txt', $assessment->releaseFiles() );
 	}
 
 	public function testRuntimeCaseCollisionsAreRefusedIncludingFileDirectoryCollisions(): void {

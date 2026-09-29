@@ -15,8 +15,8 @@ final class StarterOrigin {
 	public static function encode( TemplatePack $pack, string $profile ): string {
 		$identity = $pack->identity();
 		$rendered = $pack->render( $profile, 'release-workflow', array( 'PACKAGE_SLUG' => 'origin-check' ) );
-		$pattern  = '~^[ \t]*uses[ \t]*:[ \t]*(["\x27]?)RocketsAreNostalgic/\.github/\.github/workflows/release-profile-b\.yml@([a-f0-9]{40})\1[ \t]*(?:\#[^\r\n]*)?\r?$~m';
-		if ( 'ok' !== $rendered['code'] || 1 !== preg_match_all( $pattern, $rendered['content'], $match ) ) {
+		$pin      = 'ok' === $rendered['code'] ? self::workflowPin( $rendered['content'] ) : null;
+		if ( null === $pin ) {
 			throw new \RuntimeException( 'Shared workflow provenance is unavailable.' );
 		}
 		$origin = array(
@@ -33,11 +33,64 @@ final class StarterOrigin {
 			),
 			'shared_profile_b' => array(
 				'repository' => self::SHARED_REPOSITORY,
-				'commit'     => $match[2][0],
+				'commit'     => $pin,
 			),
 		);
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Exact deterministic passive metadata.
 		return json_encode( $origin, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ) . "\n";
+	}
+
+	/** Accept only the one reusable-workflow call at jobs.release.uses. */
+	private static function workflowPin( string $workflow ): ?string {
+		$lines = preg_split( '/\r?\n/', $workflow );
+		if ( ! is_array( $lines ) ) {
+			return null;
+		}
+		$jobs        = false;
+		$release     = false;
+		$jobsSeen    = false;
+		$releaseSeen = false;
+		$pin         = null;
+		$rootKeys    = array();
+		$pattern     = '~^uses[ \t]*:[ \t]*(["\x27]?)RocketsAreNostalgic/\.github/\.github/workflows/release-profile-b\.yml@([a-f0-9]{40})\1[ \t]*(?:\#[^\r\n]*)?$~';
+		foreach ( $lines as $line ) {
+			if ( '' === trim( $line ) || str_starts_with( ltrim( $line ), '#' ) ) {
+				continue;
+			}
+			$indent = strspn( $line, ' ' );
+			if ( "\t" === ( $line[ $indent ] ?? '' ) ) {
+				return null;
+			}
+			$key = substr( $line, $indent );
+			if ( 0 === $indent ) {
+				if ( 1 !== preg_match( '/\A(name|on|permissions|jobs):(?:\s|\z)/', $key, $rootMatch ) || isset( $rootKeys[ $rootMatch[1] ] ) ) {
+					return null;
+				}
+				$rootKeys[ $rootMatch[1] ] = true;
+				$jobs                      = 'jobs:' === $key;
+				$release                   = false;
+				if ( $jobs ) {
+					if ( $jobsSeen ) {
+						return null;
+					}
+					$jobsSeen = true;
+				}
+			} elseif ( $jobs && 2 === $indent ) {
+				if ( 'release:' !== $key || $releaseSeen ) {
+					return null;
+				}
+				$releaseSeen = true;
+				$release     = true;
+			} elseif ( $jobs && ( 1 === $indent || 3 === $indent ) ) {
+				return null;
+			} elseif ( $jobs && $release && 4 === $indent && 1 === preg_match( '/\Auses[ \t]*:/', $key ) ) {
+				if ( null !== $pin || 1 !== preg_match( $pattern, $key, $match ) ) {
+					return null;
+				}
+				$pin = $match[2];
+			}
+		}
+		return $jobsSeen && $releaseSeen ? $pin : null;
 	}
 
 	/** @return array<string,mixed>|null */

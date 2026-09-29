@@ -41,6 +41,11 @@ final class StarterSecurityCheck {
 		if ( null === $index || ! self::validIndex( $index ) ) {
 			return $unknown;
 		}
+		// Two reads above plus one published-GHSA read per entry exceed the 60-call
+		// anonymous hourly ceiling when there are more than 58 advisories.
+		if ( '' === $token && count( $index['advisories'] ) > 58 ) {
+			return $unknown;
+		}
 		$matches = array();
 		foreach ( $index['advisories'] as $entry ) {
 			$advisory = $this->read( '/repos/' . $entry['repository'] . '/security-advisories/' . $entry['ghsa_id'], $token );

@@ -102,7 +102,7 @@ final class SourceReadyAssessor {
 		if ( 2 === count( $parts ) ) {
 			return in_array( $parts[0], self::PLUGIN_RUNTIME_ROOTS, true ) || in_array( $parts[0], self::THEME_RUNTIME_ROOTS, true );
 		}
-		return 'screenshot.png' === $path;
+		return in_array( $path, array( 'theme.json', 'screenshot.png' ), true );
 	}
 
 	public function assess(
@@ -126,6 +126,7 @@ final class SourceReadyAssessor {
 		if ( ! in_array( $type, array( 'plugin', 'theme' ), true )
 			|| 'main' !== $snapshot->defaultBranch() || strlen( $packageSlug ) > 100 || strlen( $installedVersion ) > 63
 			|| 1 !== preg_match( '/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/D', $packageSlug )
+			|| 1 === preg_match( '/\A(?:con|prn|aux|nul|com[1-9]|lpt[1-9])\z/iD', $packageSlug )
 			|| 1 !== preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $installedVersion )
 			|| ! hash_equals( 'https://github.com/' . $snapshot->repository(), $expectedUpdateUri ) ) {
 			return SourceReadyAssessment::refused( 'repository_unsupported' );
@@ -155,7 +156,10 @@ final class SourceReadyAssessor {
 			return SourceReadyAssessment::refused( 'runtime_paths_unknown' );
 		}
 
-		$modified = array( $header['path'] => $header['content'] );
+		$modified = array();
+		if ( $header['content'] !== $snapshot->document( $header['path'] ) ) {
+			$modified[ $header['path'] ] = $header['content'];
+		}
 		foreach ( $versionSources['modified'] as $path => $content ) {
 			$modified[ $path ] = $content;
 		}
@@ -269,9 +273,11 @@ final class SourceReadyAssessor {
 			if ( null === $annotated ) {
 				return 'version_contract_custom';
 			}
-			$modified['readme.txt'] = $annotated;
-			$runtime['readme.txt']  = true;
-			$extra[]                = array(
+			if ( $annotated !== $readme ) {
+				$modified['readme.txt'] = $annotated;
+			}
+			$runtime['readme.txt'] = true;
+			$extra[]               = array(
 				'type' => 'generic',
 				'path' => 'readme.txt',
 			);

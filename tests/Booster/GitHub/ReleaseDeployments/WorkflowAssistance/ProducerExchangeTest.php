@@ -18,7 +18,7 @@ final class ProducerExchangeTest extends TestCase {
 		$dir   = dirname( __DIR__, 4 ) . '/fixtures/api3-producer';
 		$bytes = file_get_contents( $dir . '/ran-booster-release-bootstrap-templates.zip' );
 		$e     = json_decode( file_get_contents( $dir . '/producer-exchange.json' ), true, 512, JSON_THROW_ON_ERROR );
-		if ( strlen( $bytes ) !== 9996 || hash( 'sha256', $bytes ) !== '2d6296a53169a157116c97a905faac2f4cec085783249f6a780a8a970a71ca82' ) {
+		if ( strlen( $bytes ) !== 10000 || hash( 'sha256', $bytes ) !== 'ba321c508e8d2f9f1c86989b88af81f6fb225a62498a07ab728221bc36ccff75' ) {
 			throw new \RuntimeException( 'ZIP mismatch' );
 		}
 		// Unpublished candidate only: simulated numeric transport facts, never production discovery.
@@ -98,7 +98,10 @@ final class ProducerExchangeTest extends TestCase {
 		$content   = 'plugin' === $type
 			? "<?php\n/**\n * Plugin Name: Example\n * Requires PHP: 8.0\n * Requires at least: 7.0\n * Version: 1.2.3\n * Update URI: https://github.com/example/example-package\n */\n"
 			: "/*\nTheme Name: Example\nRequires PHP: 8.0\nRequires at least: 7.0\nVersion: 1.2.3\nUpdate URI: https://github.com/example/example-package\n*/\n";
-		$documents = array( $header => $content );
+		$documents = array(
+			$header               => $content,
+			'assets/repeated.txt' => str_repeat( 'A', 100000 ),
+		);
 		if ( 'theme' === $type ) {
 			$documents['templates/index.html'] = '<!-- wp:post-content /-->'; }
 		$entries = array();
@@ -138,6 +141,10 @@ final class ProducerExchangeTest extends TestCase {
 				$this->command( array( 'bash', 'scripts/verify-release.sh', $root . '/dist-' . $build . '/example-package-1.2.3.zip', '1.2.3', $commit ), $root );
 			}
 			self::assertSame( hash_file( 'sha256', $root . '/dist-one/example-package-1.2.3.zip' ), hash_file( 'sha256', $root . '/dist-two/example-package-1.2.3.zip' ) );
+			$zip = new \ZipArchive();
+			self::assertTrue( $zip->open( $root . '/dist-one/example-package-1.2.3.zip' ) );
+			self::assertSame( \ZipArchive::CM_STORE, $zip->statName( 'example-package/assets/repeated.txt' )['comp_method'] );
+			$zip->close();
 		} finally {
 			$iterator = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::CHILD_FIRST );
 			foreach ( $iterator as $file ) {
