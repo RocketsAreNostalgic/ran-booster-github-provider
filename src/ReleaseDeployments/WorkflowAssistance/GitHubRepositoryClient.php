@@ -12,7 +12,9 @@ final class GitHubRepositoryClient {
 	private const MAX_BODY      = 262144;
 	private const MAX_TREE      = 2000;
 	private const MAX_DOCUMENTS = 256;
-	private const MAX_CHANGES   = 32;
+	// Leave room in GitHub's anonymous 60-request hourly quota for target and pack discovery.
+	private const MAX_ANONYMOUS_DOCUMENTS = 24;
+	private const MAX_CHANGES             = 32;
 	/** @var Closure(string,string,array<string,mixed>):mixed */
 	private Closure $send;
 	public function __construct( ?callable $send = null ) {
@@ -106,6 +108,9 @@ final class GitHubRepositoryClient {
 		}
 		if ( count( $candidates ) + count( $prefixCandidates ) > self::MAX_DOCUMENTS ) {
 			return $this->error( 'invalid_response' );
+		}
+		if ( '' === $token && count( $candidates ) + count( $prefixCandidates ) > self::MAX_ANONYMOUS_DOCUMENTS ) {
+			return $this->error( 'unauthorised' );
 		}
 		$documents = array();
 		foreach ( $candidates as $path => $blobSha ) {

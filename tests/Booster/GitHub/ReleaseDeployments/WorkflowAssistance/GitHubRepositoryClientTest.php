@@ -325,6 +325,43 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertCount( 1, $transport->requests );
 	}
 
+	public function testAnonymousSnapshotRequiresCredentialBeforeExceedingItsRequestBudget(): void {
+		$tree      = array();
+		$responses = array();
+		for ( $index = 0; $index < 25; ++$index ) {
+			$tree[]      = array(
+				'path' => 'assets/image-' . $index . '.png',
+				'type' => 'blob',
+				'mode' => '100644',
+				'sha'  => sha1( 'asset-' . $index ),
+				'size' => 1024,
+			);
+			$responses[] = array(
+				'response' => array( 'code' => 200 ),
+				'body'     => str_repeat( 'x', 43 ),
+			);
+		}
+		$treeResponse = $this->response(
+			200,
+			array(
+				'truncated' => false,
+				'tree'      => $tree,
+			)
+		);
+		$anonymous    = new D23GitHubTransport( array( $treeResponse ) );
+		$result       = ( new GitHubRepositoryClient( $anonymous ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA );
+		self::assertSame( 'unauthorised', $result['code'] );
+		self::assertCount( 1, $anonymous->requests );
+
+		$authenticated = new D23GitHubTransport( array_merge( array( $treeResponse ), $responses ) );
+		$result        = ( new GitHubRepositoryClient( $authenticated ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA, 'selected-token' );
+		self::assertSame( 'ok', $result['code'] );
+		self::assertCount( 26, $authenticated->requests );
+		foreach ( $authenticated->requests as $request ) {
+			self::assertSame( 'Bearer selected-token', $request['args']['headers']['Authorization'] );
+		}
+	}
+
 	public function testGitObjectDraftAndRefWritesHaveNoUpdateMergeOrSecretAuthority(): void {
 		$pull      = $this->pull( 17, 'open', 'ran-booster/setup', 'main', self::SHA );
 		$transport = new D23GitHubTransport(
