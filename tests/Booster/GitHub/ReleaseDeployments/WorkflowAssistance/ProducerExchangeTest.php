@@ -18,11 +18,11 @@ final class ProducerExchangeTest extends TestCase {
 		$dir   = dirname( __DIR__, 4 ) . '/fixtures/api3-producer';
 		$bytes = file_get_contents( $dir . '/ran-booster-release-bootstrap-templates.zip' );
 		$e     = json_decode( file_get_contents( $dir . '/producer-exchange.json' ), true, 512, JSON_THROW_ON_ERROR );
-		if ( strlen( $bytes ) !== 10045 || hash( 'sha256', $bytes ) !== '6f07e39ae2fe4014f696016ab3f11af827d1b4aebc639c3a713d8b79f621b9ab' ) {
+		if ( strlen( $bytes ) !== 10132 || hash( 'sha256', $bytes ) !== '2da459b63715660226b43914d3466f8b176bf645961dc0009fb51168c21ae7cf' ) {
 			throw new \RuntimeException( 'ZIP mismatch' );
 		}
-		self::assertSame( 11028139668, $e['artifact_id'] );
-		self::assertSame( '36557578901', $e['workflow_run_id'] );
+		self::assertSame( 11028442531, $e['artifact_id'] );
+		self::assertSame( '36559291561', $e['workflow_run_id'] );
 		// Unpublished candidate only: simulated numeric transport facts, never production discovery.
 		$i      = array(
 			'repository_name'    => 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates',
