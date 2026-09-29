@@ -17,6 +17,7 @@ final readonly class RepositorySnapshot {
 	/**
 	 * @param array<string, array{type:string,mode:string,sha:string,size:int}> $entries
 	 * @param array<string, string>                                            $documents
+	 * @param array<string, string>                                            $blobPrefixes
 	 */
 	public function __construct(
 		private string $repositoryId,
@@ -24,14 +25,15 @@ final readonly class RepositorySnapshot {
 		private string $defaultBranch,
 		private string $sha,
 		private array $entries,
-		private array $documents
+		private array $documents,
+		private array $blobPrefixes = array()
 	) {
 		if ( 1 !== preg_match( '/\A[1-9][0-9]*\z/D', $repositoryId )
 			|| 1 !== preg_match( '#\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z#D', $repository )
 			|| ! self::validBranch( $defaultBranch )
 			|| 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $sha )
 			|| count( $entries ) > self::MAX_ENTRIES
-			|| count( $documents ) > self::MAX_DOCUMENTS ) {
+			|| count( $documents ) + count( $blobPrefixes ) > self::MAX_DOCUMENTS ) {
 			throw new InvalidArgumentException( 'Repository snapshot identity or bounds are invalid.' );
 		}
 
@@ -53,6 +55,16 @@ final readonly class RepositorySnapshot {
 				throw new InvalidArgumentException( 'Repository snapshot contains an invalid document.' );
 			}
 		}
+		foreach ( $blobPrefixes as $path => $prefix ) {
+			if ( ! isset( $entries[ $path ] ) || 'blob' !== $entries[ $path ]['type'] || ! is_string( $prefix )
+				|| strlen( $prefix ) !== min( 43, $entries[ $path ]['size'] ) ) {
+				throw new InvalidArgumentException( 'Repository snapshot contains an invalid blob prefix.' );
+			}
+		}
+	}
+	/** Binary-safe, bounded prefix from the exact tree blob; not an assessment document. */
+	public function blobPrefix( string $path ): ?string {
+		return isset( $this->documents[ $path ] ) ? substr( $this->documents[ $path ], 0, 43 ) : ( $this->blobPrefixes[ $path ] ?? null );
 	}
 	public function repositoryId(): string {
 		return $this->repositoryId;

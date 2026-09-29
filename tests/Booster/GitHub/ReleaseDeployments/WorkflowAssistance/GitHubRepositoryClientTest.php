@@ -188,7 +188,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertCount( 8, $transport->requests );
 	}
 
-	public function testSnapshotRetainsLargeRuntimeBlobMetadataWithoutDownloadingIt(): void {
+	public function testSnapshotReadsOnlyABoundedPrefixOfLargeRuntimeBlobs(): void {
 		$transport = new D23GitHubTransport(
 			array(
 				$this->response(
@@ -206,6 +206,10 @@ final class GitHubRepositoryClientTest extends TestCase {
 						),
 					)
 				),
+				array(
+					'response' => array( 'code' => 200 ),
+					'body'     => str_repeat( 'a', 43 ),
+				),
 			)
 		);
 		$result    = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA );
@@ -213,7 +217,54 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertSame( 'ok', $result['code'] );
 		self::assertSame( 1048576, $result['snapshot']->entries()['build/application.js.map']['size'] );
 		self::assertSame( array(), $result['snapshot']->documentPaths() );
-		self::assertCount( 1, $transport->requests );
+		self::assertCount( 2, $transport->requests );
+		self::assertSame( 43, $transport->requests[1]['args']['limit_response_size'] );
+		self::assertSame( 'application/vnd.github.raw+json', $transport->requests[1]['args']['headers']['Accept'] );
+		self::assertSame( str_repeat( 'a', 43 ), $result['snapshot']->blobPrefix( 'build/application.js.map' ) );
+	}
+
+	public function testRuntimeAssetPrefixIsInspectedBeforeSourceReadiness(): void {
+		foreach ( array( "version https://git-lfs.github.com/spec/v1\n" . str_repeat( 'x', 2048 ), str_repeat( "\0", 2048 ) ) as $content ) {
+			$transport = new D23ApplicationTransport();
+			$transport->mutateDefaultDocument( 'assets/logo.png', $content );
+			$result = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', str_repeat( 'a', 40 ) );
+			self::assertSame( 'ok', $result['code'] );
+			self::assertNull( $result['snapshot']->document( 'assets/logo.png' ) );
+			$assessment = ( new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SourceReadyAssessor() )->assess( $result['snapshot'], 'plugin', 'example-plugin', '1.2.3', 'https://github.com/' . self::REPOSITORY );
+			self::assertSame( str_starts_with( $content, "\0" ), $assessment->readyForBootstrap() );
+			foreach ( $transport->requests as $request ) {
+				self::assertSame( 'GET', $request['method'] );
+				self::assertSame( 0, $request['args']['redirection'] );
+			}
+		}
+	}
+
+	public function testShortOversizedOrUnavailableBlobPrefixFailsClosed(): void {
+		$entry = array(
+			'path' => 'assets/logo.png',
+			'type' => 'blob',
+			'mode' => '100644',
+			'sha'  => self::BLOB,
+			'size' => 1234,
+		);
+		foreach ( array( array( 200, '' ), array( 200, str_repeat( 'a', 42 ) ), array( 200, str_repeat( 'a', 44 ) ), array( 503, '' ), array( 302, '' ) ) as [ $status, $body ] ) {
+			$transport = new D23GitHubTransport(
+				array(
+					$this->response(
+						200,
+						array(
+							'truncated' => false,
+							'tree'      => array( $entry ),
+						)
+					),
+					array(
+						'response' => array( 'code' => $status ),
+						'body'     => $body,
+					),
+				)
+			);
+			self::assertNotSame( 'ok', ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA )['code'] );
+		}
 	}
 
 	public function testSnapshotRefusesMoreThanTheBoundedAdmissionDocumentSetBeforeBlobReads(): void {

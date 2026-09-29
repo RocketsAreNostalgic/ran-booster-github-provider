@@ -77,6 +77,52 @@ final class SourceReadyAssessorTest extends TestCase {
 		);
 	}
 
+	public function testRuntimeCaseCollisionsAreRefusedIncludingFileDirectoryCollisions(): void {
+		foreach ( array( array( 'assets/Icon.svg', 'assets/icon.svg' ), array( 'assets/Icons', 'assets/icons/logo.svg' ), array( 'assets/Icons/a.svg', 'assets/icons/b.svg' ) ) as $paths ) {
+			$documents = array( 'example-plugin.php' => $this->pluginHeader() );
+			foreach ( $paths as $path ) {
+				$documents[ $path ] = 'data';
+			}
+			self::assertSame( 'runtime_paths_unknown', ( new SourceReadyAssessor() )->assess( $this->snapshot( $documents ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code() );
+		}
+	}
+
+	public function testRuntimeSizeBudgetUsesMetadataAndReservesZipOverhead(): void {
+		foreach ( array( array( 127826408 ), array( 52428800 ), array( 26000000, 26000000 ), array( 1000000 ) ) as $sizes ) {
+			$base     = $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) );
+			$entries  = $base->entries();
+			$prefixes = array();
+			foreach ( $sizes as $index => $size ) {
+				$path              = 'assets/file-' . $index . '.bin';
+				$entries[ $path ]  = array(
+					'type' => 'blob',
+					'mode' => '100644',
+					'sha'  => sha1( $path ),
+					'size' => $size,
+				);
+				$prefixes[ $path ] = str_repeat( "\0", 43 );
+			}
+			$snapshot = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->pluginHeader() ), $prefixes );
+			$result   = ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
+			self::assertSame( array( 1000000 ) === $sizes, $result->readyForBootstrap() );
+		}
+	}
+
+	public function testUninspectedRuntimeBlobAndLfsPrefixRefuseBeforeSetup(): void {
+		$base                       = $this->snapshot( array( 'example-plugin.php' => $this->pluginHeader() ) );
+		$entries                    = $base->entries();
+		$entries['assets/logo.png'] = array(
+			'type' => 'blob',
+			'mode' => '100644',
+			'sha'  => str_repeat( 'b', 40 ),
+			'size' => 123,
+		);
+		foreach ( array( array(), array( 'assets/logo.png' => "version https://git-lfs.github.com/spec/v1\n" ) ) as $prefixes ) {
+			$snapshot = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->pluginHeader() ), $prefixes );
+			self::assertSame( 'runtime_paths_unknown', ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code() );
+		}
+	}
+
 	public function testThemeProfileUsesStyleHeaderAndThemeRuntimePaths(): void {
 		$assessment = ( new SourceReadyAssessor() )->assess(
 			$this->snapshot(

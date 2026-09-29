@@ -7,9 +7,9 @@ namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 /** Maintainer handoff for the initial recipe; no runtime settings attestation. */
 final class StarterGuidance {
 	public static function render( TemplatePack $pack, string $profile ): string {
-		$origin = StarterOrigin::decode( StarterOrigin::encode( $pack, $profile ) );
-		$header = sprintf( "# Release starter\n\nPack: %s / %s\nSource: %s\nZIP SHA-256: %s\nShared Profile B: %s\n\n", $pack->packVersion(), $profile, $pack->identity()['release_commit'], $pack->identity()['asset_sha256'], $origin['shared_profile_b']['commit'] );
-		return $header . <<<'GUIDANCE'
+		$origin   = StarterOrigin::decode( StarterOrigin::encode( $pack, $profile ) );
+		$header   = sprintf( "# Release starter\n\nPack: %s / %s\nSource: %s\nZIP SHA-256: %s\nShared Profile B: %s\n\n", $pack->packVersion(), $profile, $pack->identity()['release_commit'], $pack->identity()['asset_sha256'], $origin['shared_profile_b']['commit'] );
+		$guidance = <<<'GUIDANCE'
 You own these files after setup. Booster does not update or repair them.
 
 Setup PR created does not mean release automation is ready. You may receive this
@@ -73,7 +73,7 @@ Official links:
 - [Shared security policy](https://github.com/RocketsAreNostalgic/.github/security/policy)
 - [Shared advisories](https://github.com/RocketsAreNostalgic/.github/security/advisories)
 - [Shared releases](https://github.com/RocketsAreNostalgic/.github/releases)
-- [Publication stages and retry guidance](https://github.com/RocketsAreNostalgic/.github/blob/63c4a4b192bbb4cf203dab281b75a0907e85c3a9/RELEASE_PROFILE_B.md)
+- [Publication stages and retry guidance](https://github.com/RocketsAreNostalgic/.github/blob/{{SHARED_PROFILE_B_COMMIT}}/RELEASE_PROFILE_B.md)
 
 | Condition | Outcome and action |
 | --- | --- |
@@ -96,5 +96,6 @@ Automatic/Manual preference are distinct. Turning settings off does not invalida
 an old immutable release; turning them on does not make an old mutable one
 immutable. This starter does not change the user's saved policy.
 GUIDANCE;
+		return $header . str_replace( '{{SHARED_PROFILE_B_COMMIT}}', $origin['shared_profile_b']['commit'], $guidance );
 	}
 }

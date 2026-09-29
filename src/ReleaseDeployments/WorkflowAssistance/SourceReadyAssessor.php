@@ -387,6 +387,11 @@ final class SourceReadyAssessor {
 	private function releaseFiles( RepositorySnapshot $snapshot, string $type, string $headerPath ): ?array {
 		$runtimeRoots = 'plugin' === $type ? self::PLUGIN_RUNTIME_ROOTS : self::THEME_RUNTIME_ROOTS;
 		$files        = array();
+		$normalized   = array();
+		$directories  = array();
+		// Reserve 4 MiB for ZIP records, slug/path names and the bounded version annotations.
+		// Staying below 46 MiB uncompressed is conservative even for stored/incompressible ZIPs.
+		$remaining = 46 * 1024 * 1024;
 		foreach ( $snapshot->entries() as $path => $entry ) {
 			if ( 'blob' !== $entry['type'] ) {
 				continue;
@@ -408,11 +413,36 @@ final class SourceReadyAssessor {
 					|| 1 === preg_match( '/\A(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|\z)/i', $segment ) ) {
 					return null; }
 			}
-			$document = $snapshot->document( $path );
-			if ( null !== $document && str_starts_with( $document, 'version https://git-lfs.github.com/spec/v1' ) ) {
+			$logical = strtolower( $path );
+			if ( isset( $normalized[ $logical ] ) || $entry['size'] > $remaining ) {
+				return null;
+			}
+			$parent = dirname( $path );
+			while ( '.' !== $parent ) {
+				$folded = strtolower( $parent );
+				if ( isset( $directories[ $folded ] ) && $directories[ $folded ] !== $parent ) {
+					return null;
+				}
+				$directories[ $folded ] = $parent;
+				$parent                 = dirname( $parent );
+			}
+			$normalized[ $logical ] = true;
+			$remaining             -= $entry['size'];
+			$prefix                 = $snapshot->blobPrefix( $path );
+			if ( ( $entry['size'] >= 42 && null === $prefix )
+				|| ( null !== $prefix && str_starts_with( $prefix, 'version https://git-lfs.github.com/spec/v1' ) ) ) {
 				return null;
 			}
 			$files[] = $path;
+		}
+		foreach ( array_keys( $normalized ) as $logical ) {
+			$parent = dirname( $logical );
+			while ( '.' !== $parent ) {
+				if ( isset( $normalized[ $parent ] ) ) {
+					return null;
+				}
+				$parent = dirname( $parent );
+			}
 		}
 		return in_array( $headerPath, $files, true ) ? $files : null;
 	}

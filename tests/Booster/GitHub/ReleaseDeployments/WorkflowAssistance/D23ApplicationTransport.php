@@ -158,6 +158,12 @@ final class D23ApplicationTransport {
 				return $this->json( 500, array() );
 			}
 			$content = $this->blobs[ basename( $path ) ] ?? '';
+			if ( 'application/vnd.github.raw+json' === ( $args['headers']['Accept'] ?? '' ) ) {
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => substr( $content, 0, $args['limit_response_size'] ),
+				);
+			}
 			return $this->json(
 				200,
 				array(

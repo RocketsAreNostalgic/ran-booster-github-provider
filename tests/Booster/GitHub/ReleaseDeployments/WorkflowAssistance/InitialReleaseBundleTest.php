@@ -75,6 +75,28 @@ final class InitialReleaseBundleTest extends TestCase {
 	}
 
 
+	public function testGuidanceTracksTheWorkflowPinInACompatiblePack(): void {
+		$path     = 'templates/shared/release-please.yml.tmpl';
+		$pin      = str_repeat( 'b', 40 );
+		$template = str_replace( '63c4a4b192bbb4cf203dab281b75a0907e85c3a9', $pin, TemplatePackApi3Fixture::templates()[ $path ] );
+		$manifest = TemplatePackApi3Fixture::manifest();
+		foreach ( $manifest['profiles'] as &$profile ) {
+			$profile['entries']['release-workflow']['sha256'] = hash( 'sha256', $template );
+			$profile['entries']['release-workflow']['size']   = strlen( $template );
+		}
+		unset( $profile );
+		$archive = TemplatePackApi3Fixture::archive( $manifest, array( $path => $template ) );
+		$result  = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+		self::assertSame( 'ok', $result['code'] );
+		$snapshot = $this->snapshot();
+		$bundle   = InitialReleaseBundle::bootstrap( $result['pack'], $this->assessment( $snapshot ), $snapshot, 'https://github.com/owner/example-plugin' );
+		self::assertSame( 'ok', $bundle['code'] );
+		$files = $bundle['bundle']->files();
+		self::assertStringContainsString( 'blob/' . $pin . '/RELEASE_PROFILE_B.md', $files['RELEASE-STARTER.md']['content'] );
+		self::assertStringContainsString( '@' . $pin, $files['.github/workflows/release-please.yml']['content'] );
+		self::assertStringContainsString( $pin, $files[ InitialReleaseBundle::ORIGIN_PATH ]['content'] );
+	}
+
 	public function testRefusesNonReadyAssessmentAndOccupiedGeneratedPath(): void {
 		$archive = TemplatePackApi3Fixture::archive();
 		$pack    = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['pack'];

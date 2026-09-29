@@ -152,3 +152,11 @@ then compares two generated ZIPs byte-for-byte. Host-backed tests therefore need
 Bash, Git, jq, zip, unzip and shasum alongside PHP/ZipArchive. No remote repository
 or installed site is modified by these tests. The runtime allowlist contains only
 sorted explicit paths; human guidance lives in RELEASE-STARTER.md.
+
+Source readiness uses a conservative 46 MiB aggregate runtime-file budget,
+leaving 4 MiB below the generated verifier's 50 MiB ZIP ceiling for archive
+records, deflate overhead and version annotations. Case-folding file/directory
+collisions are refused. Non-document Git blobs large enough to contain an LFS
+marker receive a binary-safe 43-byte prefix read at their exact tree blob SHA;
+missing/truncated evidence fails closed. Full document and prefix reads share
+the existing 256-blob snapshot bound. No LFS payload is fetched or executed.
