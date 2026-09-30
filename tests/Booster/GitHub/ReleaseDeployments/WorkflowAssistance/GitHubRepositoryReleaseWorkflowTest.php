@@ -80,6 +80,52 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		self::assertTrue( $result->recordOccupied() );
 	}
 
+	public function testStatusPreservesBootstrapOperationAcrossSourceRevisionsWithoutWriting(): void {
+		$records = new SetupRecordStore();
+		self::assertTrue( $records->save( $this->record() ) );
+		$before      = $GLOBALS['ran_booster_release_deployments_test_options'];
+		$credentials = new WorkflowCredentialStore();
+		$transport   = new D23ApplicationTransport();
+		$workflow    = $this->workflow( $credentials, $records, $transport );
+
+		foreach ( array( 3, 4 ) as $revision ) {
+			$result = $workflow->status( WorkflowProviderFixtures::target( sourceRevision: $revision ) );
+			self::assertSame( 3 === $revision, $result->recordExact() );
+			self::assertTrue( $result->recordOccupied() );
+			self::assertSame( 'bootstrap', $result->recordOperation() );
+			self::assertSame( 3, $result->sourceRevision() );
+			self::assertSame( 'plugin', $result->packageType() );
+			self::assertSame( 'example-plugin/example-plugin.php', $result->packageIdentifier() );
+		}
+		self::assertSame( $before, $GLOBALS['ran_booster_release_deployments_test_options'] );
+		self::assertSame( array(), $credentials->materialReads );
+		self::assertSame( array(), $transport->requests );
+	}
+
+	public function testStatusDoesNotProjectAnOperationFromRetiredOrMalformedOccupiedRecords(): void {
+		foreach ( array(
+			array(
+				'schema_version' => 2,
+				'operation'      => 'template_update',
+			),
+			array( 'head_sha' => 'invalid' ),
+		) as $overrides ) {
+			$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['101'] = $this->record( $overrides );
+			$before      = $GLOBALS['ran_booster_release_deployments_test_options'];
+			$credentials = new WorkflowCredentialStore();
+			$transport   = new D23ApplicationTransport();
+			$result      = $this->workflow( $credentials, transport: $transport )->status( WorkflowProviderFixtures::target() );
+
+			self::assertTrue( $result->recordOccupied() );
+			self::assertFalse( $result->recordExact() );
+			self::assertSame( '', $result->recordOperation() );
+			self::assertSame( '', $result->pullRequestUrl() );
+			self::assertSame( $before, $GLOBALS['ran_booster_release_deployments_test_options'] );
+			self::assertSame( array(), $credentials->materialReads );
+			self::assertSame( array(), $transport->requests );
+		}
+	}
+
 	public function testInvalidOutcomeDoesNotReadCredentialMaterial(): void {
 		$credentials = new WorkflowCredentialStore();
 		$workflow    = $this->workflow( $credentials );
