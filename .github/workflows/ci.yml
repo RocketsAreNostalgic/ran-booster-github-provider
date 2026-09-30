@@ -168,18 +168,6 @@ jobs:
           test "$(git -C provider rev-parse HEAD)" = "$RAN_EXPECTED_SHA"
           test "$(git -C booster rev-parse HEAD)" = "$RAN_BOOSTER_HOST_SHA"
 
-      - name: Use apt-get for PHP 8.5 provisioning
-        if: ${{ matrix.php == '8.5' }}
-        run: |
-          set -euo pipefail
-          apt_fast_path="$(command -v apt-fast)"
-          test -x /usr/bin/apt-get
-          test ! -e "${apt_fast_path}.booster-diagnostic-backup"
-          echo "PHP_SETUP_APT_FAST_PATH=$apt_fast_path" >> "$GITHUB_ENV"
-          sudo mv "$apt_fast_path" "${apt_fast_path}.booster-diagnostic-backup"
-          sudo ln -s /usr/bin/apt-get "$apt_fast_path"
-          test "$(readlink -f "$apt_fast_path")" = /usr/bin/apt-get
-
       - name: Observe PHP 8.5 provisioning
         if: ${{ matrix.php == '8.5' }}
         run: |
@@ -187,7 +175,21 @@ jobs:
           cat > "$RUNNER_TEMP/php-setup-observer.sh" <<'SH'
           for sample in $(seq 1 20); do
             date -u
-            ps -eo pid,ppid,etimes,stat,wchan:24,comm | awk 'NR == 1 || $NF ~ /^(bash|curl|wget|apt|apt-get|apt-fast|dpkg|aria2c|php|php8.5|tar|zstd|sleep|fuser|sudo)$/'
+            # Names only: include downloader/helper children without exposing arguments.
+            sudo ps -eo pid,ppid,etimes,stat,wchan:32,comm --sort=ppid
+            for pid in $(pgrep -x 'apt-fast|apt-get|apt|dpkg|http|https|store|gpgv|aria2c|curl' || true); do
+              printf 'PID %s executable: ' "$pid"
+              sudo readlink "/proc/$pid/exe" || true
+              printf 'PID %s wait channel: ' "$pid"
+              sudo cat "/proc/$pid/wchan" || true
+              echo
+            done
+            sudo lslocks -o PID,COMMAND,TYPE,MODE,PATH | awk 'NR == 1 || /apt|dpkg/'
+            # Socket addresses identify network waits; no payloads or credentials.
+            sudo ss -tnp | head -n 40
+            if [ -f /var/log/dpkg.log ]; then
+              sudo tail -n 12 /var/log/dpkg.log
+            fi
             for file in /tmp/install.sh /tmp/php_8.5*.tar.zst; do
               if [ -f "$file" ]; then
                 stat -c '%n %s bytes' "$file"
@@ -206,13 +208,6 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: zip
           coverage: none
-
-      - name: Restore runner package installer
-        if: ${{ always() && matrix.php == '8.5' }}
-        run: |
-          if [ -n "${PHP_SETUP_APT_FAST_PATH:-}" ] && [ -e "${PHP_SETUP_APT_FAST_PATH}.booster-diagnostic-backup" ]; then
-            sudo mv -Tf "${PHP_SETUP_APT_FAST_PATH}.booster-diagnostic-backup" "$PHP_SETUP_APT_FAST_PATH"
-          fi
 
       - name: Report PHP 8.5 provisioning
         if: ${{ always() && matrix.php == '8.5' }}
