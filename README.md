@@ -35,12 +35,18 @@ Where host policy is needed, it arrives through bounded public registration
 inputs. The package owns its legitimate shared dependencies, including the
 provider-neutral release updater.
 
-The current host contract is Provider API 11. Credential-bearing registration
+The candidate host contract is Provider API 12. Credential-bearing registration
 requires `ProviderCredentialStore`, `AuthenticatedWebhookDeliveryEvidenceReader`
-and the bounded `ProviderRegistrationContext`. The API-11 registration wrapper
-adapts the context's host-resolved artifact-size policy to the package's
-host-neutral callable composition boundary used by released Booster beta.29;
-there is no API-10 two-argument registration compatibility path.
+and the bounded `ProviderRegistrationContext`. The bundled registration wrapper
+and external-provider fixture live in Core and check the outer API version
+before loading the provider. The context's host-resolved artifact-size policy still reaches this
+package through its host-neutral callable composition boundary.
+
+Provider API 12 replaces the V2 release-workflow capability with the initial-only
+V3 capability. This package implements V3 and is not qualified for an API-11 host.
+The outer Provider API, workflow capability V3, template-pack API 3 and Release
+Updater runtime protocol are distinct contracts; this change does not upgrade
+Updater dependencies or introduce an old-interface fallback.
 
 Workflow-assistance persistence has a single current pre-1.0 baseline: setup
 records use schema 3 under the provider-owned option namespace, and failure
@@ -85,7 +91,7 @@ Booster-owned. For an equivalent local pass:
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the candidate host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 18b0ec619174000a9a9dbc27b9d68b44b0265449 &&
   composer check:host
 ```
 
@@ -112,8 +118,8 @@ in [RELEASING.md](RELEASING.md).
 
 ## API 3 initial starter candidate
 
-Provider #30 implements the five-method initial-only V3 contract against Core
-#177 `3dfccf389fae6ee9e54e141f5b97b0d9b7aca2ff`, as approved in programme #81.
+The provider implements the five-method initial-only V3 contract against Core
+#177 `18b0ec619174000a9a9dbc27b9d68b44b0265449`, as approved in programme #81.
 This test tuple is candidate qualification, not certification against a released
 host. Core source, production dependency locks and the runtime updater protocol
 are separate ownership boundaries. UI and owner-run interactive acceptance remain
