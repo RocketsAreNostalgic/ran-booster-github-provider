@@ -136,8 +136,7 @@ jobs:
 
   implementation:
     name: Implementation PHP ${{ matrix.php }}
-    # Isolate PHP 8.5 provisioning after repeated Blacksmith setup timeouts.
-    runs-on: ${{ matrix.php == '8.5' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -169,12 +168,42 @@ jobs:
           test "$(git -C provider rev-parse HEAD)" = "$RAN_EXPECTED_SHA"
           test "$(git -C booster rev-parse HEAD)" = "$RAN_BOOSTER_HOST_SHA"
 
+      - name: Observe PHP 8.5 provisioning
+        if: ${{ matrix.php == '8.5' }}
+        run: |
+          printf 'Runner environment: %s\n' "$RUNNER_ENVIRONMENT"
+          cat > "$RUNNER_TEMP/php-setup-observer.sh" <<'SH'
+          for sample in $(seq 1 20); do
+            date -u
+            ps -eo pid,ppid,etimes,stat,wchan:24,comm | awk 'NR == 1 || $NF ~ /^(bash|curl|wget|apt|apt-get|apt-fast|dpkg|aria2c|php|php8.5|tar|zstd|sleep|fuser|sudo)$/'
+            for file in /tmp/install.sh /tmp/php_8.5*.tar.zst; do
+              if [ -f "$file" ]; then
+                stat -c '%n %s bytes' "$file"
+              fi
+            done
+            sleep 30
+          done
+          SH
+          nohup bash "$RUNNER_TEMP/php-setup-observer.sh" > "$RUNNER_TEMP/php-setup-observer.log" 2>&1 &
+          echo "PHP_SETUP_OBSERVER_PID=$!" >> "$GITHUB_ENV"
+
       - name: Set up PHP ${{ matrix.php }}
+        timeout-minutes: 10
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php }}
           extensions: zip
           coverage: none
+
+      - name: Report PHP 8.5 provisioning
+        if: ${{ always() && matrix.php == '8.5' }}
+        run: |
+          if [ -n "${PHP_SETUP_OBSERVER_PID:-}" ]; then
+            kill "$PHP_SETUP_OBSERVER_PID" 2>/dev/null || true
+          fi
+          if [ -f "$RUNNER_TEMP/php-setup-observer.log" ]; then
+            cat "$RUNNER_TEMP/php-setup-observer.log"
+          fi
 
       - name: Install provider dependencies
         working-directory: provider
