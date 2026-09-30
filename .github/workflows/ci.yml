@@ -136,7 +136,8 @@ jobs:
 
   implementation:
     name: Implementation PHP ${{ matrix.php }}
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    # Isolate PHP 8.5 provisioning after repeated Blacksmith setup timeouts.
+    runs-on: ${{ matrix.php == '8.5' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
