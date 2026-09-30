@@ -33,7 +33,7 @@ final class GitHubRepositoryReleaseWorkflow {
 			$type,
 			$identifier,
 			$revision,
-			$exact ? $record['operation'] : '',
+			null !== $record ? $record['operation'] : '',
 			is_array( $observation ) ? $observation['kind'] : '',
 			is_array( $observation ) ? $observation['observed_at'] : '',
 			$history,
