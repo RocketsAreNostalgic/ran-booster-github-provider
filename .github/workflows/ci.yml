@@ -24,6 +24,147 @@ jobs:
       php-extensions: zip
       node-version: '24.11.0'
 
+  baseline-diagnostic:
+    name: PHP 8.5 baseline diagnostics
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 15
+    steps:
+      - name: Reject privileged pull_request_target callers
+        if: ${{ github.event_name == 'pull_request_target' }}
+        run: |
+          echo 'RAN source-quality workflows do not execute pull-request head code from pull_request_target.' >&2
+          exit 1
+
+      - name: Check out exact source revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact source revision
+        env:
+          RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test -n "$RAN_EXPECTED_SHA"
+          test "$(git rev-parse HEAD)" = "$RAN_EXPECTED_SHA"
+
+      - name: Require locked Composer manifests
+        working-directory: .
+        run: |
+          set -euo pipefail
+          test -f composer.json
+          test -f composer.lock
+
+      - name: Observe PHP 8.5 provisioning
+        run: |
+          printf 'Runner environment: %s\n' "$RUNNER_ENVIRONMENT"
+          python3 - <<'PY'
+          import glob, re, urllib.parse, socket
+          hosts = set()
+          for path in ['/etc/apt/sources.list'] + glob.glob('/etc/apt/sources.list.d/*.list') + glob.glob('/etc/apt/sources.list.d/*.sources'):
+              with open(path) as source:
+                  for line in source:
+                      if line.lstrip().startswith('#'):
+                          continue
+                      for uri in re.findall(r'https?://[^\s]+', line):
+                          parsed = urllib.parse.urlsplit(uri)
+                          if parsed.hostname:
+                              hosts.add(parsed.hostname)
+                              # Public location only; exclude userinfo/query/fragment.
+                              print('APT source:', parsed.scheme + '://' + parsed.hostname + parsed.path)
+          for host in sorted(hosts):
+              try:
+                  print('APT DNS:', host, sorted({entry[4][0] for entry in socket.getaddrinfo(host, None)}))
+              except OSError as error:
+                  print('APT DNS failure:', host, type(error).__name__)
+          PY
+          cat > "$RUNNER_TEMP/php-setup-observer.sh" <<'SH'
+          for sample in $(seq 1 20); do
+            date -u
+            # Names only: include downloader/helper children without exposing arguments.
+            sudo ps -eo pid,ppid,etimes,stat,wchan:32,comm --sort=ppid
+            for pid in $(pgrep -x 'apt-fast|apt-get|apt|dpkg|http|https|store|gpgv|aria2c|curl' || true); do
+              printf 'PID %s executable: ' "$pid"
+              sudo readlink "/proc/$pid/exe" || true
+              printf 'PID %s wait channel: ' "$pid"
+              sudo cat "/proc/$pid/wchan" || true
+              echo
+            done
+            sudo lslocks -o PID,COMMAND,TYPE,MODE,PATH | awk 'NR == 1 || /apt|dpkg/'
+            # Socket addresses identify network waits; no payloads or credentials.
+            sudo ss -tnp | head -n 40
+            if [ -f /var/log/dpkg.log ]; then
+              sudo tail -n 12 /var/log/dpkg.log
+            fi
+            for file in /tmp/install.sh /tmp/php_8.5*.tar.zst; do
+              if [ -f "$file" ]; then
+                stat -c '%n %s bytes' "$file"
+              fi
+            done
+            sudo find /var/cache/apt/archives -maxdepth 2 -type f -name '*.deb' -printf '%f %s bytes\n' | head -n 30
+            sleep 30
+          done
+          SH
+          nohup bash "$RUNNER_TEMP/php-setup-observer.sh" > "$RUNNER_TEMP/php-setup-observer.log" 2>&1 &
+          echo "PHP_SETUP_OBSERVER_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Set up current PHP
+        timeout-minutes: 10
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.5'
+          coverage: none
+          extensions: zip
+          tools: composer:v2
+
+      - name: Report PHP 8.5 provisioning
+        if: ${{ always() }}
+        run: |
+          if [ -n "${PHP_SETUP_OBSERVER_PID:-}" ]; then
+            kill "$PHP_SETUP_OBSERVER_PID" 2>/dev/null || true
+          fi
+          if [ -f "$RUNNER_TEMP/php-setup-observer.log" ]; then
+            cat "$RUNNER_TEMP/php-setup-observer.log"
+          fi
+
+      - name: Set up Node.js
+        if: ${{ true }}
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.11.0'
+
+      - name: Verify exact Node.js version
+        if: ${{ true }}
+        shell: bash
+        env:
+          RAN_NODE_VERSION: '24.11.0'
+        run: |
+          set -euo pipefail
+          [[ "$RAN_NODE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(node --version)" = "v${RAN_NODE_VERSION}"
+
+      - name: Validate Composer configuration
+        working-directory: .
+        run: composer validate --strict --no-check-publish --no-check-all
+
+      - name: Install locked Composer dependencies
+        working-directory: .
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run repository quality contract
+        working-directory: .
+        run: composer check
+
+      - name: Lint all PHP files
+        shell: bash
+        working-directory: .
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            php -l "$file"
+          done < <(find . \( -path './vendor' -o -path './node_modules' \) -prune -o -type f -name '*.php' -print0)
+
   release-classification:
     name: Release classification
     runs-on: blacksmith-2vcpu-ubuntu-2404
