@@ -9,6 +9,10 @@
 * implement the API 3 initial release starter consumer ([#30](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/30)) ([d9f18a1](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/d9f18a10d593d88d0373e377197553c02ee664f2))
 
 
+### Compatibility
+
+* require RAN Booster Provider API 12 and initial-only workflow API V3; API 11 / V2 hosts are unsupported
+
 ### Bug Fixes
 
 * align discovery tags and prove octet-stream setup ([85d594a](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/85d594a52a33fad549af45c9e2a48a4ba73185a9))
