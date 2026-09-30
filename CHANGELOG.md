@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.0.0-beta.7](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.6...v1.0.0-beta.7) (2026-09-30)
+
+
+### Features
+
+* complete initial-only API 3 starter consumer ([1fcae86](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/1fcae8676d008e93ce2cf664d34b4c064459e3ce))
+* implement the API 3 initial release starter consumer ([#30](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/30)) ([d9f18a1](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/d9f18a10d593d88d0373e377197553c02ee664f2))
+
+
+### Bug Fixes
+
+* align discovery tags and prove octet-stream setup ([85d594a](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/85d594a52a33fad549af45c9e2a48a4ba73185a9))
+* align starter admission with verified release output ([39b761c](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/39b761cefb600ee2dc1d7e55c30026fc0dd88d91))
+* align starter readiness and guidance with generated workflows ([ba0a8a5](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/ba0a8a5e0cef1fc3da6ec1b24e4f57cde19ee66f))
+* bound anonymous source snapshot requests ([0518c09](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/0518c093fa7fc67be4e4153af91251eb2a23c14e))
+* honor advisory overlap and align starter admission ([ebf0f86](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/ebf0f86b1b7fec58193b70c3f9e9851e26da3665))
+* reserve generated tree capacity before setup ([22ce323](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/22ce323413ffffe0633739f7e2b0a6b04b304471))
+* reserve readback capacity and consume exact producer artifact ([551dd3b](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/551dd3b1b250b7c66ceaad6f42fd43f46ffc60c4))
+* verify executable producer and consumer starter convergence ([c90baf5](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/c90baf521e121afe3ef9ad176e4facd2a4a07a93))
+
 ## [1.0.0-beta.6](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.5...v1.0.0-beta.6) (2026-09-27)
 
 
