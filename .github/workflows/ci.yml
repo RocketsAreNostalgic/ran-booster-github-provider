@@ -168,6 +168,18 @@ jobs:
           test "$(git -C provider rev-parse HEAD)" = "$RAN_EXPECTED_SHA"
           test "$(git -C booster rev-parse HEAD)" = "$RAN_BOOSTER_HOST_SHA"
 
+      - name: Use apt-get for PHP 8.5 provisioning
+        if: ${{ matrix.php == '8.5' }}
+        run: |
+          set -euo pipefail
+          apt_fast_path="$(command -v apt-fast)"
+          test -x /usr/bin/apt-get
+          test ! -e "${apt_fast_path}.booster-diagnostic-backup"
+          echo "PHP_SETUP_APT_FAST_PATH=$apt_fast_path" >> "$GITHUB_ENV"
+          sudo mv "$apt_fast_path" "${apt_fast_path}.booster-diagnostic-backup"
+          sudo ln -s /usr/bin/apt-get "$apt_fast_path"
+          test "$(readlink -f "$apt_fast_path")" = /usr/bin/apt-get
+
       - name: Observe PHP 8.5 provisioning
         if: ${{ matrix.php == '8.5' }}
         run: |
@@ -194,6 +206,13 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: zip
           coverage: none
+
+      - name: Restore runner package installer
+        if: ${{ always() && matrix.php == '8.5' }}
+        run: |
+          if [ -n "${PHP_SETUP_APT_FAST_PATH:-}" ] && [ -e "${PHP_SETUP_APT_FAST_PATH}.booster-diagnostic-backup" ]; then
+            sudo mv -Tf "${PHP_SETUP_APT_FAST_PATH}.booster-diagnostic-backup" "$PHP_SETUP_APT_FAST_PATH"
+          fi
 
       - name: Report PHP 8.5 provisioning
         if: ${{ always() && matrix.php == '8.5' }}
