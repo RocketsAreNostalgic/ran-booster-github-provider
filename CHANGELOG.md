@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.8](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.7...v1.0.0-beta.8) (2026-09-30)
+
+
+### Bug Fixes
+
+* preserve bootstrap status across source revisions ([#35](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/35)) ([a849906](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/a849906c9041d5901b84b6f90eccd2a4d808f268))
+
 ## [1.0.0-beta.7](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.6...v1.0.0-beta.7) (2026-09-30)
 
 
