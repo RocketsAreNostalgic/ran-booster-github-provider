@@ -33,12 +33,12 @@ require $coreRoot . '/autoload.php';
 
 $corePlugin = file_get_contents( $coreRoot . '/ran-booster.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Exact certified source contract.
 if ( ! is_string( $corePlugin )
-	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 11 \);/", $corePlugin )
+	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 12 \);/", $corePlugin )
 ) {
 	throw new RuntimeException( 'Unexpected Provider API generation.' );
 }
 if ( ! class_exists( ProviderRegistrationContext::class ) ) {
-	throw new RuntimeException( 'Provider API 11 registration context is unavailable.' );
+	throw new RuntimeException( 'Provider API 12 registration context is unavailable.' );
 }
 
 /** @return string */
