@@ -14,15 +14,15 @@ The package may depend on explicit shared libraries where the dependency is genu
 
 ## RAN quality profile
 
-The repository profile is `php-library`. The Provider provisioning pilot uses the
-immutable organisation `booster-library-quality` composite action pinned in
-`.github/workflows/ci.yml`: complete independent baseline before introducing the
-exact candidate Core in each PHP job. The shared recipe owns setup, locked
-installation and phase drift controls; Provider retains its runtime matrix,
-independent host-contract, release classification and terminal `quality` gates.
-See [`docs/ci-provisioning-pilot.md`](docs/ci-provisioning-pilot.md) for its provenance,
-shared-runner limits, measurements and rollback. Recipe upgrades require an
-explicit reviewed pin update; other consumers and shared defaults are unchanged.
+The repository profile is `php-library`. Each PHP matrix job provisions once,
+runs the complete independent baseline before introducing exact candidate Core,
+then runs the host aggregate. `.github/workflows/ci.yml` and
+`scripts/ci-quality-phase.sh` own this Provider-specific sequence and its drift
+controls. Its baseline preserves `quality-php-library-v2.yml` at immutable
+`788f783d2998994f7aab9691710911ed1bd762c9`; review later baseline changes deliberately.
+The independent host-contract, classification and terminal `quality` gates remain.
+See [`docs/ci-provisioning-pilot.md`](docs/ci-provisioning-pilot.md) for measurements,
+shared-runner limitations and rollback. No shared-recipe pin is required.
 
 For package conventions, prefer the closest maintained Booster support libraries as references: `ran/updater-support`, `ran/wp-branch-updater`, and `ran/wp-release-updater`. Use Booster and `ran-starter-plugin` for stronger transferable guarantees and repository ergonomics, but do not copy plugin-only runtime, archive or frontend machinery into this library without an applicable source/product requirement.
 

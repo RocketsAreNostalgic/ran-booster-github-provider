@@ -137,11 +137,79 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Run shared baseline and candidate-host recipe
-        uses: RocketsAreNostalgic/.github/.github/actions/booster-library-quality@6e81370238e33c5b77641355a772557912f7fee7
+      - name: Reject privileged pull_request_target callers
+        if: ${{ github.event_name == 'pull_request_target' }}
+        run: exit 1
+
+      - name: Check out exact package revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          path: provider
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact source revision and locked manifests
+        env:
+          RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        working-directory: provider
+        run: |
+          set -euo pipefail
+          test -n "$RAN_EXPECTED_SHA"
+          test "$(git rev-parse HEAD)" = "$RAN_EXPECTED_SHA"
+          test -f composer.json
+          test -f composer.lock
+
+      # Baseline operations mirror quality-php-library-v2 at
+      # 788f783d2998994f7aab9691710911ed1bd762c9; this pilot is Provider-only.
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php }}
-          booster-sha: 18b0ec619174000a9a9dbc27b9d68b44b0265449
+          extensions: zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.11.0'
+          check-latest: false
+
+      - name: Verify exact Node.js version
+        run: test "$(node --version)" = v24.11.0
+
+      - name: Validate Composer configuration
+        working-directory: provider
+        run: composer validate --strict --no-check-publish --no-check-all
+
+      - name: Install locked Composer dependencies
+        working-directory: provider
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run independent baseline before Core exists
+        env:
+          RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          RAN_CI_PHASE_STATE: ${{ runner.temp }}/provider-phase-${{ matrix.php }}
+        working-directory: provider
+        run: bash scripts/ci-quality-phase.sh baseline
+
+      - name: Check out candidate Booster host
+        # Retain the exact candidate-only API12/V3 tuple; not installed/released certification.
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: RocketsAreNostalgic/ran-booster
+          ref: 18b0ec619174000a9a9dbc27b9d68b44b0265449
+          persist-credentials: false
+          path: booster
+
+      - name: Run candidate-host quality aggregate
+        env:
+          RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          RAN_BOOSTER_HOST_SHA: 18b0ec619174000a9a9dbc27b9d68b44b0265449
+          RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
+          RAN_CI_PHASE_STATE: ${{ runner.temp }}/provider-phase-${{ matrix.php }}
+        working-directory: provider
+        run: bash scripts/ci-quality-phase.sh host
 
   quality:
     name: quality
