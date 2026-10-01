@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import "./ci-quality-phase.test.mjs";
 import { spawnSync } from "node:child_process";
 
 const workflow = readFileSync(new URL("../.github/workflows/release-please.yml", import.meta.url), "utf8");
@@ -35,16 +36,22 @@ test("canonical CI authenticates shared exact-head candidate dispatch", () => {
   assert.match(ciWorkflow, /quality:\n\s+name: quality[\s\S]*needs:[\s\S]*- release-classification/);
 });
 
-test("Provider retains its matrix and fail-closed gates around the pinned shared recipe", () => {
+test("Provider pilot preserves phase ordering, runtime matrix and fail-closed terminal quality", () => {
   const implementation = ciWorkflow.slice(ciWorkflow.indexOf("  implementation:"), ciWorkflow.indexOf("  quality:"));
   assert.match(implementation, /php: \['8.2', '8.5'\]/);
   assert.match(implementation, /fail-fast: false/);
-  assert.match(implementation, /runs-on: blacksmith-2vcpu-ubuntu-2404/);
   assert.match(implementation, /permissions:\n      contents: read/);
-  assert.match(implementation, /uses: RocketsAreNostalgic\/\.github\/\.github\/actions\/booster-library-quality@6e81370238e33c5b77641355a772557912f7fee7/);
-  assert.match(implementation, /php-version: \$\{\{ matrix.php \}\}/);
-  assert.match(implementation, /booster-sha: 18b0ec619174000a9a9dbc27b9d68b44b0265449/);
-  assert.doesNotMatch(implementation, /continue-on-error|secrets:|actions\/cache@|contents: write|run:|setup-php@/);
+  assert.match(implementation, /pull_request_target/);
+  assert.match(implementation, /tools: composer:v2/);
+  assert.match(implementation, /node-version: '24.11.0'/);
+  assert.match(implementation, /composer validate --strict --no-check-publish --no-check-all/);
+  assert.match(implementation, /composer install --no-interaction --prefer-dist --no-progress/);
+  assert.equal(implementation.match(/uses: shivammathur\/setup-php@/g)?.length, 1);
+  assert.equal(implementation.match(/run: bash scripts\/ci-quality-phase.sh baseline/g)?.length, 1);
+  assert.equal(implementation.match(/run: bash scripts\/ci-quality-phase.sh host/g)?.length, 1);
+  assert.ok(implementation.indexOf("ci-quality-phase.sh baseline") < implementation.indexOf("Check out candidate Booster host"));
+  assert.ok(implementation.indexOf("Check out candidate Booster host") < implementation.indexOf("ci-quality-phase.sh host"));
+  assert.doesNotMatch(implementation, /continue-on-error|secrets: inherit|actions\/cache@|contents: write/);
   assert.match(ciWorkflow, /host-contract:[\s\S]*run: php tests\/host-contract.php/);
   const terminal = ciWorkflow.slice(ciWorkflow.indexOf("  quality:"));
   for (const lane of ["release-classification", "host-contract", "implementation"]) assert.match(terminal, new RegExp(`- ${lane}`));

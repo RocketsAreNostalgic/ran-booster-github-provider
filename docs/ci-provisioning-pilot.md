@@ -9,20 +9,22 @@ release classification retain their separate boundaries. Required lowercase
 `quality` accepts only success from all three prerequisite job groups; both PHP
 matrix legs must succeed. Failure, cancellation or a skipped group blocks it.
 
-Ben authorized extracting the shared recipe and applying it to this pilot on
-1 October 2026. The implementation matrix now calls the organisation composite
-`booster-library-quality` at immutable commit `6e81370238e33c5b77641355a772557912f7fee7`.
-The [shared contract](https://github.com/RocketsAreNostalgic/.github/blob/6e81370238e33c5b77641355a772557912f7fee7/BOOSTER_LIBRARY_QUALITY.md)
-owns setup, locked installation and both fixed phases. Its baseline preserves the
-operations from `quality-php-library-v2.yml` at
-`788f783d2998994f7aab9691710911ed1bd762c9`: exact credential-free source checkout,
+The Provider-owned inline sequence preserves shared `quality-php-library-v2.yml`
+at `788f783d2998994f7aab9691710911ed1bd762c9`: exact credential-free source checkout,
 locked manifests, PHP/zip/Composer v2, pinned Node 24.11.0 with explicit version
 verification, pre-install Composer validation, locked install, `composer check`
-and the broader PHP syntax sweep outside vendor/node_modules. Existing shared
-workflows and other consumers are unchanged. Future recipe upgrades are explicit
-reviewed pin changes; this repository no longer maintains a copy of the guard.
+and the broader PHP syntax sweep outside vendor/node_modules. Review future
+shared-baseline changes against this local sequence deliberately.
 
-The shared action's `ci-quality-phase.sh` requires a source SHA and phase state
+The shared action introduced by organisation #115 and Provider #40 was retired
+after the [nine-repository adoption audit](https://github.com/RocketsAreNostalgic/.github/issues/111#issuecomment-5929488158)
+found no second compatible consumer. Ben approved reintegration on 1 October 2026.
+Keep the useful provisioning consolidation local; require a demonstrated second
+matching contract before extracting a shared abstraction again. Historical recipe
+commit `6e81370238e33c5b77641355a772557912f7fee7` remains reachable for provenance;
+current CI does not consume it. Implementation-job permissions remain contents:read.
+
+`scripts/ci-quality-phase.sh` requires a source SHA and phase-state directory
 outside the checkout. Baseline rejects the Core environment and sibling checkout.
 Tracked source bytes (including locks, even with misleading index flags) and
 installed dependency file bytes/symlink targets are checked before and after the
@@ -44,16 +46,14 @@ retains its independent runner; the privileged release workflow is unchanged.
 Accepting this pilot means accepting the explicitly shared baseline/host runner
 state, not claiming the previous process isolation survives consolidation.
 
-The shared repository owns the executable phase fixtures and action contract
-tests, running them in its `Booster Library Quality Contract` workflow. They use
-disposable Git repositories and command doubles, including changed locks/vendor,
-wrong source/host, absent or failed baseline, failed broad lint/host, command-file
-drift and failed source enumeration. Provider's `composer test:release-control`
-retains its portable consumer-pin/matrix/host and terminal-admission tests.
-Moving the 20 Linux phase tests centrally reduces Provider's Node count from 33
-to 13 without deleting coverage; the central suite has 24 tests including the
-four new recipe contracts. Actual package baseline/PHPStan/PHPUnit and independent
-host-contract evidence remain required in Provider's native PHP 8.2/8.5 lanes.
+Run the boundary fixtures through the existing `composer test:release-control`
+entry point, or `node --test tests/ci-quality-phase.test.mjs`. They execute the
+actual shell guard against disposable Git repositories with command doubles,
+including changed locks/dependencies, wrong source/host, absent or failed baseline,
+failed broad lint and failed host checks. Real package checks remain required in CI.
+These new shell-boundary fixtures target the existing Linux runner (Bash/GNU
+utilities); other local platforms report them skipped explicitly and retain the
+pre-existing portable baseline tests. Both native PHP lanes execute every fixture.
 
 ## Evaluation and rollback
 
@@ -75,13 +75,8 @@ implementation topology at main `556f19923f6564f1bbd5cecee089d6b136afc5cd` (incl
 the shared pin above). Preserve required `quality`, the separate host contract,
 release-classification/dispatch admission, action/host pins and both PHP versions.
 No settings, shared defaults, other consumers or immutable releases need changes.
-The shared extraction is now authorized; caching and broader adoption still need
-separately approved scopes. Land the central PR with a merge commit to preserve
-the reviewed pinned SHA reachable from main, then qualify/land this Provider PR.
-The action cannot own caller permissions, runner, matrix or terminal policy;
-Provider keeps these explicit, with implementation-job `contents: read` only.
-To undo only extraction, restore the local pilot at
-`6773c600871ffc3bc5f3a2125096f0b75273a12e`; the split rollback above undoes consolidation.
+Any caching or broader rollout needs a separately approved scope. The retired
+shared abstraction adds no current consumer obligation.
 
 ## Measured prototype results — 1 October 2026
 
@@ -145,12 +140,12 @@ long-term confidence interval. All samples are from one morning, not many days.
 The final candidate removes the temporary comparison jobs and adds command-file
 and failed-Git-enumeration controls plus documentation/current-main reconciliation.
 Those guard additions are functionally requalified on the final revision, but are
-not included in the ten prototype timings above. The subsequent shared-action
-extraction also requires fresh functional qualification and is not rebenchmarked here. Treat the figures as evidence
+not included in the ten prototype timings above. Extraction and reintegration
+are functionally requalified, not additional paired timing experiments. Treat the figures as evidence
 for this topology, not an exact final-revision performance guarantee.
 
 Recommendation: the observed compute reduction supports a Provider-only opt-in
 if maintainers accept the documented shared-runner tradeoff. Do not roll it out
 across consumers or advertise it as a PHP provisioning fix. Keep the old shared
 pin reachable for rollback; evaluate longer-window performance and failure/rerun
-coupling before proposing wider recipe adoption or a cache rollout.
+coupling before proposing any shared workflow or cache rollout.
