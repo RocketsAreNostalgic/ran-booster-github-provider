@@ -248,7 +248,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 	public function test_runtime_asset_prefix_is_inspected_before_source_readiness(): void {
 		foreach ( array( "version https://git-lfs.github.com/spec/v1\n" . str_repeat( 'x', 2048 ), str_repeat( "\0", 2048 ) ) as $content ) {
 			$transport = new D23ApplicationTransport();
-			$transport->mutateDefaultDocument( 'assets/logo.png', $content );
+			$transport->mutate_default_document( 'assets/logo.png', $content );
 			$result = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', str_repeat( 'a', 40 ) );
 			self::assertSame( 'ok', $result['code'] );
 			self::assertNull( $result['snapshot']->document( 'assets/logo.png' ) );
@@ -263,7 +263,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 
 	public function test_theme_root_json_prefix_is_fetched_without_reading_development_blobs(): void {
 		$transport = new D23ApplicationTransport();
-		$transport->mutateDefaultDocument( 'theme.json', str_repeat( '{', 2048 ) );
+		$transport->mutate_default_document( 'theme.json', str_repeat( '{', 2048 ) );
 		$result = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', str_repeat( 'a', 40 ) );
 		self::assertSame( 'ok', $result['code'] );
 		self::assertSame( str_repeat( '{', 43 ), $result['snapshot']->blobPrefix( 'theme.json' ) );

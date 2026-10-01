@@ -20,20 +20,20 @@ use RAN\RepositoryProvider\RepositoryReleaseWorkflowResult;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowStatus;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowTarget;
 
-$coreRoot = getenv( 'RAN_BOOSTER_CORE_PATH' );
-$coreRoot = false === $coreRoot ? '' : rtrim( $coreRoot, '/\\' );
-if ( '' === $coreRoot || ! is_file( $coreRoot . '/autoload.php' ) ) {
+$core_root = getenv( 'RAN_BOOSTER_CORE_PATH' );
+$core_root = false === $core_root ? '' : rtrim( $core_root, '/\\' );
+if ( '' === $core_root || ! is_file( $core_root . '/autoload.php' ) ) {
 	throw new RuntimeException( 'RAN_BOOSTER_CORE_PATH must point at the exact certified Booster checkout.' );
 }
 
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 }
-require $coreRoot . '/autoload.php';
+require $core_root . '/autoload.php';
 
-$corePlugin = file_get_contents( $coreRoot . '/ran-booster.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Exact certified source contract.
-if ( ! is_string( $corePlugin )
-	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 12 \);/", $corePlugin )
+$core_plugin = file_get_contents( $core_root . '/ran-booster.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Exact certified source contract.
+if ( ! is_string( $core_plugin )
+	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 12 \);/", $core_plugin )
 ) {
 	throw new RuntimeException( 'Unexpected Provider API generation.' );
 }
@@ -56,24 +56,24 @@ function ran_booster_github_provider_type_name( ?ReflectionType $type ): string 
 }
 
 /**
- * @param list<array{0:string,1:string}> $expectedParameters
+ * @param list<array{0:string,1:string}> $expected_parameters
  */
-function ran_booster_github_provider_assert_method( string $interfaceName, string $method, array $expectedParameters, string $expectedReturn ): void {
-	$reflection = new ReflectionMethod( $interfaceName, $method );
+function ran_booster_github_provider_assert_method( string $interface_name, string $method, array $expected_parameters, string $expected_return ): void {
+	$reflection = new ReflectionMethod( $interface_name, $method );
 	$parameters = $reflection->getParameters();
-	if ( count( $expectedParameters ) !== count( $parameters ) ) {
-		throw new RuntimeException( "Unexpected parameter count for {$interfaceName}::{$method}()." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+	if ( count( $expected_parameters ) !== count( $parameters ) ) {
+		throw new RuntimeException( "Unexpected parameter count for {$interface_name}::{$method}()." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
 	}
 
-	foreach ( $expectedParameters as $index => $expectedParameter ) {
+	foreach ( $expected_parameters as $index => $expected_parameter ) {
 		$parameter = $parameters[ $index ];
-		if ( $expectedParameter[0] !== $parameter->getName() || $expectedParameter[1] !== ran_booster_github_provider_type_name( $parameter->getType() ) ) {
-			throw new RuntimeException( "Unexpected parameter contract for {$interfaceName}::{$method}()." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+		if ( $parameter->getName() !== $expected_parameter[0] || ran_booster_github_provider_type_name( $parameter->getType() ) !== $expected_parameter[1] ) {
+			throw new RuntimeException( "Unexpected parameter contract for {$interface_name}::{$method}()." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
 		}
 	}
 
-	if ( $expectedReturn !== ran_booster_github_provider_type_name( $reflection->getReturnType() ) ) {
-		throw new RuntimeException( "Unexpected return contract for {$interfaceName}::{$method}()." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+	if ( ran_booster_github_provider_type_name( $reflection->getReturnType() ) !== $expected_return ) {
+		throw new RuntimeException( "Unexpected return contract for {$interface_name}::{$method}()." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
 	}
 }
 
@@ -109,21 +109,21 @@ $contracts = array(
 	),
 );
 
-foreach ( $contracts as $interfaceName => $methods ) {
-	if ( ! interface_exists( $interfaceName ) ) {
-		throw new RuntimeException( "Required Booster host contract is unavailable: {$interfaceName}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+foreach ( $contracts as $interface_name => $methods ) {
+	if ( ! interface_exists( $interface_name ) ) {
+		throw new RuntimeException( "Required Booster host contract is unavailable: {$interface_name}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
 	}
 
-	$actualMethods   = get_class_methods( $interfaceName );
-	$expectedMethods = array_keys( $methods );
-	sort( $actualMethods );
-	sort( $expectedMethods );
-	if ( $actualMethods !== $expectedMethods ) {
-		throw new RuntimeException( "Unexpected method set for {$interfaceName}." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+	$actual_methods   = get_class_methods( $interface_name );
+	$expected_methods = array_keys( $methods );
+	sort( $actual_methods );
+	sort( $expected_methods );
+	if ( $actual_methods !== $expected_methods ) {
+		throw new RuntimeException( "Unexpected method set for {$interface_name}." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
 	}
 
 	foreach ( $methods as $method => $signature ) {
-		ran_booster_github_provider_assert_method( $interfaceName, $method, $signature[0], $signature[1] );
+		ran_booster_github_provider_assert_method( $interface_name, $method, $signature[0], $signature[1] );
 	}
 }
 

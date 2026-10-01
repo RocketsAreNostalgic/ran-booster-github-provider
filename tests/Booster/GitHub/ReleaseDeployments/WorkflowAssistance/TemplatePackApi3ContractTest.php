@@ -13,7 +13,7 @@ require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 
 /** Native ZIP tests of the candidate reader; these fixtures are not producer qualification. */
 final class TemplatePackApi3ContractTest extends TestCase {
-	public function testOnlyApi3RendersBothProfilesDeterministically(): void {
+	public function test_only_api3_renders_both_profiles_deterministically(): void {
 		$archive = Fixture::archive();
 		$pack    = TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['pack'];
 		self::assertSame( 3, TemplatePack::CONSUMER_API );
@@ -29,7 +29,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		}
 	}
 
-	public function testRejectsOldApiWithoutRenderingOrFallback(): void {
+	public function test_rejects_old_api_without_rendering_or_fallback(): void {
 		foreach ( array( 1, 2, 4 ) as $api ) {
 			$manifest                  = Fixture::manifest( $api );
 			$manifest['release']['id'] = 41;
@@ -38,7 +38,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		}
 	}
 
-	public function testRejectsDuplicateAndEscapedEquivalentJsonKeys(): void {
+	public function test_rejects_duplicate_and_escaped_equivalent_json_keys(): void {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Exact raw JSON mutation fixture.
 		$bytes = json_encode( Fixture::manifest(), JSON_THROW_ON_ERROR );
 		foreach ( array( '"consumer_api":2,"consumer_api":3', '"consumer_\\u0061pi":2,"consumer_api":3' ) as $duplicate ) {
@@ -47,16 +47,16 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		}
 	}
 
-	public function testEmbeddedReleaseIdAndNonStringRepositoryIdAreInvalid(): void {
+	public function test_embedded_release_id_and_non_string_repository_id_are_invalid(): void {
 		$manifest                  = Fixture::manifest();
 		$manifest['release']['id'] = 41;
-		$this->assertInvalidManifest( $manifest );
+		$this->assert_invalid_manifest( $manifest );
 		$manifest                     = Fixture::manifest();
 		$manifest['repository']['id'] = 1322743261;
-		$this->assertInvalidManifest( $manifest );
+		$this->assert_invalid_manifest( $manifest );
 	}
 
-	public function testFixedMemberMapRejectsRenamedMemberEvenWithMatchingDigest(): void {
+	public function test_fixed_member_map_rejects_renamed_member_even_with_matching_digest(): void {
 		$manifest = Fixture::manifest();
 		$path     = 'templates/shared/quality.yml.tmpl';
 		foreach ( $manifest['profiles'] as &$profile ) {
@@ -67,7 +67,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['code'] );
 	}
 
-	public function testTransportAcceptsOnlyReviewedMimeTypesAndImmutableState(): void {
+	public function test_transport_accepts_only_reviewed_mime_types_and_immutable_state(): void {
 		$archive = Fixture::archive();
 		foreach ( array( 'application/zip', 'application/octet-stream' ) as $mime ) {
 			$identity                       = Fixture::identity( $archive );
@@ -87,7 +87,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		}
 	}
 
-	public function testNativeZipRejectsExecutableSymlinkExtraAndUnsafeMembers(): void {
+	public function test_native_zip_rejects_executable_symlink_extra_and_unsafe_members(): void {
 		foreach ( array( 0100755, 0120644 ) as $mode ) {
 			$archive = Fixture::archive( null, array(), array(), 'templates/shared/quality.yml.tmpl', $mode );
 			self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['code'] );
@@ -98,7 +98,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		}
 	}
 
-	public function testClosedPlaceholderTypesAndBounds(): void {
+	public function test_closed_placeholder_types_and_bounds(): void {
 		$archive = Fixture::archive();
 		$pack    = TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['pack'];
 		foreach ( array( 'a--b', '-abc', 'abc-', str_repeat( 'a', 101 ), 'a$(id)', 'a/b' ) as $slug ) {
@@ -143,7 +143,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		}
 	}
 
-	public function testExtraFilesAreOnlyHeaderAndOptionalConventionalReadme(): void {
+	public function test_extra_files_are_only_header_and_optional_conventional_readme(): void {
 		$archive = Fixture::archive();
 		$pack    = TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['pack'];
 		foreach ( array( '[{"type":"json","path":"package.json","jsonpath":"$.version"}]', '[{"type":"generic","path":"plugin.php"},{"type":"generic","path":"custom.txt"}]', '[{"type":"generic","path":"nested/plugin.php"}]' ) as $fragment ) {
@@ -175,7 +175,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		);
 	}
 
-	private function assertInvalidManifest( array $manifest ): void {
+	private function assert_invalid_manifest( array $manifest ): void {
 		$archive = Fixture::archive( $manifest );
 		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['code'] );
 	}

@@ -17,10 +17,12 @@ final class RepositoryResolverSecretsStub implements ProviderCredentialStore {
 	public function __construct( private array $tokens = array() ) {
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve external Core interface method spelling pending coordinated contract migration.
 	public function credentialProfiles(): array {
 		return array();
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve external Core interface method spelling pending coordinated contract migration.
 	public function credentialMaterial( ?string $id = null ): ?array {
 		$this->lookups[] = $id;
 
@@ -45,6 +47,7 @@ final class RepositoryResolverSecretsStub implements ProviderCredentialStore {
 		);
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve external Core interface method spelling pending coordinated contract migration.
 	public function hasWebhookProfile(): bool {
 		return false;
 	}

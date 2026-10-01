@@ -356,7 +356,7 @@ final class WorkflowApplicationCoordinator {
 	private function verify_branch( array $remote, string $branch, string $head, InitialReleaseBundle $bundle, string $token ): bool {
 		$ref    = $this->github->branchRef( $remote['repository'], $branch, $token );
 		$commit = 'ok' === $ref['code'] && hash_equals( $head, $ref['sha'] ) ? $this->github->gitCommit( $remote['repository'], $head, $token ) : $ref;
-		$tree   = 'ok' === $commit['code'] && $commit['parents'] === array( $remote['base_sha'] ) ? $this->github->snapshot( $remote['repository'], $remote['repository_id'], $remote['default_branch'], $head, $token ) : $commit;
+		$tree   = 'ok' === $commit['code'] && array( $remote['base_sha'] ) === $commit['parents'] ? $this->github->snapshot( $remote['repository'], $remote['repository_id'], $remote['default_branch'], $head, $token ) : $commit;
 		if ( 'ok' !== $tree['code'] ) {
 			return false;
 		}

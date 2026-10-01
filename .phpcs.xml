@@ -18,132 +18,24 @@
 
 	<rule ref="RANWordPressLibrary"/>
 
-	<!-- Remaining public/API and shared-test cohorts are coordinated under #25/#167/#28. -->
+	<!-- Upstream method naming defers to RANOwnedMethods; public/API exceptions remain line-local under #25/#167/#28. -->
 	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
 		<severity>0</severity>
 	</rule>
 	<!-- Check completed owned methods even in interface-implementing classes. -->
 	<rule ref="RANOwnedMethods">
-		<include-pattern>/src/CredentialPolicy.php</include-pattern>
-		<include-pattern>/src/Diagnostics.php</include-pattern>
-		<include-pattern>/src/GitHubProvider.php</include-pattern>
-		<include-pattern>/src/GitHubReleaseArtifact.php</include-pattern>
-		<include-pattern>/src/GitHubReleaseNativeTarget.php</include-pattern>
-		<include-pattern>/src/RepositoryBrowser.php</include-pattern>
-		<include-pattern>/src/RepositoryWebhookClient.php</include-pattern>
-		<include-pattern>/src/WebhookNormalizer.php</include-pattern>
-		<include-pattern>/src/WebhookPolicy.php</include-pattern>
-		<!-- Audited test-only cohort: external lifecycle/interface declarations defer locally. -->
-		<include-pattern>/tests/Booster/GitHub/ArchiveLimitBoundaryTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/CredentialExpiryValidationTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/CredentialPolicyTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/DiagnosticsTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/GitHubProviderMetadataTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/GitHubProviderWebhookManagementTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ModuleDependencyBoundaryTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/NativeTargetsTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/PublicReleaseResultMappingTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseAcquisitionTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseArtifactClaimLifetimeTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseCandidateListingTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseInspectionTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/RepositoryResolverTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/RepositoryWebhookClientTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/VendorConformanceTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/WebhookNormalizerTest.php</include-pattern>
-		<!-- Private workflow internals and connected tests; public contracts defer locally. -->
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/GitHubRepositoryClient.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/GitHubRepositoryReleaseWorkflow.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/InitialReleaseBundle.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/RepositorySnapshot.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/SetupRecordStore.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/SourceReadyAssessment.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/SourceReadyAssessor.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/StarterGuidance.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/StarterOrigin.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/StarterSecurityCheck.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/TemplatePack.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/TemplatePackRepositoryClient.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/WorkflowApplicationCoordinator.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceState.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/GitHubRepositoryClientTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/GitHubRepositoryReleaseWorkflowTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/InitialReleaseBundleTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/RepositorySnapshotTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/SetupRecordStoreTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/SourceReadyAssessorTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/StarterSecurityCheckTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/TemplatePackRepositoryClientTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/WorkflowApplicationCoordinatorTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceStateTest.php</include-pattern>
+		<include-pattern>/src/</include-pattern>
+		<include-pattern>/tests/</include-pattern>
 	</rule>
 	<rule ref="WordPress.NamingConventions.ValidVariableName">
-		<include-pattern>/src/CredentialPolicy.php</include-pattern>
-		<include-pattern>/src/Diagnostics.php</include-pattern>
-		<include-pattern>/src/GitHubProvider.php</include-pattern>
-		<include-pattern>/src/GitHubReleaseArtifact.php</include-pattern>
-		<include-pattern>/src/GitHubReleaseNativeTarget.php</include-pattern>
-		<include-pattern>/src/RepositoryBrowser.php</include-pattern>
-		<include-pattern>/src/RepositoryWebhookClient.php</include-pattern>
-		<include-pattern>/src/WebhookNormalizer.php</include-pattern>
-		<include-pattern>/src/WebhookPolicy.php</include-pattern>
-		<!-- Audited test-only cohort: external lifecycle/interface declarations defer locally. -->
-		<include-pattern>/tests/Booster/GitHub/ArchiveLimitBoundaryTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/CredentialExpiryValidationTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/CredentialPolicyTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/DiagnosticsTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/GitHubProviderMetadataTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/GitHubProviderWebhookManagementTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ModuleDependencyBoundaryTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/NativeTargetsTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/PublicReleaseResultMappingTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseAcquisitionTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseArtifactClaimLifetimeTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseCandidateListingTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseInspectionTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/RepositoryResolverTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/RepositoryWebhookClientTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/VendorConformanceTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/WebhookNormalizerTest.php</include-pattern>
-		<!-- Private workflow internals and connected tests; public contracts defer locally. -->
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/GitHubRepositoryClient.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/GitHubRepositoryReleaseWorkflow.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/InitialReleaseBundle.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/RepositorySnapshot.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/SetupRecordStore.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/SourceReadyAssessment.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/SourceReadyAssessor.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/StarterGuidance.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/StarterOrigin.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/StarterSecurityCheck.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/TemplatePack.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/TemplatePackRepositoryClient.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/WorkflowApplicationCoordinator.php</include-pattern>
-		<include-pattern>/src/ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceState.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/GitHubRepositoryClientTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/GitHubRepositoryReleaseWorkflowTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/InitialReleaseBundleTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/RepositorySnapshotTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/SetupRecordStoreTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/SourceReadyAssessorTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/StarterSecurityCheckTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/TemplatePackRepositoryClientTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/WorkflowApplicationCoordinatorTest.php</include-pattern>
-		<include-pattern>/tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceStateTest.php</include-pattern>
-	</rule>
-
-	<!-- Yoda rewrites would create a broad migration-only semantic diff in the inherited implementation. -->
-	<rule ref="WordPress.PHP.YodaConditions">
-		<severity>0</severity>
+		<include-pattern>/src/</include-pattern>
+		<include-pattern>/tests/</include-pattern>
 	</rule>
 
 	<!-- Test doubles preserve the WordPress and provider callback signatures they replace. -->
 	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
 		<exclude-pattern>/tests/Support/NeutralReleaseUpdaterWordPressFunctions.php</exclude-pattern>
 		<exclude-pattern>/tests/Booster/GitHub/PublicReleaseResultMappingTest.php</exclude-pattern>
-	</rule>
-	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
-		<severity>0</severity>
 	</rule>
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">

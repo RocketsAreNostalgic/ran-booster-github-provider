@@ -572,7 +572,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				|| ! hash_equals( $repository->locator, $facts['repository_locator'] ?? '' )
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 				|| ! hash_equals( (string) $repository->providerRepositoryId, $facts['repository_identity'] ?? '' )
-				|| ( null !== $maximum_artifact_bytes && $maximum_artifact_bytes !== ( $facts['maximum_artifact_bytes'] ?? null ) ) ) {
+				|| ( null !== $maximum_artifact_bytes && ( $facts['maximum_artifact_bytes'] ?? null ) !== $maximum_artifact_bytes ) ) {
 				throw new RuntimeException();
 			}
 			return new RepositoryReleaseInspection(
@@ -655,7 +655,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				|| ! hash_equals( $repository->locator, $facts['repository_locator'] ?? '' )
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 				|| ! hash_equals( (string) $repository->providerRepositoryId, $facts['repository_identity'] ?? '' )
-				|| ( null !== $maximum_artifact_bytes && $maximum_artifact_bytes !== ( $facts['maximum_artifact_bytes'] ?? null ) ) ) {
+				|| ( null !== $maximum_artifact_bytes && ( $facts['maximum_artifact_bytes'] ?? null ) !== $maximum_artifact_bytes ) ) {
 				throw new RuntimeException();
 			}
 

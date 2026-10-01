@@ -20,8 +20,9 @@ function mkdir( string $directory, int $permissions = 0777, bool $recursive = fa
 }
 
 /** @return resource|false */
+// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve the existing PHP filesystem callback parameter contract.
 function fopen( string $filename, string $mode, bool $useIncludePath = false, mixed $context = null ) {
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Test-only deterministic filesystem seam.
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Deterministic filesystem seam preserves the existing callback parameter contract.
 	$stream = null === $context ? \fopen( $filename, $mode, $useIncludePath ) : \fopen( $filename, $mode, $useIncludePath, $context );
 	$hook   = 'rb' === $mode
 		? $GLOBALS['ran_booster_custody_after_source_open'] ?? null
@@ -36,9 +37,9 @@ function fopen( string $filename, string $mode, bool $useIncludePath = false, mi
 
 /** @param resource $stream */
 function fclose( $stream ): bool {
-	$falseResults = (int) ( $GLOBALS['ran_booster_custody_fclose_false_results'] ?? 0 );
-	if ( $falseResults > 0 ) {
-		$GLOBALS['ran_booster_custody_fclose_false_results'] = $falseResults - 1;
+	$false_results = (int) ( $GLOBALS['ran_booster_custody_fclose_false_results'] ?? 0 );
+	if ( $false_results > 0 ) {
+		$GLOBALS['ran_booster_custody_fclose_false_results'] = $false_results - 1;
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Test-only seam must close the real stream while reporting a false result.
 		\fclose( $stream );
 

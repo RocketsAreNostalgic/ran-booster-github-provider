@@ -752,13 +752,13 @@ final class RepositoryResolverTest extends TestCase {
 		return $provider;
 	}
 
-	private function repository_identity_response( bool $private = false, string $id = '987654321' ): array {
+	private function repository_identity_response( bool $is_private = false, string $id = '987654321' ): array {
 		return $this->response(
 			200,
 			array(
 				'id'             => $id,
 				'full_name'      => 'RocketsAreNostalgic/example-plugin',
-				'private'        => $private,
+				'private'        => $is_private,
 				'default_branch' => 'main',
 			)
 		);
