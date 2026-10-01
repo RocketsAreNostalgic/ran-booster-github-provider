@@ -70,13 +70,20 @@ execution per run, not a measured benefit or a latency guarantee. Sequential tes
 and coupled reruns may worsen latency. Consolidation reduces repeated exposure to
 provisioning; it does not fix the external PHP 8.5 package retrieval problem.
 
-Rollback the single Provider opt-in commit to its previous baseline caller and
-implementation topology at main `556f19923f6564f1bbd5cecee089d6b136afc5cd` (including
-the shared pin above). Preserve required `quality`, the separate host contract,
-release-classification/dispatch admission, action/host pins and both PHP versions.
-No settings, shared defaults, other consumers or immutable releases need changes.
-Any caching or broader rollout needs a separately approved scope. The retired
-shared abstraction adds no current consumer obligation.
+To roll back **reintegration only**, restore the reviewed shared caller and its
+consumer tests/guidance from Provider commit
+`f69bbdf072efb8e4ed9ad809079e18944b188333`. It pins the historical action at
+`6e81370238e33c5b77641355a772557912f7fee7`, which remains available even after
+central retirement. This retains consolidated provisioning; coordinate any
+reactivation with the central retirement record rather than adopting a mutable pin.
+
+To roll back **provisioning consolidation**, separately restore the split baseline
+and implementation topology at `556f19923f6564f1bbd5cecee089d6b136afc5cd`, including
+its shared PHP baseline pin. This intentionally restores duplicate setup/install.
+Both rollback paths must preserve required `quality`, the independent host
+contract, release-classification/dispatch admission, exact action/host pins and
+both PHP versions. Neither requires changing dependency locks or release assets.
+Caching or broader adoption still needs its own approved scope.
 
 ## Measured prototype results — 1 October 2026
 
