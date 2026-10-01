@@ -44,8 +44,7 @@ final class GitHubRepositoryClient {
 		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Compact bounded transport shape.
 		return $this->ok( array( 'repository_id' => $repository_id, 'full_name' => $full_name, 'default_branch' => $default_branch ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function branchRef( string $repository, string $branch, string $token = '' ): array {
+	public function branch_ref( string $repository, string $branch, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_branch( $branch ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -61,17 +60,13 @@ final class GitHubRepositoryClient {
 	}
 	public function snapshot(
 		string $repository,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string $repositoryId,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string $defaultBranch,
+		string $repository_id,
+		string $default_branch,
 		string $sha,
 		string $token = ''
 	): array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( ! $this->valid_repository( $repository ) || null === $this->numeric_string( $repositoryId )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			|| ! $this->valid_branch( $defaultBranch ) || ! $this->valid_sha( $sha ) ) {
+		if ( ! $this->valid_repository( $repository ) || null === $this->numeric_string( $repository_id )
+			|| ! $this->valid_branch( $default_branch ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		$response = $this->request( 'GET', '/repos/' . $repository . '/git/trees/' . $sha . '?recursive=1', $token );
@@ -107,7 +102,7 @@ final class GitHubRepositoryClient {
 			);
 			if ( 'blob' === $item['type'] && $this->assessment_document( $path ) ) {
 				$candidates[ $path ] = $item['sha'];
-			} elseif ( 'blob' === $item['type'] && $size >= 42 && SourceReadyAssessor::potentialRuntimeBlob( $path ) ) {
+			} elseif ( 'blob' === $item['type'] && $size >= 42 && SourceReadyAssessor::potential_runtime_blob( $path ) ) {
 				$prefix_candidates[ $path ] = $item['sha'];
 			}
 		}
@@ -135,8 +130,7 @@ final class GitHubRepositoryClient {
 			$prefixes[ $path ] = $prefix['content'];
 		}
 		try {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			$snapshot = new RepositorySnapshot( $repositoryId, $repository, $defaultBranch, $sha, $entries, $documents, $prefixes );
+			$snapshot = new RepositorySnapshot( $repository_id, $repository, $default_branch, $sha, $entries, $documents, $prefixes );
 		} catch ( Throwable ) {
 			return $this->error( 'invalid_response' );
 		}
@@ -164,8 +158,7 @@ final class GitHubRepositoryClient {
 		}
 		return $this->ok( array( 'content' => $content ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function gitCommit( string $repository, string $sha, string $token = '' ): array {
+	public function git_commit( string $repository, string $sha, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -190,8 +183,7 @@ final class GitHubRepositoryClient {
 		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Compact bounded transport shape.
 		return $this->ok( array( 'sha' => $sha, 'tree_sha' => $tree_sha, 'parents' => $parent_shas ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function createBlob( string $repository, string $content, string $token ): array {
+	public function create_blob( string $repository, string $content, string $token ): array {
 		if ( '' === $token || ! $this->valid_repository( $repository ) || strlen( $content ) > self::MAX_BODY
 			|| str_contains( $content, "\0" ) || 1 !== preg_match( '//u', $content ) ) {
 			return $this->error( 'invalid_request' );
@@ -209,10 +201,8 @@ final class GitHubRepositoryClient {
 		return 'ok' !== $response['code'] ? $response : ( $this->valid_sha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
 	}
 	/** @param list<array{path:string,sha:string,mode:string}> $entries */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function createTree( string $repository, string $baseTreeSha, array $entries, string $token ): array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $baseTreeSha )
+	public function create_tree( string $repository, string $base_tree_sha, array $entries, string $token ): array {
+		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $base_tree_sha )
 			|| array() === $entries || count( $entries ) > self::MAX_CHANGES ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -237,18 +227,15 @@ final class GitHubRepositoryClient {
 			'/repos/' . $repository . '/git/trees',
 			$token,
 			array(
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				'base_tree' => $baseTreeSha,
+				'base_tree' => $base_tree_sha,
 				'tree'      => $tree,
 			)
 		);
 		$sha      = $response['data']['sha'] ?? null;
 		return 'ok' !== $response['code'] ? $response : ( $this->valid_sha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function createCommit( string $repository, string $treeSha, string $parentSha, string $message, string $token ): array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $treeSha ) || ! $this->valid_sha( $parentSha )
+	public function create_commit( string $repository, string $tree_sha, string $parent_sha, string $message, string $token ): array {
+		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $tree_sha ) || ! $this->valid_sha( $parent_sha )
 			|| '' === trim( $message ) || strlen( $message ) > 200 ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -258,19 +245,15 @@ final class GitHubRepositoryClient {
 			$token,
 			array(
 				'message' => $message,
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				'tree'    => $treeSha,
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				'parents' => array( $parentSha ),
+				'tree'    => $tree_sha,
+				'parents' => array( $parent_sha ),
 			)
 		);
 		$sha      = $response['data']['sha'] ?? null;
 		return 'ok' !== $response['code'] ? $response : ( $this->valid_sha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function createRef( string $repository, string $branch, string $defaultBranch, string $sha, string $token ): array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $defaultBranch ) || ! $this->valid_sha( $sha ) ) {
+	public function create_ref( string $repository, string $branch, string $default_branch, string $sha, string $token ): array {
+		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $default_branch ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Fixed GitHub request shape.
@@ -284,8 +267,7 @@ final class GitHubRepositoryClient {
 			? $this->ok( array( 'sha' => $created_sha ) )
 			: $this->error( 'invalid_response' );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function pullRequests( string $repository, string $branch, string $token = '' ): array {
+	public function pull_requests( string $repository, string $branch, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_branch( $branch ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -310,8 +292,7 @@ final class GitHubRepositoryClient {
 		}
 		return $this->ok( array( 'pulls' => $pulls ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function pullRequest( string $repository, int $number, string $token = '' ): array {
+	public function pull_request( string $repository, int $number, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || $number < 1 ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -321,8 +302,7 @@ final class GitHubRepositoryClient {
 			? $this->error( 'invalid_response' )
 			: $this->ok( array( 'pull' => $pull ) ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function pullRequestFileSet( string $repository, int $number, string $token = '' ): array {
+	public function pull_request_file_set( string $repository, int $number, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || $number < 1 ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -353,19 +333,16 @@ final class GitHubRepositoryClient {
 		usort( $normalized, static fn ( array $left, array $right ): int => strcmp( $left['path'], $right['path'] ) );
 		return $this->ok( array( 'files' => $normalized ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function createDraftPullRequest( string $repository, string $branch, string $defaultBranch, string $title, string $body, string $token ): array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $defaultBranch ) || '' === trim( $title )
+	public function create_draft_pull_request( string $repository, string $branch, string $default_branch, string $title, string $body, string $token ): array {
+		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $default_branch ) || '' === trim( $title )
 			|| strlen( $title ) > 120 || strlen( $body ) > 8000
 			|| 1 === preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $title . $body ) ) {
 			return $this->error( 'invalid_request' );
 		}
-		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Fixed GitHub request shape; preserve public named-parameter compatibility pending the contract cohort.
-		$response = $this->request( 'POST', '/repos/' . $repository . '/pulls', $token, array( 'title' => $title, 'head' => $branch, 'base' => $defaultBranch, 'body' => $body, 'draft' => true ), array( 422 => 'conflict' ) );
+		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Fixed GitHub request shape.
+		$response = $this->request( 'POST', '/repos/' . $repository . '/pulls', $token, array( 'title' => $title, 'head' => $branch, 'base' => $default_branch, 'body' => $body, 'draft' => true ), array( 422 => 'conflict' ) );
 		$pull     = $this->normalize_pull( $repository, $response['data'] ?? null );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return 'ok' !== $response['code'] ? $response : ( null === $pull || ! $pull['draft'] || ! hash_equals( $branch, $pull['head'] ) || ! hash_equals( $defaultBranch, $pull['base'] )
+		return 'ok' !== $response['code'] ? $response : ( null === $pull || ! $pull['draft'] || ! hash_equals( $branch, $pull['head'] ) || ! hash_equals( $default_branch, $pull['base'] )
 			? $this->error( 'invalid_response' )
 			: $this->ok( array( 'pull' => $pull ) ) );
 	}

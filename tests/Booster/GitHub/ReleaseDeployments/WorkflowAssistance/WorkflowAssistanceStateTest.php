@@ -44,7 +44,7 @@ final class WorkflowAssistanceStateTest extends TestCase {
 	public function test_durable_cleanup_owns_only_current_provider_state_and_is_repeatable(): void {
 		$state = new WorkflowAssistanceState();
 
-		self::assertTrue( $state->removeDurableState() );
+		self::assertTrue( $state->remove_durable_state() );
 		$options = $GLOBALS['ran_booster_release_deployments_test_options'];
 		self::assertSame( array( 'legacy' => true ), $options['ran_booster_release_deployments_setup_records'] );
 		self::assertSame(
@@ -55,14 +55,14 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		self::assertSame( 'preserved', $options['unrelated_option'] );
 		self::assertCount( 4, $options );
 
-		self::assertTrue( $state->removeDurableState() );
+		self::assertTrue( $state->remove_durable_state() );
 		self::assertCount( 4, $GLOBALS['ran_booster_release_deployments_test_options'] );
 	}
 
 	public function test_lock_and_preview_names_are_provider_owned(): void {
 		self::assertSame(
 			'ran_booster_github_workflow_' . substr( hash( 'sha256', 'wp_options' ), 0, 32 ),
-			WorkflowAssistanceState::claimLockName()
+			WorkflowAssistanceState::claim_lock_name()
 		);
 		self::assertSame( 'ran_booster_github_provider_release_workflow_preview_', WorkflowAssistanceState::PREVIEW_PREFIX );
 	}

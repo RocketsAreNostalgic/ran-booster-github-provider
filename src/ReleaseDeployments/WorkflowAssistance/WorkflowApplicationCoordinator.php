@@ -92,7 +92,7 @@ final class WorkflowApplicationCoordinator {
 			return $this->result( $status, 'invalid_request' );
 		}
 		$repo = $this->github->repository( $record['repository'], $token );
-		$pull = $this->github->pullRequest( $record['repository'], $record['pr_number'], $token );
+		$pull = $this->github->pull_request( $record['repository'], $record['pr_number'], $token );
 		if ( 'ok' !== $repo['code'] || 'ok' !== $pull['code'] ) {
 			return $this->result( $status, 'ok' !== $repo['code'] ? $repo['code'] : $pull['code'] );
 		}
@@ -109,14 +109,13 @@ final class WorkflowApplicationCoordinator {
 			return $this->result( $status, 'pr_closed' );
 		}
 		// Read back the original PR's exact changed blobs. Maintainer files are not managed after setup.
-		$files = $this->github->pullRequestFileSet( $record['repository'], $record['pr_number'], $token );
+		$files = $this->github->pull_request_file_set( $record['repository'], $record['pr_number'], $token );
 		$valid = 'ok' === $files['code'] && $files['files'] === $record['changed_files'];
 		return $this->result( $status, $valid ? 'pr_merged' : 'target_changed', $valid );
 	}
 
 	/** Check stored workflow state before an adapter reads credential material. */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function hasCurrentRecord( RepositoryReleaseWorkflowTarget $status ): bool {
+	public function has_current_record( RepositoryReleaseWorkflowTarget $status ): bool {
 		return null !== $this->current_record( $status );
 	}
 
@@ -131,7 +130,7 @@ final class WorkflowApplicationCoordinator {
 			return $record;
 		}
 
-		return $this->records->refreshSourceRevision(
+		return $this->records->refresh_source_revision(
 			$status->providerRepositoryId(),
 			$status->type(),
 			$status->identifier(),
@@ -211,7 +210,7 @@ final class WorkflowApplicationCoordinator {
 			return $template;
 		}
 		$assessment = $this->assessor->assess( $target['snapshot'], $status->type(), $status->packageRoot(), $status->installedVersion(), $status->expectedUpdateUri() );
-		if ( ! $assessment->readyForBootstrap() ) {
+		if ( ! $assessment->ready_for_bootstrap() ) {
 			return array( 'code' => $assessment->code() );
 		}
 		$made = InitialReleaseBundle::bootstrap( $template['pack'], $assessment, $target['snapshot'], $status->expectedUpdateUri() );
@@ -234,8 +233,8 @@ final class WorkflowApplicationCoordinator {
 		if ( 'ok' !== $repo['code'] || ! hash_equals( $status->providerRepositoryId(), (string) ( $repo['repository_id'] ?? '' ) ) || 0 !== strcasecmp( $match[1], (string) ( $repo['full_name'] ?? '' ) ) ) {
 			return array( 'code' => 'ok' === $repo['code'] ? 'target_changed' : $repo['code'] );
 		}
-		$base   = $this->github->branchRef( $repo['full_name'], $repo['default_branch'], $token );
-		$commit = 'ok' === $base['code'] ? $this->github->gitCommit( $repo['full_name'], $base['sha'], $token ) : $base;
+		$base   = $this->github->branch_ref( $repo['full_name'], $repo['default_branch'], $token );
+		$commit = 'ok' === $base['code'] ? $this->github->git_commit( $repo['full_name'], $base['sha'], $token ) : $base;
 		$tree   = 'ok' === $commit['code'] ? $this->github->snapshot( $repo['full_name'], $repo['repository_id'], $repo['default_branch'], $base['sha'], $token ) : $commit;
 		return 'ok' !== $tree['code'] ? $tree : array(
 			'code'           => 'ok',
@@ -262,7 +261,7 @@ final class WorkflowApplicationCoordinator {
 	}
 
 	private function release_claim( RepositoryReleaseWorkflowTarget $status, string $claim ): bool {
-		return $this->records->releaseClaim( $status->providerRepositoryId(), $claim );
+		return $this->records->release_claim( $status->providerRepositoryId(), $claim );
 	}
 
 	private function open_claimed_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, string $token ): array {
@@ -283,8 +282,8 @@ final class WorkflowApplicationCoordinator {
 		$recovered = null !== $pull;
 		if ( null === $pull ) {
 			$title     = 'Bootstrap source-ready releases';
-			$body      = sprintf( "Setup PR created is not execution readiness. Review RELEASE-STARTER.md and every generated file. Read-only Quality may run before merge; merging activates main workflows. Actions, runner access, bot PR permissions and immutable releases are owner-managed and not checked by Booster. You own these files after setup; Booster does not update or repair them.\n\nTemplate pack: `%s` (`%s`)\nConsumer API: `%d`\nBundle: `%s`\n", $bundle->packVersion(), $bundle->packIdentity()['release_tag'], TemplatePack::CONSUMER_API, $bundle->hash() );
-			$created   = $this->github->createDraftPullRequest( $remote['repository'], $branch, $remote['default_branch'], $title, $body, $token );
+			$body      = sprintf( "Setup PR created is not execution readiness. Review RELEASE-STARTER.md and every generated file. Read-only Quality may run before merge; merging activates main workflows. Actions, runner access, bot PR permissions and immutable releases are owner-managed and not checked by Booster. You own these files after setup; Booster does not update or repair them.\n\nTemplate pack: `%s` (`%s`)\nConsumer API: `%d`\nBundle: `%s`\n", $bundle->pack_version(), $bundle->pack_identity()['release_tag'], TemplatePack::CONSUMER_API, $bundle->hash() );
+			$created   = $this->github->create_draft_pull_request( $remote['repository'], $branch, $remote['default_branch'], $title, $body, $token );
 			$recovered = 'ok' !== $created['code'];
 			$lookup    = 'ok' === $created['code'] ? array(
 				'code' => 'ok',
@@ -292,9 +291,9 @@ final class WorkflowApplicationCoordinator {
 			) : $this->find_pull( $remote['repository'], $branch, $remote['default_branch'], $token );
 			$pull      = 'ok' === $lookup['code'] ? $lookup['pull'] : null;
 		}
-		$files = null !== $pull ? $this->github->pullRequestFileSet( $remote['repository'], $pull['number'], $token ) : array( 'code' => 'invalid_request' );
+		$files = null !== $pull ? $this->github->pull_request_file_set( $remote['repository'], $pull['number'], $token ) : array( 'code' => 'invalid_request' );
 		if ( null === $pull || ! $pull['draft'] || 'open' !== $pull['state'] || ! hash_equals( $head, $pull['head_sha'] )
-			|| ! hash_equals( $remote['base_sha'], $pull['base_sha'] ) || 'ok' !== $files['code'] || $files['files'] !== $bundle->expectedPullFiles() ) {
+			|| ! hash_equals( $remote['base_sha'], $pull['base_sha'] ) || 'ok' !== $files['code'] || $files['files'] !== $bundle->expected_pull_files() ) {
 			return $this->result( $status, 'partial', false, $preview_key, 'repository_mutation' );
 		}
 		$record = $this->record( $status, $remote, $bundle, $branch, $head, $pull['number'] );
@@ -306,13 +305,13 @@ final class WorkflowApplicationCoordinator {
 
 	private function create_atomic_commit( array $remote, InitialReleaseBundle $bundle, string $branch, string $token ): ?string {
 		$repo = '' !== $token ? $this->github->repository( $remote['repository'], $token ) : array( 'code' => 'invalid_request' );
-		$base = 'ok' === $repo['code'] ? $this->github->branchRef( $remote['repository'], $remote['default_branch'], $token ) : $repo;
+		$base = 'ok' === $repo['code'] ? $this->github->branch_ref( $remote['repository'], $remote['default_branch'], $token ) : $repo;
 		if ( 'ok' !== $base['code'] || ! hash_equals( $remote['repository_id'], (string) ( $repo['repository_id'] ?? '' ) )
 			|| ! hash_equals( $remote['repository'], (string) ( $repo['full_name'] ?? '' ) ) || ! hash_equals( $remote['default_branch'], (string) ( $repo['default_branch'] ?? '' ) )
 			|| ! hash_equals( $remote['base_sha'], $base['sha'] ) ) {
 			return null;
 		}
-		$existing = $this->github->branchRef( $remote['repository'], $branch, $token );
+		$existing = $this->github->branch_ref( $remote['repository'], $branch, $token );
 		if ( 'ok' === $existing['code'] ) {
 			return $this->verify_branch( $remote, $branch, $existing['sha'], $bundle, $token ) ? $existing['sha'] : null;
 		}
@@ -321,7 +320,7 @@ final class WorkflowApplicationCoordinator {
 		}
 		$entries = array();
 		foreach ( $bundle->files() as $file ) {
-			$blob = $this->github->createBlob( $remote['repository'], $file['content'], $token );
+			$blob = $this->github->create_blob( $remote['repository'], $file['content'], $token );
 			if ( 'ok' !== $blob['code'] || ! hash_equals( $file['git_sha'], $blob['sha'] ) ) {
 				$read = $this->github->blob( $remote['repository'], $file['git_sha'], $token );
 				if ( 'ok' !== $read['code'] || ! hash_equals( hash( 'sha256', $file['content'] ), hash( 'sha256', $read['content'] ) ) ) {
@@ -338,24 +337,24 @@ final class WorkflowApplicationCoordinator {
 				'mode' => $file['mode'],
 			);
 		}
-		$tree    = $this->github->createTree( $remote['repository'], $remote['base_tree_sha'], $entries, $token );
+		$tree    = $this->github->create_tree( $remote['repository'], $remote['base_tree_sha'], $entries, $token );
 		$message = 'chore: bootstrap source-ready releases';
-		$commit  = 'ok' === $tree['code'] ? $this->github->createCommit( $remote['repository'], $tree['sha'], $remote['base_sha'], $message, $token ) : $tree;
+		$commit  = 'ok' === $tree['code'] ? $this->github->create_commit( $remote['repository'], $tree['sha'], $remote['base_sha'], $message, $token ) : $tree;
 		$repo    = 'ok' === $commit['code'] ? $this->github->repository( $remote['repository'], $token ) : $commit;
-		$base    = 'ok' === $repo['code'] ? $this->github->branchRef( $remote['repository'], $remote['default_branch'], $token ) : $repo;
+		$base    = 'ok' === $repo['code'] ? $this->github->branch_ref( $remote['repository'], $remote['default_branch'], $token ) : $repo;
 		if ( 'ok' !== $commit['code'] || 'ok' !== $base['code'] || ! hash_equals( $remote['repository_id'], (string) ( $repo['repository_id'] ?? '' ) )
 			|| ! hash_equals( $remote['repository'], (string) ( $repo['full_name'] ?? '' ) ) || ! hash_equals( $remote['default_branch'], (string) ( $repo['default_branch'] ?? '' ) )
 			|| ! hash_equals( $remote['base_sha'], $base['sha'] ) ) {
 			return null;
 		}
-		$created = $this->github->createRef( $remote['repository'], $branch, $remote['default_branch'], $commit['sha'], $token );
-		$ref     = 'ok' === $created['code'] ? $created : $this->github->branchRef( $remote['repository'], $branch, $token );
+		$created = $this->github->create_ref( $remote['repository'], $branch, $remote['default_branch'], $commit['sha'], $token );
+		$ref     = 'ok' === $created['code'] ? $created : $this->github->branch_ref( $remote['repository'], $branch, $token );
 		return 'ok' === $ref['code'] && hash_equals( $commit['sha'], $ref['sha'] ) && $this->verify_branch( $remote, $branch, $commit['sha'], $bundle, $token ) ? $commit['sha'] : null;
 	}
 
 	private function verify_branch( array $remote, string $branch, string $head, InitialReleaseBundle $bundle, string $token ): bool {
-		$ref    = $this->github->branchRef( $remote['repository'], $branch, $token );
-		$commit = 'ok' === $ref['code'] && hash_equals( $head, $ref['sha'] ) ? $this->github->gitCommit( $remote['repository'], $head, $token ) : $ref;
+		$ref    = $this->github->branch_ref( $remote['repository'], $branch, $token );
+		$commit = 'ok' === $ref['code'] && hash_equals( $head, $ref['sha'] ) ? $this->github->git_commit( $remote['repository'], $head, $token ) : $ref;
 		$tree   = 'ok' === $commit['code'] && array( $remote['base_sha'] ) === $commit['parents'] ? $this->github->snapshot( $remote['repository'], $remote['repository_id'], $remote['default_branch'], $head, $token ) : $commit;
 		if ( 'ok' !== $tree['code'] ) {
 			return false;
@@ -370,7 +369,7 @@ final class WorkflowApplicationCoordinator {
 	}
 
 	private function find_pull( string $repository, string $branch, string $base, string $token ): array {
-		$result = $this->github->pullRequests( $repository, $branch, $token );
+		$result = $this->github->pull_requests( $repository, $branch, $token );
 		if ( 'ok' !== $result['code'] ) {
 			return $result;
 		}
@@ -414,12 +413,12 @@ final class WorkflowApplicationCoordinator {
 			'base_sha'          => $remote['base_sha'],
 			'preflight_channel' => $channel,
 			'profile_id'        => $bundle->profile(),
-			'pack_version'      => $bundle->packVersion(),
-			'manifest_hash'     => $bundle->manifestHash(),
-			'template_identity' => $bundle->packIdentity(),
+			'pack_version'      => $bundle->pack_version(),
+			'manifest_hash'     => $bundle->manifest_hash(),
+			'template_identity' => $bundle->pack_identity(),
 			'bundle_hash'       => $bundle->hash(),
-			'changed_path_hash' => $bundle->changedPathHash(),
-			'allowlist_hash'    => $bundle->allowlistHash(),
+			'changed_path_hash' => $bundle->changed_path_hash(),
+			'allowlist_hash'    => $bundle->allowlist_hash(),
 			'changes'           => $changes,
 		);
 	}
@@ -437,14 +436,14 @@ final class WorkflowApplicationCoordinator {
 		}
 		return hash_equals( $preview['repository'], $remote['repository'] ) && hash_equals( $preview['default_branch'], $remote['default_branch'] )
 			&& hash_equals( $preview['base_sha'], $remote['base_sha'] ) && hash_equals( $preview['profile_id'], $bundle->profile() )
-			&& hash_equals( $preview['pack_version'], $bundle->packVersion() ) && hash_equals( $preview['manifest_hash'], $bundle->manifestHash() )
-			&& hash_equals( $preview['bundle_hash'], $bundle->hash() ) && hash_equals( $preview['changed_path_hash'], $bundle->changedPathHash() )
-			&& hash_equals( $preview['allowlist_hash'], $bundle->allowlistHash() ) && $preview['template_identity'] === $bundle->packIdentity()
+			&& hash_equals( $preview['pack_version'], $bundle->pack_version() ) && hash_equals( $preview['manifest_hash'], $bundle->manifest_hash() )
+			&& hash_equals( $preview['bundle_hash'], $bundle->hash() ) && hash_equals( $preview['changed_path_hash'], $bundle->changed_path_hash() )
+			&& hash_equals( $preview['allowlist_hash'], $bundle->allowlist_hash() ) && $preview['template_identity'] === $bundle->pack_identity()
 			&& $preview['changes'] === $changes;
 	}
 
 	private function record( RepositoryReleaseWorkflowTarget $status, array $remote, InitialReleaseBundle $bundle, string $branch, string $head, int $pull ): array {
-		$identity = $bundle->packIdentity();
+		$identity = $bundle->pack_identity();
 		return array(
 			'schema_version'        => 3,
 			'operation'             => 'bootstrap',
@@ -468,12 +467,12 @@ final class WorkflowApplicationCoordinator {
 			'template_asset_name'   => $identity['asset_name'],
 			'template_asset_size'   => $identity['asset_size'],
 			'template_asset_digest' => $identity['asset_sha256'],
-			'manifest_digest'       => $bundle->manifestHash(),
-			'changed_files'         => $bundle->expectedPullFiles(),
+			'manifest_digest'       => $bundle->manifest_hash(),
+			'changed_files'         => $bundle->expected_pull_files(),
 			'consumer_api'          => TemplatePack::CONSUMER_API,
-			'pack_version'          => $bundle->packVersion(),
+			'pack_version'          => $bundle->pack_version(),
 			'bundle_hash'           => $bundle->hash(),
-			'changed_path_hash'     => $bundle->changedPathHash(),
+			'changed_path_hash'     => $bundle->changed_path_hash(),
 		);
 	}
 

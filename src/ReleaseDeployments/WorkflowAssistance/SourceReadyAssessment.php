@@ -72,38 +72,29 @@ final readonly class SourceReadyAssessment {
 	}
 
 	/**
-	 * @param list<string>              $releaseFiles
-	 * @param array<string,string>      $modifiedFiles
-	 * @param list<array<string,mixed>> $extraFiles
+	 * @param list<string>              $release_files
+	 * @param array<string,string>      $modified_files
+	 * @param list<array<string,mixed>> $extra_files
 	 */
 	public static function ready(
 		string $profile,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		string $packageSlug,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		string $headerPath,
+		string $package_slug,
+		string $header_path,
 		string $version,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		array $releaseFiles,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		array $modifiedFiles,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		array $extraFiles,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		string $phpVersion
+		array $release_files,
+		array $modified_files,
+		array $extra_files,
+		string $php_version
 	): self {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		return new self( 'source_ready', $profile, $packageSlug, $headerPath, $version, $releaseFiles, $modifiedFiles, $extraFiles, $phpVersion );
+		return new self( 'source_ready', $profile, $package_slug, $header_path, $version, $release_files, $modified_files, $extra_files, $php_version );
 	}
 	public static function refused( string $code ): self {
 		return new self( $code, '', '', '', '', array(), array(), array(), '' );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function readyForBootstrap(): bool {
+	public function ready_for_bootstrap(): bool {
 		return 'source_ready' === $this->code;
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function phpVersion(): string {
+	public function php_version(): string {
 		return $this->php_version;
 	}
 	public function code(): string {
@@ -112,30 +103,25 @@ final readonly class SourceReadyAssessment {
 	public function profile(): string {
 		return $this->profile;
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function packageSlug(): string {
+	public function package_slug(): string {
 		return $this->package_slug;
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function headerPath(): string {
+	public function header_path(): string {
 		return $this->header_path;
 	}
 	public function version(): string {
 		return $this->version;
 	}
 	/** @return list<string> */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function releaseFiles(): array {
+	public function release_files(): array {
 		return $this->release_files;
 	}
 	/** @return array<string,string> */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function modifiedFiles(): array {
+	public function modified_files(): array {
 		return $this->modified_files;
 	}
 	/** @return list<array<string,mixed>> */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function extraFiles(): array {
+	public function extra_files(): array {
 		return $this->extra_files;
 	}
 }

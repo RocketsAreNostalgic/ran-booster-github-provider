@@ -586,7 +586,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			self::assertSame( $counts, $transport->write_counts, $operation );
 			$claim = $records->claim( '101', 'plugin', 'example-plugin/example-plugin.php', 3 );
 			self::assertNotNull( $claim, $operation );
-			self::assertTrue( $records->releaseClaim( '101', $claim ), $operation );
+			self::assertTrue( $records->release_claim( '101', $claim ), $operation );
 		}
 	}
 
@@ -610,7 +610,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 
 		$claim = $records->claim( '101', 'plugin', 'example-plugin/example-plugin.php', 3 );
 		self::assertNotNull( $claim );
-		self::assertTrue( $records->releaseClaim( '101', $claim ) );
+		self::assertTrue( $records->release_claim( '101', $claim ) );
 	}
 
 

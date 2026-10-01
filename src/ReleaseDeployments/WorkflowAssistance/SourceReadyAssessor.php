@@ -103,8 +103,7 @@ final class SourceReadyAssessor {
 	);
 
 	/** Only paths which a supported plugin/theme could place in the release allowlist. */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public static function potentialRuntimeBlob( string $path ): bool {
+	public static function potential_runtime_blob( string $path ): bool {
 		$parts = explode( '/', $path, 2 );
 		if ( 2 === count( $parts ) ) {
 			return in_array( $parts[0], self::PLUGIN_RUNTIME_ROOTS, true ) || in_array( $parts[0], self::THEME_RUNTIME_ROOTS, true );
@@ -115,15 +114,11 @@ final class SourceReadyAssessor {
 	public function assess(
 		RepositorySnapshot $snapshot,
 		string $type,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		string $packageSlug,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		string $installedVersion,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		string $expectedUpdateUri
+		string $package_slug,
+		string $installed_version,
+		string $expected_update_uri
 	): SourceReadyAssessment {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		return $this->assess_snapshot( $snapshot, $type, $packageSlug, $installedVersion, $expectedUpdateUri );
+		return $this->assess_snapshot( $snapshot, $type, $package_slug, $installed_version, $expected_update_uri );
 	}
 
 	private function assess_snapshot(
@@ -135,19 +130,19 @@ final class SourceReadyAssessor {
 	): SourceReadyAssessment {
 		$expected_update_uri = rtrim( $expected_update_uri, '/' );
 		if ( ! in_array( $type, array( 'plugin', 'theme' ), true )
-			|| 'main' !== $snapshot->defaultBranch() || strlen( $package_slug ) > 100 || strlen( $installed_version ) > 63
+			|| 'main' !== $snapshot->default_branch() || strlen( $package_slug ) > 100 || strlen( $installed_version ) > 63
 			|| 1 !== preg_match( '/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/D', $package_slug )
 			|| 1 === preg_match( '/\A(?:con|prn|aux|nul|com[1-9]|lpt[1-9])\z/iD', $package_slug )
 			|| 1 !== preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $installed_version )
 			|| ! hash_equals( 'https://github.com/' . $snapshot->repository(), $expected_update_uri ) ) {
 			return SourceReadyAssessment::refused( 'repository_unsupported' );
 		}
-		if ( $snapshot->inspectedBlobCount() > self::MAX_SOURCE_INSPECTED_BLOBS
+		if ( $snapshot->inspected_blob_count() > self::MAX_SOURCE_INSPECTED_BLOBS
 			|| count( $snapshot->entries() ) > self::MAX_SOURCE_TREE_ENTRIES ) {
 			return SourceReadyAssessment::refused( 'runtime_paths_unknown' );
 		}
 
-		if ( $this->hasCompetingReleaseAutomation( $snapshot ) ) {
+		if ( $this->has_competing_release_automation( $snapshot ) ) {
 			return SourceReadyAssessment::refused( 'release_automation_conflict' );
 		}
 
@@ -209,7 +204,7 @@ final class SourceReadyAssessor {
 		if ( 'theme' === $type ) {
 			$candidates = array( 'style.css' );
 		} else {
-			foreach ( $snapshot->documentPaths() as $path ) {
+			foreach ( $snapshot->document_paths() as $path ) {
 				if ( ! str_contains( $path, '/' ) && str_ends_with( strtolower( $path ), '.php' ) ) {
 					$document = $snapshot->document( $path );
 					if ( is_string( $document ) && 1 === preg_match( '/^[ \t]*\*[ \t]*Plugin Name:[ \t]*\S/m', $document ) ) {
@@ -298,7 +293,7 @@ final class SourceReadyAssessor {
 			);
 		}
 
-		foreach ( $snapshot->documentPaths() as $path ) {
+		foreach ( $snapshot->document_paths() as $path ) {
 			if ( str_ends_with( $path, 'block.json' ) ) {
 				$document = $snapshot->document( $path );
 				try {
@@ -322,8 +317,7 @@ final class SourceReadyAssessor {
 		);
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function hasCompetingReleaseAutomation( RepositorySnapshot $snapshot ): bool {
+	public function has_competing_release_automation( RepositorySnapshot $snapshot ): bool {
 		foreach ( array_keys( $snapshot->entries() ) as $path ) {
 			if ( ! in_array( $path, self::GENERATED_PATHS, true )
 				&& in_array( basename( $path ), array( '.release-please-manifest.json', 'release-please-config.json' ), true ) ) {
@@ -331,7 +325,7 @@ final class SourceReadyAssessor {
 			}
 		}
 
-		foreach ( $snapshot->documentPaths() as $path ) {
+		foreach ( $snapshot->document_paths() as $path ) {
 			$workflow = str_starts_with( $path, '.github/workflows/' ) && 1 === preg_match( '/\.ya?ml\z/i', $path );
 			$script   = ( str_starts_with( $path, 'scripts/' ) || str_starts_with( $path, '.github/scripts/' ) || str_starts_with( $path, '.ci/' ) )
 				&& str_ends_with( strtolower( $path ), '.sh' );
@@ -459,7 +453,7 @@ final class SourceReadyAssessor {
 			}
 			$normalized[ $logical ] = true;
 			$remaining             -= $entry['size'];
-			$prefix                 = $snapshot->blobPrefix( $path );
+			$prefix                 = $snapshot->blob_prefix( $path );
 			if ( ( $entry['size'] >= 42 && null === $prefix )
 				|| ( null !== $prefix && str_starts_with( $prefix, 'version https://git-lfs.github.com/spec/v1' ) ) ) {
 				return null;

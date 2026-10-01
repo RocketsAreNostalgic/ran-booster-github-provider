@@ -32,7 +32,7 @@ final class CredentialExpiryValidationTest extends TestCase {
 
 		$result = ( new RepositoryBrowser(
 			new RepositoryResolverSecretsStub( array( 'expiry-profile' => self::TOKEN ) )
-		) )->validateCredential( 'expiry-profile' );
+		) )->validate_credential( 'expiry-profile' );
 
 		self::assertTrue( $result->isValid() );
 		self::assertNotNull( $result->expiry );
@@ -59,7 +59,7 @@ final class CredentialExpiryValidationTest extends TestCase {
 
 		$result = ( new RepositoryBrowser(
 			new RepositoryResolverSecretsStub( array( 'expiry-profile' => self::TOKEN ) )
-		) )->validateCredential( 'expiry-profile' );
+		) )->validate_credential( 'expiry-profile' );
 
 		self::assertTrue( $result->isValid() );
 		self::assertNotNull( $result->expiry );
@@ -79,7 +79,7 @@ final class CredentialExpiryValidationTest extends TestCase {
 
 		$result = ( new RepositoryBrowser(
 			new RepositoryResolverSecretsStub( array( 'expiry-profile' => self::TOKEN ) )
-		) )->validateCredential( 'expiry-profile' );
+		) )->validate_credential( 'expiry-profile' );
 
 		self::assertFalse( $result->isValid() );
 		self::assertNull( $result->expiry );

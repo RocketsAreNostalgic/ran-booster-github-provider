@@ -35,7 +35,7 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 		}
 
 		try {
-			$result = $this->browser->validateCredential( $credential_id, $request->claimRemoteCall() );
+			$result = $this->browser->validate_credential( $credential_id, $request->claimRemoteCall() );
 		} catch ( ProviderDiagnosticBudgetExceeded ) {
 			return $this->budget_result( 'gh.credential.budget_exhausted' );
 		} catch ( \Throwable $exception ) {

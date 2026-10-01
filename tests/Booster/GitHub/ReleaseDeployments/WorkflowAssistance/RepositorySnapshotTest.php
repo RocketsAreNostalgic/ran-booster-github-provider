@@ -19,7 +19,7 @@ final class RepositorySnapshotTest extends TestCase {
 				'a.php' => '<?php',
 			)
 		);
-		self::assertSame( array( 'a.php', 'z.php' ), $snapshot->documentPaths() );
+		self::assertSame( array( 'a.php', 'z.php' ), $snapshot->document_paths() );
 		self::assertSame( 'owner/repository', $snapshot->repository() );
 		self::assertSame( str_repeat( 'a', 40 ), $snapshot->sha() );
 		$entries          = $snapshot->entries();

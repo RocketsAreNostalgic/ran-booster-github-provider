@@ -12,33 +12,22 @@ final class RepositoryWebhookClient {
 	private const TOTAL_TIMEOUT   = 25.0;
 	private const LIST_PAGE_BYTES = 262144;
 	private const READ_BYTES      = 65536;
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessSetup( string $repositoryId, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->assess( $repositoryId, $repository, $token, 'setup' );
+	public function assess_setup( string $repository_id, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
+		return $this->assess( $repository_id, $repository, $token, 'setup' );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessCheck( string $repositoryId, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->assess( $repositoryId, $repository, $token, 'check' );
+	public function assess_check( string $repository_id, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
+		return $this->assess( $repository_id, $repository, $token, 'check' );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessReconfigure( string $repositoryId, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->assess( $repositoryId, $repository, $token, 'reconfigure' );
+	public function assess_reconfigure( string $repository_id, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
+		return $this->assess( $repository_id, $repository, $token, 'reconfigure' );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessRemove( string $repositoryId, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->assess( $repositoryId, $repository, $token, 'remove' );
+	public function assess_remove( string $repository_id, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
+		return $this->assess( $repository_id, $repository, $token, 'remove' );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessTest( string $repositoryId, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->assess( $repositoryId, $repository, $token, 'test' );
+	public function assess_test( string $repository_id, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
+		return $this->assess( $repository_id, $repository, $token, 'test' );
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-	public function setup( string $repository, string $callbackUrl, #[\SensitiveParameter] string $token, #[\SensitiveParameter] string $secret ): RepositoryWebhookOperationResult {
+	public function setup( string $repository, string $callback_url, #[\SensitiveParameter] string $token, #[\SensitiveParameter] string $secret ): RepositoryWebhookOperationResult {
 		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
 		$matches  = array();
 		for ( $page = 1; $page <= 3; ++$page ) {
@@ -51,8 +40,7 @@ final class RepositoryWebhookClient {
 				return $this->uncertain( 'hook_inventory_invalid' );
 			}
 			foreach ( $hooks as $hook ) {
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				$configuration = $this->configuration( $hook, $callbackUrl );
+				$configuration = $this->configuration( $hook, $callback_url );
 				if ( 'matched' === $configuration['endpoint'] ) {
 					$matches[] = array( $hook, $configuration );
 				}
@@ -70,8 +58,7 @@ final class RepositoryWebhookClient {
 		if ( 1 === count( $matches ) ) {
 			return $this->result( 'ambiguous', 'existing_hook_requires_reconfigure', null, $matches[0][1], 'unknown', 'An existing endpoint cannot prove the stored signing secret; inspect it and use explicit reconfiguration.' );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$created = $this->request( 'POST', $this->hooks_path( $repository ), $token, $this->payload( $callbackUrl, $secret ), self::READ_BYTES, $deadline );
+		$created = $this->request( 'POST', $this->hooks_path( $repository ), $token, $this->payload( $callback_url, $secret ), self::READ_BYTES, $deadline );
 		if ( 201 !== $created['status'] ) {
 			return $this->mutation_failure( $created['status'], 'setup_failed' );
 		}
@@ -83,8 +70,7 @@ final class RepositoryWebhookClient {
 		$readback = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		$hook     = 200 === $readback['status'] ? $this->decode_hook( $readback['body'] ) : null;
 		if ( null !== $hook && hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->configured_result( $hook, $this->configuration( $hook, $callbackUrl ) );
+			return $this->configured_result( $hook, $this->configuration( $hook, $callback_url ) );
 		}
 		$deleted = $this->request( 'DELETE', $this->hook_path( $repository, $hook_id ), $token, null, 0, $deadline );
 		$absent  = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
@@ -93,139 +79,95 @@ final class RepositoryWebhookClient {
 		}
 		return $this->result( 'partial', 'setup_compensation_incomplete', $hook_id, $this->unknown_configuration(), 'unknown', 'Inspect the identified remote hook before retrying.' );
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-	public function check( string $repository, string $hookId, string $callbackUrl, #[\SensitiveParameter] string $token ): RepositoryWebhookOperationResult {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$response = $this->request( 'GET', $this->hook_path( $repository, $hookId ), $token, null, self::READ_BYTES, microtime( true ) + self::TOTAL_TIMEOUT );
+	public function check( string $repository, string $hook_id, string $callback_url, #[\SensitiveParameter] string $token ): RepositoryWebhookOperationResult {
+		$response = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, microtime( true ) + self::TOTAL_TIMEOUT );
 		if ( 404 === $response['status'] ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->result( 'succeeded', 'hook_absent', $hookId, $this->unknown_configuration(), 'absent', 'Set up a replacement only after reviewing the retained local record.' );
+			return $this->result( 'succeeded', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'Set up a replacement only after reviewing the retained local record.' );
 		}
 		$hook = 200 === $response['status'] ? $this->decode_hook( $response['body'] ) : null;
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( null === $hook || ! hash_equals( $hookId, (string) $this->hook_id( $hook ) ) ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->uncertain( 'hook_readback_unavailable', $hookId );
+		if ( null === $hook || ! hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
+			return $this->uncertain( 'hook_readback_unavailable', $hook_id );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$configuration = $this->configuration( $hook, $callbackUrl );
+		$configuration = $this->configuration( $hook, $callback_url );
 		if ( in_array( 'unknown', $configuration, true ) ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->uncertain( 'hook_readback_invalid', $hookId );
+			return $this->uncertain( 'hook_readback_invalid', $hook_id );
 		}
 		return $this->result(
 			'succeeded',
 			in_array( 'mismatched', $configuration, true ) ? 'configuration_drift' : 'configuration_confirmed',
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			$hookId,
+			$hook_id,
 			$configuration,
 			'unknown',
 			in_array( 'mismatched', $configuration, true ) ? 'Reconfigure the identified hook before relying on it.' : 'A correctly signed inbound delivery is still required for verification.'
 		);
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-	public function test( string $repository, string $hookId, string $callbackUrl, #[\SensitiveParameter] string $token ): RepositoryWebhookOperationResult {
-		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$hook_read = $this->request( 'GET', $this->hook_path( $repository, $hookId ), $token, null, self::READ_BYTES, $deadline );
+	public function test( string $repository, string $hook_id, string $callback_url, #[\SensitiveParameter] string $token ): RepositoryWebhookOperationResult {
+		$deadline  = microtime( true ) + self::TOTAL_TIMEOUT;
+		$hook_read = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		$hook      = 200 === $hook_read['status'] ? $this->decode_hook( $hook_read['body'] ) : null;
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( null === $hook || ! hash_equals( $hookId, (string) $this->hook_id( $hook ) ) ) {
+		if ( null === $hook || ! hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
 			return 404 === $hook_read['status']
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				? $this->result( 'failed', 'hook_absent', $hookId, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' )
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				: $this->uncertain( 'hook_readback_unavailable', $hookId );
+				? $this->result( 'failed', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' )
+				: $this->uncertain( 'hook_readback_unavailable', $hook_id );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$configuration = $this->configuration( $hook, $callbackUrl );
+		$configuration = $this->configuration( $hook, $callback_url );
 		if ( in_array( 'unknown', $configuration, true ) ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->uncertain( 'hook_readback_invalid', $hookId );
+			return $this->uncertain( 'hook_readback_invalid', $hook_id );
 		}
 		if ( in_array( 'mismatched', $configuration, true ) ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->result( 'failed', 'hook_ownership_mismatch', $hookId, $configuration, 'unknown', 'The recorded hook does not match this site. Reconfigure it before testing.' );
+			return $this->result( 'failed', 'hook_ownership_mismatch', $hook_id, $configuration, 'unknown', 'The recorded hook does not match this site. Reconfigure it before testing.' );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$ping = $this->request( 'POST', $this->hook_path( $repository, $hookId ) . '/pings', $token, array(), 0, $deadline );
+		$ping = $this->request( 'POST', $this->hook_path( $repository, $hook_id ) . '/pings', $token, array(), 0, $deadline );
 		if ( 200 > $ping['status'] || 300 <= $ping['status'] ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->mutation_failure( $ping['status'], 'ping_request_failed', $hookId );
+			return $this->mutation_failure( $ping['status'], 'ping_request_failed', $hook_id );
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->result( 'succeeded', 'ping_requested', $hookId, $configuration, 'unknown', 'GitHub accepted the ping request. Only an authenticated inbound delivery can verify the signing secret.' );
+		return $this->result( 'succeeded', 'ping_requested', $hook_id, $configuration, 'unknown', 'GitHub accepted the ping request. Only an authenticated inbound delivery can verify the signing secret.' );
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-	public function reconfigure( string $repository, string $hookId, string $callbackUrl, #[\SensitiveParameter] string $token, #[\SensitiveParameter] string $secret ): RepositoryWebhookOperationResult {
-		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$before      = $this->request( 'GET', $this->hook_path( $repository, $hookId ), $token, null, self::READ_BYTES, $deadline );
+	public function reconfigure( string $repository, string $hook_id, string $callback_url, #[\SensitiveParameter] string $token, #[\SensitiveParameter] string $secret ): RepositoryWebhookOperationResult {
+		$deadline    = microtime( true ) + self::TOTAL_TIMEOUT;
+		$before      = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		$before_hook = 200 === $before['status'] ? $this->decode_hook( $before['body'] ) : null;
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( null === $before_hook || ! hash_equals( $hookId, (string) $this->hook_id( $before_hook ) ) ) {
+		if ( null === $before_hook || ! hash_equals( $hook_id, (string) $this->hook_id( $before_hook ) ) ) {
 			return 404 === $before['status']
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				? $this->result( 'failed', 'hook_absent', $hookId, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' )
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				: $this->uncertain( 'preconfiguration_read_unavailable', $hookId );
+				? $this->result( 'failed', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' )
+				: $this->uncertain( 'preconfiguration_read_unavailable', $hook_id );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( 'matched' !== $this->configuration( $before_hook, $callbackUrl )['endpoint'] ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return 'unknown' === $this->configuration( $before_hook, $callbackUrl )['endpoint'] ? $this->uncertain( 'hook_ownership_unavailable', $hookId ) : $this->result( 'failed', 'hook_ownership_mismatch', $hookId, $this->configuration( $before_hook, $callbackUrl ), 'unknown', 'Inspect the remote hook; its callback does not match this site.' );
+		if ( 'matched' !== $this->configuration( $before_hook, $callback_url )['endpoint'] ) {
+			return 'unknown' === $this->configuration( $before_hook, $callback_url )['endpoint'] ? $this->uncertain( 'hook_ownership_unavailable', $hook_id ) : $this->result( 'failed', 'hook_ownership_mismatch', $hook_id, $this->configuration( $before_hook, $callback_url ), 'unknown', 'Inspect the remote hook; its callback does not match this site.' );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$updated = $this->request( 'PATCH', $this->hook_path( $repository, $hookId ), $token, $this->payload( $callbackUrl, $secret ), self::READ_BYTES, $deadline );
+		$updated = $this->request( 'PATCH', $this->hook_path( $repository, $hook_id ), $token, $this->payload( $callback_url, $secret ), self::READ_BYTES, $deadline );
 		if ( 200 !== $updated['status'] ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->mutation_failure( $updated['status'], 'reconfigure_failed', $hookId );
+			return $this->mutation_failure( $updated['status'], 'reconfigure_failed', $hook_id );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$readback = $this->request( 'GET', $this->hook_path( $repository, $hookId ), $token, null, self::READ_BYTES, $deadline );
+		$readback = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		$hook     = 200 === $readback['status'] ? $this->decode_hook( $readback['body'] ) : null;
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( null === $hook || ! hash_equals( $hookId, (string) $this->hook_id( $hook ) ) ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->uncertain( 'reconfigure_readback_unavailable', $hookId );
+		if ( null === $hook || ! hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
+			return $this->uncertain( 'reconfigure_readback_unavailable', $hook_id );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->configured_result( $hook, $this->configuration( $hook, $callbackUrl ) );
+		return $this->configured_result( $hook, $this->configuration( $hook, $callback_url ) );
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-	public function remove( string $repository, string $hookId, string $callbackUrl, #[\SensitiveParameter] string $token ): RepositoryWebhookOperationResult {
+	public function remove( string $repository, string $hook_id, string $callback_url, #[\SensitiveParameter] string $token ): RepositoryWebhookOperationResult {
 		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$before = $this->request( 'GET', $this->hook_path( $repository, $hookId ), $token, null, self::READ_BYTES, $deadline );
+		$before   = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		if ( 404 === $before['status'] ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->result( 'succeeded', 'absence_confirmed', $hookId, $this->unknown_configuration(), 'absent', 'The remote hook is absent.' );
+			return $this->result( 'succeeded', 'absence_confirmed', $hook_id, $this->unknown_configuration(), 'absent', 'The remote hook is absent.' );
 		}
 		$hook = 200 === $before['status'] ? $this->decode_hook( $before['body'] ) : null;
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( null === $hook || ! hash_equals( $hookId, (string) $this->hook_id( $hook ) ) ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->uncertain( 'predelete_read_unavailable', $hookId );
+		if ( null === $hook || ! hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
+			return $this->uncertain( 'predelete_read_unavailable', $hook_id );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( 'matched' !== $this->configuration( $hook, $callbackUrl )['endpoint'] ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return 'unknown' === $this->configuration( $hook, $callbackUrl )['endpoint'] ? $this->uncertain( 'hook_ownership_unavailable', $hookId ) : $this->result( 'failed', 'hook_ownership_mismatch', $hookId, $this->configuration( $hook, $callbackUrl ), 'unknown', 'Inspect the remote hook; its callback does not match this site.' );
+		if ( 'matched' !== $this->configuration( $hook, $callback_url )['endpoint'] ) {
+			return 'unknown' === $this->configuration( $hook, $callback_url )['endpoint'] ? $this->uncertain( 'hook_ownership_unavailable', $hook_id ) : $this->result( 'failed', 'hook_ownership_mismatch', $hook_id, $this->configuration( $hook, $callback_url ), 'unknown', 'Inspect the remote hook; its callback does not match this site.' );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$deleted = $this->request( 'DELETE', $this->hook_path( $repository, $hookId ), $token, null, 0, $deadline );
+		$deleted = $this->request( 'DELETE', $this->hook_path( $repository, $hook_id ), $token, null, 0, $deadline );
 		if ( 204 !== $deleted['status'] ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			return $this->mutation_failure( $deleted['status'], 'remove_failed', $hookId );
+			return $this->mutation_failure( $deleted['status'], 'remove_failed', $hook_id );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$absent = $this->request( 'GET', $this->hook_path( $repository, $hookId ), $token, null, self::READ_BYTES, $deadline );
+		$absent = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		return 404 === $absent['status']
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			? $this->result( 'succeeded', 'absence_confirmed', $hookId, $this->unknown_configuration(), 'absent', 'The remote hook is absent.' )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			: $this->uncertain( 'remove_readback_unavailable', $hookId );
+			? $this->result( 'succeeded', 'absence_confirmed', $hook_id, $this->unknown_configuration(), 'absent', 'The remote hook is absent.' )
+			: $this->uncertain( 'remove_readback_unavailable', $hook_id );
 	}
 	private function assess( string $repository_id, string $repository, string $token, string $action ): RepositoryWebhookFitnessResult {
 		$response = $this->request( 'GET', $this->repository_path( $repository ), $token, null, self::READ_BYTES, microtime( true ) + self::TOTAL_TIMEOUT );

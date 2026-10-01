@@ -22,14 +22,12 @@ final class StarterSecurityCheck {
 	 * Missing provenance does not block ordinary adoption. Core wiring is a separate contract.
 	 * @return array{status:string,matches:list<array<string,mixed>>}
 	 */
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function check( string $originBytes, string $token = '' ): array {
+	public function check( string $origin_bytes, string $token = '' ): array {
 		$unknown = array(
 			'status'  => 'unknown',
 			'matches' => array(),
 		);
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		$origin = StarterOrigin::decode( $originBytes );
+		$origin  = StarterOrigin::decode( $origin_bytes );
 		if ( null === $origin ) {
 			return $unknown;
 		}

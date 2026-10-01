@@ -44,7 +44,7 @@ The implementation consumes Booster-owned provider contracts, so implementation 
 ```sh
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the candidate host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 18b0ec619174000a9a9dbc27b9d68b44b0265449 &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ed9585e760a4443b018fa8f4eaa853b129cddc53 &&
   composer check:host
 ```
 
@@ -52,11 +52,11 @@ test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 18b0ec619174000a9a9db
 
 CI pins and verifies the candidate Booster revision before running those host-backed gates, separately verifies the host contract, validates mutable PR release classification, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
 
-The candidate-only Provider API 12 / workflow V3 host tuple above is explicitly
-approved by programme #81 for the coordinated Core #177 cutover. It supersedes
-the historical beta.29/V2 qualification pin for this candidate only; it does not
-certify a released host or authorise UI changes. Preserve the full PHP 8.2/8.5
-matrix and all terminal gates.
+The candidate-only host tuple above is the published combined Branch/Provider
+helper preparation under Core #167. It retains the Provider API 12 / workflow V3
+contracts and supersedes the prior candidate pin for this qualification only.
+It does not certify a released host, Core dependency adoption or UI changes.
+Preserve the full PHP 8.2/8.5 matrix and all terminal gates.
 
 ## Review and merge discipline
 

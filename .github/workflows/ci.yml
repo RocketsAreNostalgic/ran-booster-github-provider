@@ -96,18 +96,18 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Check out candidate Booster host
-        # Candidate-only Provider API 12 / workflow V3 qualification under owner-approved .github#81; not released-host certification.
+        # Candidate-only connected helper qualification under Core #167; not released-host certification.
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: 18b0ec619174000a9a9dbc27b9d68b44b0265449
+          ref: ed9585e760a4443b018fa8f4eaa853b129cddc53
           persist-credentials: false
           path: booster
 
       - name: Verify exact source and host revisions
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: 18b0ec619174000a9a9dbc27b9d68b44b0265449
+          RAN_BOOSTER_HOST_SHA: ed9585e760a4443b018fa8f4eaa853b129cddc53
         run: |
           set -euo pipefail
           test -n "$RAN_EXPECTED_SHA"
@@ -198,14 +198,14 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: 18b0ec619174000a9a9dbc27b9d68b44b0265449
+          ref: ed9585e760a4443b018fa8f4eaa853b129cddc53
           persist-credentials: false
           path: booster
 
       - name: Run candidate-host quality aggregate
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: 18b0ec619174000a9a9dbc27b9d68b44b0265449
+          RAN_BOOSTER_HOST_SHA: ed9585e760a4443b018fa8f4eaa853b129cddc53
           RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
           RAN_CI_PHASE_STATE: ${{ runner.temp }}/provider-phase-${{ matrix.php }}
         working-directory: provider

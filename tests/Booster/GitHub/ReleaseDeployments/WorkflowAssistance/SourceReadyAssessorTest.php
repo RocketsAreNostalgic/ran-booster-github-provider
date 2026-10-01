@@ -30,15 +30,15 @@ final class SourceReadyAssessorTest extends TestCase {
 		$first     = ( new SourceReadyAssessor() )->assess( $this->snapshot( $documents ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY . '/' );
 		$second    = ( new SourceReadyAssessor() )->assess( $this->snapshot( array_reverse( $documents, true ) ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
 
-		self::assertTrue( $first->readyForBootstrap() );
+		self::assertTrue( $first->ready_for_bootstrap() );
 		self::assertSame( 'source-ready-wordpress-plugin/3', $first->profile() );
-		self::assertSame( $first->releaseFiles(), $second->releaseFiles() );
-		self::assertSame( $first->extraFiles(), $second->extraFiles() );
-		self::assertSame( array( 'assets/app.css', 'build/block.json', 'example-plugin.php', 'readme.txt' ), $first->releaseFiles() );
-		self::assertStringContainsString( " * x-release-please-start-version\n * Version: 1.2.3\n * x-release-please-end", $first->modifiedFiles()['example-plugin.php'] );
-		self::assertStringContainsString( "x-release-please-start-version\nStable tag: 1.2.3\nx-release-please-end", $first->modifiedFiles()['readme.txt'] );
-		self::assertArrayNotHasKey( '.prettierignore', $first->modifiedFiles() );
-		self::assertSame( array( 'example-plugin.php', 'readme.txt' ), array_column( $first->extraFiles(), 'path' ) );
+		self::assertSame( $first->release_files(), $second->release_files() );
+		self::assertSame( $first->extra_files(), $second->extra_files() );
+		self::assertSame( array( 'assets/app.css', 'build/block.json', 'example-plugin.php', 'readme.txt' ), $first->release_files() );
+		self::assertStringContainsString( " * x-release-please-start-version\n * Version: 1.2.3\n * x-release-please-end", $first->modified_files()['example-plugin.php'] );
+		self::assertStringContainsString( "x-release-please-start-version\nStable tag: 1.2.3\nx-release-please-end", $first->modified_files()['readme.txt'] );
+		self::assertArrayNotHasKey( '.prettierignore', $first->modified_files() );
+		self::assertSame( array( 'example-plugin.php', 'readme.txt' ), array_column( $first->extra_files(), 'path' ) );
 	}
 
 	public function test_source_eligibility_matches_the_fixed_build_and_verify_syntax(): void {
@@ -58,7 +58,7 @@ final class SourceReadyAssessorTest extends TestCase {
 				self::VERSION,
 				'https://github.com/' . self::REPOSITORY
 			);
-			self::assertFalse( $assessment->readyForBootstrap(), $path );
+			self::assertFalse( $assessment->ready_for_bootstrap(), $path );
 		}
 		$header = str_replace( 'https://github.com/owner/example-plugin', 'https://github.com/owner/example-plugin/', $this->plugin_header() );
 		self::assertSame( 'repository_unsupported', ( new SourceReadyAssessor() )->assess( $this->snapshot( array( 'example-plugin.php' => $header ) ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code() );
@@ -95,9 +95,9 @@ final class SourceReadyAssessorTest extends TestCase {
 			self::VERSION,
 			'https://github.com/' . self::REPOSITORY
 		);
-		self::assertTrue( $assessment->readyForBootstrap() );
-		self::assertSame( array(), $assessment->modifiedFiles() );
-		self::assertContains( 'readme.txt', $assessment->releaseFiles() );
+		self::assertTrue( $assessment->ready_for_bootstrap() );
+		self::assertSame( array(), $assessment->modified_files() );
+		self::assertContains( 'readme.txt', $assessment->release_files() );
 	}
 
 	public function test_runtime_case_collisions_are_refused_including_file_directory_collisions(): void {
@@ -125,9 +125,9 @@ final class SourceReadyAssessorTest extends TestCase {
 				);
 				$prefixes[ $path ] = str_repeat( "\0", 43 );
 			}
-			$snapshot = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->plugin_header() ), $prefixes );
+			$snapshot = new RepositorySnapshot( $base->repository_id(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->plugin_header() ), $prefixes );
 			$result   = ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
-			self::assertSame( array( 1000000 ) === $sizes, $result->readyForBootstrap() );
+			self::assertSame( array( 1000000 ) === $sizes, $result->ready_for_bootstrap() );
 		}
 	}
 
@@ -149,9 +149,9 @@ final class SourceReadyAssessorTest extends TestCase {
 				);
 				$prefixes[ $path ] = str_repeat( 'a', 43 );
 			}
-			$snapshot   = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->plugin_header() ), $prefixes );
+			$snapshot   = new RepositorySnapshot( $base->repository_id(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->plugin_header() ), $prefixes );
 			$assessment = ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
-			self::assertSame( $ready, $assessment->readyForBootstrap(), (string) $asset_count );
+			self::assertSame( $ready, $assessment->ready_for_bootstrap(), (string) $asset_count );
 			if ( ! $ready ) {
 				self::assertSame( 'runtime_paths_unknown', $assessment->code() );
 			}
@@ -175,9 +175,9 @@ final class SourceReadyAssessorTest extends TestCase {
 			1987 => true,
 			1988 => false,
 		) as $entry_count => $ready ) {
-			$snapshot   = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), array_slice( $entries, 0, $entry_count, true ), $documents );
+			$snapshot   = new RepositorySnapshot( $base->repository_id(), $base->repository(), 'main', $base->sha(), array_slice( $entries, 0, $entry_count, true ), $documents );
 			$assessment = ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );
-			self::assertSame( $ready, $assessment->readyForBootstrap(), (string) $entry_count );
+			self::assertSame( $ready, $assessment->ready_for_bootstrap(), (string) $entry_count );
 			if ( ! $ready ) {
 				self::assertSame( 'runtime_paths_unknown', $assessment->code() );
 			}
@@ -194,7 +194,7 @@ final class SourceReadyAssessorTest extends TestCase {
 			'size' => 123,
 		);
 		foreach ( array( array(), array( 'assets/logo.png' => "version https://git-lfs.github.com/spec/v1\n" ) ) as $prefixes ) {
-			$snapshot = new RepositorySnapshot( $base->repositoryId(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->plugin_header() ), $prefixes );
+			$snapshot = new RepositorySnapshot( $base->repository_id(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->plugin_header() ), $prefixes );
 			self::assertSame( 'runtime_paths_unknown', ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code() );
 		}
 	}
@@ -246,9 +246,9 @@ final class SourceReadyAssessorTest extends TestCase {
 			'https://github.com/' . self::REPOSITORY
 		);
 
-		self::assertTrue( $assessment->readyForBootstrap() );
+		self::assertTrue( $assessment->ready_for_bootstrap() );
 		self::assertSame( 'source-ready-wordpress-theme/3', $assessment->profile() );
-		self::assertContains( 'templates/index.html', $assessment->releaseFiles() );
+		self::assertContains( 'templates/index.html', $assessment->release_files() );
 	}
 
 	public function test_version_and_repository_contracts_fail_closed(): void {
@@ -365,8 +365,8 @@ final class SourceReadyAssessorTest extends TestCase {
 		);
 
 		self::assertSame( 'version_contract_custom', $custom->code() );
-		self::assertTrue( $negated->readyForBootstrap() );
-		self::assertArrayNotHasKey( '.prettierignore', $negated->modifiedFiles() );
+		self::assertTrue( $negated->ready_for_bootstrap() );
+		self::assertArrayNotHasKey( '.prettierignore', $negated->modified_files() );
 		self::assertSame( 'version_contract_custom', $pot->code() );
 	}
 

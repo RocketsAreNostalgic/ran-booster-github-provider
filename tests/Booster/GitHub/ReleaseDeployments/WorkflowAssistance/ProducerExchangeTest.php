@@ -44,12 +44,12 @@ final class ProducerExchangeTest extends TestCase {
 			'asset_digest'       => 'sha256:' . hash( 'sha256', $bytes ),
 			'asset_sha256'       => hash( 'sha256', $bytes ),
 		);
-		$result = TemplatePack::fromArchive( $bytes, $i );
+		$result = TemplatePack::from_archive( $bytes, $i );
 		if ( 'ok' !== $result['code'] ) {
 			self::fail( $result['code'] );
 		}
 		$p = $result['pack'];
-		if ( $p->manifestHash() !== $e['manifest_sha256'] ) {
+		if ( $p->manifest_hash() !== $e['manifest_sha256'] ) {
 			throw new \RuntimeException( 'Manifest mismatch' );
 		}
 
@@ -117,11 +117,11 @@ final class ProducerExchangeTest extends TestCase {
 		}
 		$snapshot   = new RepositorySnapshot( '101', 'example/example-package', 'main', str_repeat( 'a', 40 ), $entries, $documents );
 		$assessment = ( new SourceReadyAssessor() )->assess( $snapshot, $type, 'example-package', '1.2.3', 'https://github.com/example/example-package' );
-		self::assertTrue( $assessment->readyForBootstrap() );
+		self::assertTrue( $assessment->ready_for_bootstrap() );
 		$result = InitialReleaseBundle::bootstrap( $pack, $assessment, $snapshot, 'https://github.com/example/example-package' );
 		self::assertSame( 'ok', $result['code'] );
 		$files = $result['bundle']->files();
-		self::assertSame( implode( "\n", $assessment->releaseFiles() ) . "\n", $files['release-contents.txt']['content'] );
+		self::assertSame( implode( "\n", $assessment->release_files() ) . "\n", $files['release-contents.txt']['content'] );
 		$root = sys_get_temp_dir() . '/ran-api3-build-' . bin2hex( random_bytes( 8 ) );
 		mkdir( $root, 0700 );
 		try {

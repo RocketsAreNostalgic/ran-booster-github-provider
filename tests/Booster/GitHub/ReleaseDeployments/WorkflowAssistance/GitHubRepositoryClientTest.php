@@ -71,8 +71,8 @@ final class GitHubRepositoryClientTest extends TestCase {
 		);
 		$client    = new GitHubRepositoryClient( $transport );
 		self::assertSame( '101', $client->repository( self::REPOSITORY )['repository_id'] );
-		self::assertSame( self::SHA, $client->branchRef( self::REPOSITORY, 'main' )['sha'] );
-		self::assertSame( self::TREE, $client->gitCommit( self::REPOSITORY, self::SHA )['tree_sha'] );
+		self::assertSame( self::SHA, $client->branch_ref( self::REPOSITORY, 'main' )['sha'] );
+		self::assertSame( self::TREE, $client->git_commit( self::REPOSITORY, self::SHA )['tree_sha'] );
 		$snapshot = $client->snapshot( self::REPOSITORY, '101', 'main', self::SHA );
 		self::assertSame( $header, $snapshot['snapshot']->document( 'example.php' ) );
 		self::assertSame( array( 'GET', 'GET', 'GET', 'GET', 'GET' ), array_column( $transport->requests, 'method' ) );
@@ -183,7 +183,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertSame( 'ok', $result['code'] );
 		self::assertSame(
 			array( '.ci/publish.sh', '.github/scripts/release.sh', '.github/workflows/ci.yml', 'Makefile', 'composer.json', 'example.php', 'scripts/package.sh' ),
-			$result['snapshot']->documentPaths()
+			$result['snapshot']->document_paths()
 		);
 		self::assertCount( 8, $transport->requests );
 	}
@@ -237,12 +237,12 @@ final class GitHubRepositoryClientTest extends TestCase {
 
 		self::assertSame( 'ok', $result['code'] );
 		self::assertSame( 1048576, $result['snapshot']->entries()['build/application.js.map']['size'] );
-		self::assertSame( array(), $result['snapshot']->documentPaths() );
+		self::assertSame( array(), $result['snapshot']->document_paths() );
 		self::assertCount( 2, $transport->requests );
 		self::assertSame( 43, $transport->requests[1]['args']['limit_response_size'] );
 		self::assertSame( 'application/vnd.github.raw+json', $transport->requests[1]['args']['headers']['Accept'] );
-		self::assertSame( str_repeat( 'a', 43 ), $result['snapshot']->blobPrefix( 'build/application.js.map' ) );
-		self::assertNull( $result['snapshot']->blobPrefix( 'tests/large-fixture.bin' ) );
+		self::assertSame( str_repeat( 'a', 43 ), $result['snapshot']->blob_prefix( 'build/application.js.map' ) );
+		self::assertNull( $result['snapshot']->blob_prefix( 'tests/large-fixture.bin' ) );
 	}
 
 	public function test_runtime_asset_prefix_is_inspected_before_source_readiness(): void {
@@ -253,7 +253,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 			self::assertSame( 'ok', $result['code'] );
 			self::assertNull( $result['snapshot']->document( 'assets/logo.png' ) );
 			$assessment = ( new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SourceReadyAssessor() )->assess( $result['snapshot'], 'plugin', 'example-plugin', '1.2.3', 'https://github.com/' . self::REPOSITORY );
-			self::assertSame( str_starts_with( $content, "\0" ), $assessment->readyForBootstrap() );
+			self::assertSame( str_starts_with( $content, "\0" ), $assessment->ready_for_bootstrap() );
 			foreach ( $transport->requests as $request ) {
 				self::assertSame( 'GET', $request['method'] );
 				self::assertSame( 0, $request['args']['redirection'] );
@@ -266,7 +266,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		$transport->mutate_default_document( 'theme.json', str_repeat( '{', 2048 ) );
 		$result = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', str_repeat( 'a', 40 ) );
 		self::assertSame( 'ok', $result['code'] );
-		self::assertSame( str_repeat( '{', 43 ), $result['snapshot']->blobPrefix( 'theme.json' ) );
+		self::assertSame( str_repeat( '{', 43 ), $result['snapshot']->blob_prefix( 'theme.json' ) );
 	}
 
 	public function test_short_oversized_or_unavailable_blob_prefix_fails_closed(): void {
@@ -380,10 +380,10 @@ final class GitHubRepositoryClientTest extends TestCase {
 			)
 		);
 		$client    = new GitHubRepositoryClient( $transport );
-		self::assertSame( 'ok', $client->createBlob( self::REPOSITORY, 'bytes', 'secret-token' )['code'] );
+		self::assertSame( 'ok', $client->create_blob( self::REPOSITORY, 'bytes', 'secret-token' )['code'] );
 		self::assertSame(
 			'ok',
-			$client->createTree(
+			$client->create_tree(
 				self::REPOSITORY,
 				self::TREE,
 				array(
@@ -396,9 +396,9 @@ final class GitHubRepositoryClientTest extends TestCase {
 				'secret-token'
 			)['code']
 		);
-		self::assertSame( 'ok', $client->createCommit( self::REPOSITORY, self::TREE, self::BLOB, 'chore: exact', 'secret-token' )['code'] );
-		self::assertSame( 'ok', $client->createRef( self::REPOSITORY, 'ran-booster/setup', 'main', self::SHA, 'secret-token' )['code'] );
-		self::assertSame( 'ok', $client->createDraftPullRequest( self::REPOSITORY, 'ran-booster/setup', 'main', 'Title', 'Body', 'secret-token' )['code'] );
+		self::assertSame( 'ok', $client->create_commit( self::REPOSITORY, self::TREE, self::BLOB, 'chore: exact', 'secret-token' )['code'] );
+		self::assertSame( 'ok', $client->create_ref( self::REPOSITORY, 'ran-booster/setup', 'main', self::SHA, 'secret-token' )['code'] );
+		self::assertSame( 'ok', $client->create_draft_pull_request( self::REPOSITORY, 'ran-booster/setup', 'main', 'Title', 'Body', 'secret-token' )['code'] );
 		foreach ( $transport->requests as $request ) {
 			self::assertSame( 'Bearer secret-token', $request['args']['headers']['Authorization'] );
 			self::assertStringNotContainsString( 'secret-token', (string) ( $request['args']['body'] ?? '' ) );
@@ -430,9 +430,9 @@ final class GitHubRepositoryClientTest extends TestCase {
 			)
 		);
 		$client    = new GitHubRepositoryClient( $transport );
-		self::assertFalse( $client->pullRequests( self::REPOSITORY, 'ran-booster/setup' )['pulls'][0]['merged'] );
-		self::assertTrue( $client->pullRequest( self::REPOSITORY, 17 )['pull']['merged'] );
-		$files = $client->pullRequestFileSet( self::REPOSITORY, 17 );
+		self::assertFalse( $client->pull_requests( self::REPOSITORY, 'ran-booster/setup' )['pulls'][0]['merged'] );
+		self::assertTrue( $client->pull_request( self::REPOSITORY, 17 )['pull']['merged'] );
+		$files = $client->pull_request_file_set( self::REPOSITORY, 17 );
 		self::assertSame( array( 'a.php', 'z.php' ), array_column( $files['files'], 'path' ) );
 		self::assertStringEndsWith( '/pulls/17/files?per_page=100', $transport->requests[2]['url'] );
 	}
@@ -442,11 +442,11 @@ final class GitHubRepositoryClientTest extends TestCase {
 		$wrong['head']['repo']['full_name'] = 'owner/other';
 		$transport                          = new D23GitHubTransport( array( $this->response( 200, $wrong ), $this->response( 422, array() ), $this->response( 422, array() ) ) );
 		$client                             = new GitHubRepositoryClient( $transport );
-		self::assertSame( 'invalid_response', $client->pullRequest( self::REPOSITORY, 17 )['code'] );
-		self::assertSame( 'invalid_request', $client->createBlob( self::REPOSITORY, "bad\0bytes", 'token' )['code'] );
-		self::assertSame( 'invalid_request', $client->createRef( self::REPOSITORY, 'main', 'main', self::SHA, 'token' )['code'] );
-		self::assertSame( 'conflict', $client->createRef( self::REPOSITORY, 'setup', 'main', self::SHA, 'token' )['code'] );
-		self::assertSame( 'conflict', $client->createDraftPullRequest( self::REPOSITORY, 'setup', 'main', 'Title', 'Body', 'token' )['code'] );
+		self::assertSame( 'invalid_response', $client->pull_request( self::REPOSITORY, 17 )['code'] );
+		self::assertSame( 'invalid_request', $client->create_blob( self::REPOSITORY, "bad\0bytes", 'token' )['code'] );
+		self::assertSame( 'invalid_request', $client->create_ref( self::REPOSITORY, 'main', 'main', self::SHA, 'token' )['code'] );
+		self::assertSame( 'conflict', $client->create_ref( self::REPOSITORY, 'setup', 'main', self::SHA, 'token' )['code'] );
+		self::assertSame( 'conflict', $client->create_draft_pull_request( self::REPOSITORY, 'setup', 'main', 'Title', 'Body', 'token' )['code'] );
 		self::assertSame( 'invalid_request', $client->repository( '../unsafe', "bad\ntoken" )['code'] );
 	}
 	public function test_rate_limited_responses_include429_and_only_exhausted403_responses(): void {

@@ -27,7 +27,7 @@ candidate Booster checkout pinned in [CI](.github/workflows/ci.yml):
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the candidate host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 18b0ec619174000a9a9dbc27b9d68b44b0265449 &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ed9585e760a4443b018fa8f4eaa853b129cddc53 &&
   composer check:host
 ```
 
@@ -70,7 +70,11 @@ arguments and genuine Core/WordPress/updater signatures. These public-contract
 migration deferrals must not spread to new private code. Fixture-owned identifiers
 and their connected callers now use snake_case, including named arguments.
 
-Public production methods/parameters/promotions remain a coordinated consumer
-migration. This cleanup changes neither persisted/template keys nor runtime
-protocols. See [the migration ledger](docs/naming-migration.md) and
+The accepted Provider-owned helper tranche migrates 52 methods, 64 camelCase
+parameter occurrences (including three private promotions) and four reserved
+parameters, with connected callers and Core consumers. This intentionally
+breaks the old beta PHP API; no mixed old/new tuple compatibility is claimed.
+The 50 Core-interface implementations and other residual public parameters and
+promotions remain a separate coordinated migration. Persisted/template keys,
+credentials and runtime protocols are unchanged. See [the migration ledger](docs/naming-migration.md) and
 [the proposed Core contract manifest](docs/naming-core-contract-manifest.md).

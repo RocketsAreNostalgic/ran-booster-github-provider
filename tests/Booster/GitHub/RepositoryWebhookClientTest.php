@@ -18,10 +18,10 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 	/** @return iterable<string, array{string}> */
 	public static function fitness_actions(): iterable {
-		yield 'setup' => array( 'assessSetup' );
-		yield 'check' => array( 'assessCheck' );
-		yield 'reconfigure' => array( 'assessReconfigure' );
-		yield 'remove' => array( 'assessRemove' );
+		yield 'setup' => array( 'assess_setup' );
+		yield 'check' => array( 'assess_check' );
+		yield 'reconfigure' => array( 'assess_reconfigure' );
+		yield 'remove' => array( 'assess_remove' );
 	}
 
 	#[DataProvider( 'fitness_actions' )]
@@ -47,7 +47,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 503, array() ) ) );
 
 		$result = ( new RepositoryWebhookClient() )->{$method}( '101', 'owner/example', self::TOKEN );
-		$action = strtolower( substr( $method, strlen( 'assess' ) ) );
+		$action = strtolower( substr( $method, strlen( 'assess_' ) ) );
 
 		self::assertSame( $action . '_assessment_unavailable', $result->toArray()['code'] );
 	}

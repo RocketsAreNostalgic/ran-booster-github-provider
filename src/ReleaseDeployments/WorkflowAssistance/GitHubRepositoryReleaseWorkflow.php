@@ -22,8 +22,8 @@ final class GitHubRepositoryReleaseWorkflow {
 		$type        = null === $record ? $status->type() : $record['package_type'];
 		$identifier  = null === $record ? $status->identifier() : $record['package_identifier'];
 		$revision    = null === $record ? $status->sourceRevision() : $record['source_revision'];
-		$observation = $this->records->assessmentObservation( $status->providerRepositoryId(), $status->type(), $status->identifier(), $status->sourceRevision() );
-		$history     = array_map( static fn ( array $entry ): array => array_intersect_key( $entry, array_flip( array( 'operation', 'outcome_code', 'failure_stage', 'diagnostic_code', 'diagnostic_available', 'correlation_reference', 'recorded_at' ) ) ), $this->records->failureHistory( $status->providerRepositoryId(), $status->type(), $status->identifier(), $status->sourceRevision() ) );
+		$observation = $this->records->assessment_observation( $status->providerRepositoryId(), $status->type(), $status->identifier(), $status->sourceRevision() );
+		$history     = array_map( static fn ( array $entry ): array => array_intersect_key( $entry, array_flip( array( 'operation', 'outcome_code', 'failure_stage', 'diagnostic_code', 'diagnostic_available', 'correlation_reference', 'recorded_at' ) ) ), $this->records->failure_history( $status->providerRepositoryId(), $status->type(), $status->identifier(), $status->sourceRevision() ) );
 		return new RepositoryReleaseWorkflowStatus(
 			'gh',
 			$status->providerRepositoryId(),
@@ -83,46 +83,38 @@ final class GitHubRepositoryReleaseWorkflow {
 		);
 	}
 
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credentialId ): RepositoryReleaseWorkflowResult {
+	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id ): RepositoryReleaseWorkflowResult {
 		if ( 'stable' !== $channel ) {
 			return $this->persist( 'inspect', $status, $this->invalid_request( $status ) );
 		}
 		if ( ! $this->bootstrap_preflight( $preflight ) ) {
 			return $this->persist( 'inspect', $status, $this->preflight_result( $status, $preflight ) );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		$token = $this->credential( $credentialId, false );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		return $this->persist( 'inspect', $status, $this->selected_credential_unavailable( $credentialId, $token ) ? $this->unauthorised( $status ) : $this->coordinator->inspect( $status, $channel, $preflight, $token ) );
+		$token = $this->credential( $credential_id, false );
+		return $this->persist( 'inspect', $status, $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised( $status ) : $this->coordinator->inspect( $status, $channel, $preflight, $token ) );
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credentialId ): RepositoryReleaseWorkflowResult {
+	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id ): RepositoryReleaseWorkflowResult {
 		if ( ! $this->bootstrap_preflight( $preflight ) ) {
 			return $this->persist( 'setup', $status, $this->preflight_result( $status, $preflight, $key ) );
 		}
 		if ( null === $this->coordinator->preview( $key, $status ) ) {
 			return $this->persist( 'setup', $status, $this->unauthorised( $status, $key ) );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		$token = $this->credential( $credentialId, true );
+		$token = $this->credential( $credential_id, true );
 		return $this->persist( 'setup', $status, '' === $token ? $this->unauthorised( $status, $key ) : $this->coordinator->setup( $status, $key, $confirmation, $preflight, $token ) );
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function outcome( RepositoryReleaseWorkflowTarget $status, ?string $credentialId ): RepositoryReleaseWorkflowResult {
-		if ( ! $this->coordinator->hasCurrentRecord( $status ) ) {
+	public function outcome( RepositoryReleaseWorkflowTarget $status, ?string $credential_id ): RepositoryReleaseWorkflowResult {
+		if ( ! $this->coordinator->has_current_record( $status ) ) {
 			return $this->persist( 'outcome', $status, $this->invalid_request( $status ) );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		$token = $this->credential( $credentialId, true );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		return $this->persist( 'outcome', $status, $this->selected_credential_unavailable( $credentialId, $token ) ? $this->unauthorised( $status ) : $this->coordinator->outcome( $status, $token ) );
+		$token = $this->credential( $credential_id, true );
+		return $this->persist( 'outcome', $status, $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised( $status ) : $this->coordinator->outcome( $status, $token ) );
 	}
 	private function persist( string $operation, RepositoryReleaseWorkflowTarget $status, array $outcome ): RepositoryReleaseWorkflowResult {
 		$observation = match ( $outcome['code'] ) {
 			'workflow_release_automation_conflict' => 'existing_automation_detected', 'workflow_release_automation_present' => 'booster_setup_verified', 'workflow_inspected' => 'no_recognisable_automation', default => '' };
 		if ( '' !== $observation ) {
-			$this->records->saveAssessmentObservation(
+			$this->records->save_assessment_observation(
 				array(
 					'kind'               => $observation,
 					'repository_id'      => $status->providerRepositoryId(),
@@ -136,7 +128,7 @@ final class GitHubRepositoryReleaseWorkflow {
 		if ( ! $outcome['successful'] && '' !== $outcome['failure_stage'] ) {
 			$reference = bin2hex( random_bytes( 16 ) );
 			$available = false;
-			$this->records->recordFailure(
+			$this->records->record_failure(
 				array(
 					'operation'             => $operation,
 					'outcome_code'          => $outcome['code'],

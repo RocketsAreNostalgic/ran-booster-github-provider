@@ -1,6 +1,18 @@
-# Proposed Provider-owned public-helper mapping
+# Provider-owned public-helper mapping and implementation
 
-Provider source: `7f6a064664b4730d81eeb2cdaff7e5aaa8244e8c`. Read-only preparation for Provider #25; destination is this documentation-only Provider PR. The documentation claim is recorded below; no runtime claim, Core agreement, implementation, merge or release is recorded here.
+## Current implementation checkpoint
+
+Core accepted this exact mapping in [#167 comment 5935782179](https://github.com/RocketsAreNostalgic/ran-booster/issues/167#issuecomment-5935782179).
+The outgoing Provider coordinator relinquished its scope in [#25 comment 5939133549](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/25#issuecomment-5939133549), confirming there was no unpublished runtime work.
+This source candidate preserves PR #47 at `798d70011077cfc0fbb8eda8f8abb78859440287` and implements its accepted helper mapping on main `7f6a064664b4730d81eeb2cdaff7e5aaa8244e8c`.
+
+Implemented: 52 helper method declarations, 64 camelCase public parameter occurrences (including three private RepositorySnapshot promotions), and four reserved parameters. Connected typed calls, test overrides and dynamic webhook method datasets follow the mapping. The `assess_` prefix is stripped completely when deriving existing action/status codes.
+Core consumers are limited to `RAN/Uninstall/LocalDataRemover.php` and `tests/Logging/GitHubDiagnosticsLoggingTest.php`, including its repository override parameters.
+
+This intentionally breaks the previous beta PHP helper API, including old named arguments; there are no compatibility aliases. Core interface implementations, residual public parameters/promotions, persisted/wire fields, template identities and operational behavior remain outside the rename.
+Source and local host overlays are **preparation**, not immutable package publication or Core adoption. Exact combined qualification, hosted reviews, owner merge decisions, approved producer publication and real Core lock adoption remain separate gates.
+
+The original inventory and proposal below is retained as historical mapping evidence. Its pending-agreement wording is superseded by this checkpoint; it is not a renewed permission gate.
 
 ## Scope and compatibility gate
 

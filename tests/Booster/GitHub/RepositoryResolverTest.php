@@ -654,7 +654,7 @@ final class RepositoryResolverTest extends TestCase {
 
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $transport );
 		$result = ( new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'profile-1' => self::TOKEN ) ) ) )
-			->validateCredential( 'profile-1' );
+			->validate_credential( 'profile-1' );
 
 		self::assertFalse( $result->isValid() );
 		self::assertSame( 'unavailable', $result->reason );
@@ -678,7 +678,7 @@ final class RepositoryResolverTest extends TestCase {
 			)
 		);
 		self::assertTrue(
-			$browser->pathExists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/My Plugin', 'private-profile', true )
+			$browser->path_exists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/My Plugin', 'private-profile', true )
 		);
 		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
 		self::assertSame(
@@ -697,10 +697,10 @@ final class RepositoryResolverTest extends TestCase {
 				)
 			)
 		);
-		self::assertFalse( $browser->pathExists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/plugin.php', 'private-profile', true ) );
+		self::assertFalse( $browser->path_exists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/plugin.php', 'private-profile', true ) );
 
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->error_response( 404, array() ) );
-		self::assertFalse( $browser->pathExists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/missing', 'private-profile', true ) );
+		self::assertFalse( $browser->path_exists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/missing', 'private-profile', true ) );
 	}
 
 	public function test_repository_path_check_rejects_malformed_or_unexpected_successful_bodies(): void {
@@ -713,7 +713,7 @@ final class RepositoryResolverTest extends TestCase {
 				'body'     => " \n[]",
 			)
 		);
-		self::assertTrue( $browser->pathExists( 'RocketsAreNostalgic/example-plugin', $ref, 'packages/example' ) );
+		self::assertTrue( $browser->path_exists( 'RocketsAreNostalgic/example-plugin', $ref, 'packages/example' ) );
 
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
 			array(
@@ -721,7 +721,7 @@ final class RepositoryResolverTest extends TestCase {
 				'body'     => " \n{}",
 			)
 		);
-		self::assertFalse( $browser->pathExists( 'RocketsAreNostalgic/example-plugin', $ref, 'packages/example' ) );
+		self::assertFalse( $browser->path_exists( 'RocketsAreNostalgic/example-plugin', $ref, 'packages/example' ) );
 
 		foreach ( array( '', ' ', 'null', 'true', '"file"', '<html>unavailable</html>' ) as $body ) {
 			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
@@ -732,7 +732,7 @@ final class RepositoryResolverTest extends TestCase {
 			);
 
 			try {
-				$browser->pathExists( 'RocketsAreNostalgic/example-plugin', $ref, 'packages/example' );
+				$browser->path_exists( 'RocketsAreNostalgic/example-plugin', $ref, 'packages/example' );
 				self::fail( 'Unexpected successful GitHub path responses must fail closed.' );
 			} catch ( RuntimeException $failure ) {
 				self::assertSame( 'GitHub could not check the repository path.', $failure->getMessage() );
