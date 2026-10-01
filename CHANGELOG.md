@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0-beta.10](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.9...v1.0.0-beta.10) (2026-10-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* implement Core Provider API 13 method naming ([#49](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/49))
+
+### Code Refactoring
+
+* implement Core Provider API 13 method naming ([#49](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/49)) ([4f17c76](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/4f17c76a25251c19ba65b3987a1b184ee3037ea8))
+
 ## [1.0.0-beta.9](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.8...v1.0.0-beta.9) (2026-10-01)
 
 
