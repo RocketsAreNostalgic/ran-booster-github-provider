@@ -106,9 +106,9 @@ final class ModuleDependencyBoundaryTest extends TestCase {
 		'RAN\RepositoryProvider\WebhookRequest',
 	);
 
-	public function testModuleImportsOnlyTheExplicitBoundaryAllowlist(): void {
+	public function test_module_imports_only_the_explicit_boundary_allowlist(): void {
 		$imports = array();
-		foreach ( $this->moduleFiles() as $path ) {
+		foreach ( $this->module_files() as $path ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Static local architecture boundary under test.
 			$source = file_get_contents( $path );
 			self::assertIsString( $source );
@@ -128,8 +128,8 @@ final class ModuleDependencyBoundaryTest extends TestCase {
 		self::assertSame( $allowed, $imports );
 	}
 
-	public function testModuleCarriesNoAssistedHooksRuntimeCompatibility(): void {
-		foreach ( $this->moduleFiles() as $path ) {
+	public function test_module_carries_no_assisted_hooks_runtime_compatibility(): void {
+		foreach ( $this->module_files() as $path ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Static local architecture boundary under test.
 			$source = file_get_contents( $path );
 			self::assertIsString( $source );
@@ -140,13 +140,13 @@ final class ModuleDependencyBoundaryTest extends TestCase {
 	}
 
 	/** @return list<string> */
-	private function moduleFiles(): array {
-		$module        = dirname( __DIR__, 3 ) . '/src';
-		$rootFiles     = glob( $module . '/*.php' );
-		$workflowFiles = glob( $module . '/ReleaseDeployments/WorkflowAssistance/*.php' );
-		self::assertIsArray( $rootFiles );
-		self::assertIsArray( $workflowFiles );
-		$files = array_merge( $rootFiles, $workflowFiles );
+	private function module_files(): array {
+		$module         = dirname( __DIR__, 3 ) . '/src';
+		$root_files     = glob( $module . '/*.php' );
+		$workflow_files = glob( $module . '/ReleaseDeployments/WorkflowAssistance/*.php' );
+		self::assertIsArray( $root_files );
+		self::assertIsArray( $workflow_files );
+		$files = array_merge( $root_files, $workflow_files );
 		sort( $files );
 
 		return $files;

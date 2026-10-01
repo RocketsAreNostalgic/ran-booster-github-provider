@@ -19,15 +19,15 @@ final class CredentialExpiryValidationTest extends TestCase {
 	/**
 	 * @return iterable<string, array{string, string}>
 	 */
-	public static function validExpiryHeaders(): iterable {
+	public static function valid_expiry_headers(): iterable {
 		yield 'UTC' => array( '2026-08-31 14:25:30 UTC', '2026-08-31T14:25:30Z' );
 		yield 'positive offset' => array( '2026-08-31 14:25:30 +0100', '2026-08-31T13:25:30Z' );
 		yield 'negative offset' => array( '2026-08-31 14:25:30 -0530', '2026-08-31T19:55:30Z' );
 		yield 'past date' => array( '2020-01-02 03:04:05 UTC', '2020-01-02T03:04:05Z' );
 	}
 
-	#[DataProvider( 'validExpiryHeaders' )]
-	public function testValidationReturnsStrictlyParsedProviderExpiry( string $header, string $expected ): void {
+	#[DataProvider( 'valid_expiry_headers' )]
+	public function test_validation_returns_strictly_parsed_provider_expiry( string $header, string $expected ): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->response( $header ) );
 
 		$result = ( new RepositoryBrowser(
@@ -43,7 +43,7 @@ final class CredentialExpiryValidationTest extends TestCase {
 	/**
 	 * @return iterable<string, array{?string}>
 	 */
-	public static function unknownExpiryHeaders(): iterable {
+	public static function unknown_expiry_headers(): iterable {
 		yield 'missing' => array( null );
 		yield 'invalid calendar date' => array( '2026-02-30 14:25:30 UTC' );
 		yield 'unsupported timezone abbreviation' => array( '2026-08-31 14:25:30 BST' );
@@ -53,8 +53,8 @@ final class CredentialExpiryValidationTest extends TestCase {
 		yield 'oversized' => array( str_repeat( 'x', 65 ) );
 	}
 
-	#[DataProvider( 'unknownExpiryHeaders' )]
-	public function testMissingOrMalformedExpiryMetadataIsUnknown( ?string $header ): void {
+	#[DataProvider( 'unknown_expiry_headers' )]
+	public function test_missing_or_malformed_expiry_metadata_is_unknown( ?string $header ): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->response( $header ) );
 
 		$result = ( new RepositoryBrowser(
@@ -67,7 +67,7 @@ final class CredentialExpiryValidationTest extends TestCase {
 		self::assertNull( $result->expiry->expiresAt );
 	}
 
-	public function testFailedValidationNeverReturnsExpiryMetadataOrLeaksHeader(): void {
+	public function test_failed_validation_never_returns_expiry_metadata_or_leaks_header(): void {
 		$header = '2026-08-31 14:25:30 UTC';
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
 			array(
@@ -89,10 +89,10 @@ final class CredentialExpiryValidationTest extends TestCase {
 	/**
 	 * @return array<string, mixed>
 	 */
-	private function response( ?string $expiryHeader ): array {
-		$headers = null === $expiryHeader
+	private function response( ?string $expiry_header ): array {
+		$headers = null === $expiry_header
 			? array()
-			: array( 'GitHub-Authentication-Token-Expiration' => $expiryHeader );
+			: array( 'GitHub-Authentication-Token-Expiration' => $expiry_header );
 
 		return array(
 			'response' => array( 'code' => 200 ),

@@ -23,26 +23,32 @@ use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 #[RunTestsInSeparateProcesses]
 #[PreserveGlobalState( false )]
 final class ReleaseInspectionTest extends TestCase {
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function setUp(): void {
 		NeutralReleaseUpdaterFixtures::reset();
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function tearDown(): void {
 		NeutralReleaseUpdaterFixtures::cleanup();
 	}
 
-	public function testMapsExactNeutralInspectionWithoutExposingProviderPath(): void {
+	public function test_maps_exact_neutral_inspection_without_exposing_provider_path(): void {
 		NeutralReleaseUpdaterFixtures::queue( NeutralReleaseUpdaterFixtures::proof() );
 		$provider   = $this->provider();
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
 
 		$result = $provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '42', $result->providerReleaseId );
 		self::assertSame( 'v1.2.3', $result->tag );
 		self::assertSame( '1.2.3', $result->version );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( str_repeat( 'a', 40 ), $result->providerCommitId );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'example', $result->packageRoot );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'example.php', $result->mainFile );
 		self::assertMatchesRegularExpression( '/\Av2:[a-f0-9]{64}\z/D', $result->fingerprint );
 		self::assertSame( 'https://github.com/owner/example/releases/tag/v1.2.3', $provider->releaseDetailsUrl( $repository, $result->tag ) );
@@ -51,7 +57,7 @@ final class ReleaseInspectionTest extends TestCase {
 		}
 	}
 
-	public function testInspectsThemeIdentityThroughTheSameService(): void {
+	public function test_inspects_theme_identity_through_the_same_service(): void {
 		NeutralReleaseUpdaterFixtures::queue( NeutralReleaseUpdaterFixtures::proof( 'theme' ) );
 
 		$result = $this->provider()->inspectRelease(
@@ -62,11 +68,13 @@ final class ReleaseInspectionTest extends TestCase {
 			'stable'
 		);
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'example', $result->packageRoot );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'style.css', $result->mainFile );
 	}
 
-	public function testOpaqueCoreIdentityIsRejectedByTheGitHubServiceWithoutHttp(): void {
+	public function test_opaque_core_identity_is_rejected_by_the_git_hub_service_without_http(): void {
 		try {
 			$this->provider()->inspectRelease(
 				'plugin',
@@ -83,7 +91,7 @@ final class ReleaseInspectionTest extends TestCase {
 		self::assertSame( array(), NeutralReleaseUpdaterFixtures::requests() );
 	}
 
-	public function testOperationalInspectionFailureIsRedacted(): void {
+	public function test_operational_inspection_failure_is_redacted(): void {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::response( 500, array( 'message' => 'upstream-secret-message' ) ) ) );
 
 		$this->expectException( RuntimeException::class );
@@ -97,7 +105,7 @@ final class ReleaseInspectionTest extends TestCase {
 		);
 	}
 
-	public function testRepositoryAccessFailurePreservesFallbackSignal(): void {
+	public function test_repository_access_failure_preserves_fallback_signal(): void {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::response( 404, array( 'message' => 'upstream-secret-message' ) ) ) );
 
 		$this->expectException( RepositoryReleaseReadUnavailable::class );
@@ -115,6 +123,7 @@ final class ReleaseInspectionTest extends TestCase {
 		$provider = GitHubProvider::create(
 			new RepositoryResolverSecretsStub(),
 			new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
+				// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
 				public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
 					return null;
 				}

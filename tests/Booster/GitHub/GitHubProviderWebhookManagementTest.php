@@ -20,34 +20,34 @@ final class GitHubProviderWebhookManagementTest extends TestCase {
 	private const SECRET      = 'signing-secret-canary';
 
 	/** @return iterable<string, array{string}> */
-	public static function managementCredentialSources(): iterable {
+	public static function management_credential_sources(): iterable {
 		foreach ( array( 'setup', 'check', 'reconfigure', 'remove', 'test' ) as $operation ) {
 			yield $operation . ' with saved credential' => array( $operation );
 		}
 	}
 
-	#[DataProvider( 'managementCredentialSources' )]
-	public function testManagementOperationUsesTheSelectedSavedCredential( string $operation ): void {
+	#[DataProvider( 'management_credential_sources' )]
+	public function test_management_operation_uses_the_selected_saved_credential( string $operation ): void {
 		$store    = new RepositoryResolverSecretsStub( array( 'saved-profile' => self::SAVED_TOKEN ) );
 		$provider = $this->provider( $store );
 		$token    = self::SAVED_TOKEN;
 		$profile  = 'saved-profile';
 
-		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( $this->responsesFor( $operation ) );
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( $this->responses_for( $operation ) );
 
 		$result   = $this->operate( $provider, $operation, $profile );
 		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
-		$expected = $this->operationExpectation( $operation );
+		$expected = $this->operation_expectation( $operation );
 
 		self::assertTrue( $result->succeeded() );
 		self::assertSame( $expected['code'], $result->code() );
 		self::assertSame( $expected['methods'], array_column( array_column( $requests, 'arguments' ), 'method' ) );
 		self::assertSame( array( 'saved-profile' ), $store->lookups );
 		self::assertNotEmpty( $requests );
-		foreach ( $requests as $remoteRequest ) {
-			self::assertSame( 'Bearer ' . $token, $remoteRequest['arguments']['headers']['Authorization'] );
-			self::assertSame( 0, $remoteRequest['arguments']['redirection'] );
-			self::assertLessThanOrEqual( 262144, $remoteRequest['arguments']['limit_response_size'] );
+		foreach ( $requests as $remote_request ) {
+			self::assertSame( 'Bearer ' . $token, $remote_request['arguments']['headers']['Authorization'] );
+			self::assertSame( 0, $remote_request['arguments']['redirection'] );
+			self::assertLessThanOrEqual( 262144, $remote_request['arguments']['limit_response_size'] );
 		}
 		self::assertLessThanOrEqual( 5, count( $requests ) );
 		if ( isset( $expected['mutation'] ) ) {
@@ -64,13 +64,13 @@ final class GitHubProviderWebhookManagementTest extends TestCase {
 	}
 
 	/** @return iterable<string, array{string|null, string, int}> */
-	public static function invalidCredentialSources(): iterable {
+	public static function invalid_credential_sources(): iterable {
 		yield 'no saved credential' => array( null, 'Choose a saved GitHub credential.', 0 );
 		yield 'unavailable saved credential' => array( 'missing-profile', 'The selected GitHub credential is unavailable.', 1 );
 	}
 
-	#[DataProvider( 'invalidCredentialSources' )]
-	public function testInvalidCredentialSourceFailsBeforeAnyRemoteRequest(
+	#[DataProvider( 'invalid_credential_sources' )]
+	public function test_invalid_credential_source_fails_before_any_remote_request(
 		?string $profile,
 		string $message,
 		int $lookups
@@ -113,9 +113,9 @@ final class GitHubProviderWebhookManagementTest extends TestCase {
 	}
 
 	/** @return list<array<string, mixed>> */
-	private function responsesFor( string $operation ): array {
-		$hook           = $this->hook();
-		$pingDeliveries = array(
+	private function responses_for( string $operation ): array {
+		$hook            = $this->hook();
+		$ping_deliveries = array(
 			array(
 				'id'          => 56,
 				'event'       => 'ping',
@@ -132,13 +132,13 @@ final class GitHubProviderWebhookManagementTest extends TestCase {
 				$this->response( 200, $hook ),
 				$this->response( 200, array() ),
 				$this->response( 204, array() ),
-				$this->response( 200, $pingDeliveries ),
+				$this->response( 200, $ping_deliveries ),
 			),
 		};
 	}
 
 	/** @return array{code:string,methods:list<string>,mutation?:int} */
-	private function operationExpectation( string $operation ): array {
+	private function operation_expectation( string $operation ): array {
 		return match ( $operation ) {
 			'setup' => array(
 				'code'     => 'configured_pending_delivery',

@@ -94,3 +94,47 @@ adoption is a separate, explicitly coordinated dependency/caller cohort with
 exact combined-host and released Core bundle/archive/installed qualification.
 No protocol adoption, version bump, template redesign, UI acceptance, merge,
 publication or installed adoption is performed by this cut.
+
+
+## Follow-on: isolated top-level test naming
+
+Base `c6b924090243a0c0111ffd14c7ebe808ae003dc3` contains merged #42. This
+test-only follow-on migrates the 17 direct `tests/Booster/GitHub/*Test.php`
+files: 186 owned methods (147 test methods plus helpers/data providers), owned
+fixture properties, parameters and locals. Exactly 26 DataProvider attribute
+strings follow the renamed declarations. Dataset keys and values are unchanged;
+all argument rows are positional. There are no cross-file owned-method callers,
+Depends annotations or command/filter references requiring additional edits.
+
+Three isolated source cohorts are integrated into this PR:
+
+| Worker cohort | Source commit | Destination integration commit | Focused baseline-host result |
+| --- | --- | --- | --- |
+| Six transport/webhook tests | d506673117eb03c150d7b21a0c3ff8fe7e1d3b29 | bd044ab | 155 tests / 1,232 assertions |
+| Five credential/diagnostic/native tests | c4bde9b940020ff1ccb5d00bd7fa79dc7c39e720 | cd5041f | 51 tests / 183 assertions |
+| Six release/custody tests | d99fff8c260cbbebebcfe34f3bd365c462c3d997 | e72357e | 46 tests / 216 assertions |
+
+The shared scope explicitly lists the 17 files for both owned-method and WPCS
+variable checks. Narrow exceptions preserve PHPUnit lifecycle methods, Core
+interface/production overrides, external DTO properties, the updater inspect
+parameter and the deliberate throwing `maximumArtifactBytes()` forbidden-policy
+probe. That probe must retain its exact name to detect accidental host discovery.
+There is no blanket test/inheritance exemption within these files.
+
+Baseline and candidate discovery preserve the complete ordered 427 instances
+across 30 classes, including dataset labels and group metadata, after applying
+only the owned-method mapping. Complete suites retain 427 tests / 3,170 assertions.
+Exact qualification uses certified Core `18b0ec619174000a9a9dbc27b9d68b44b0265449`
+and a separate current-source candidate `7450d2dd22ec256427d284ee2058c203331a79e6`.
+Production source, all dependency records, bootstrap/support/workflow files, host
+pins, CI and release files are byte-identical to the base. This does not change
+runtime archive contents or certify a new released/installed Core composition.
+
+Thirty-four negative controls inject an invalid method and local into every
+newly selected file; each must produce the expected naming diagnostic. Two
+complete formatter passes must preserve tracked bytes. Final PR comments record
+the exact published tuple, aggregate/native check results and independent review.
+The earlier production residual inventory is unchanged. Workflow tests, shared
+Support/bootstrap naming and public contracts remain separate; Release Please
+#43, updater adoption and UI acceptance are outside this test cohort. No merge
+or publication authority follows from implementation approval.

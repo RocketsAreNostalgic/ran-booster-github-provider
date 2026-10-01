@@ -17,13 +17,14 @@ use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 /** Proves GitHub consumes host/updater archive policy without owning it. */
 final class ArchiveLimitBoundaryTest extends TestCase {
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function setUp(): void {
 		NeutralReleaseUpdaterFixtures::reset();
 	}
 
-	public function testReleaseInspectionResolvesAndValidatesSuppliedLimitLazily(): void {
-		$limitReads = 0;
-		$registrar  = new class() {
+	public function test_release_inspection_resolves_and_validates_supplied_limit_lazily(): void {
+		$limit_reads = 0;
+		$registrar   = new class() {
 			/** @var list<mixed> */
 			public array $arguments = array();
 
@@ -32,11 +33,13 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 
 				return new class() {
 					/** @return array<string, mixed> */
+					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
 					public function inspect( string $releaseIdentity, string $tag ): array {
 						return array(
 							'ok'             => true,
 							'code'           => 'release_inspected',
 							'value'          => array(
+								// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
 								'release_identity'       => $releaseIdentity,
 								'tag'                    => $tag,
 								'version'                => '1.2.3',
@@ -58,33 +61,34 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 				};
 			}
 		};
-		$provider   = GitHubProvider::create(
+		$provider    = GitHubProvider::create(
 			new RepositoryResolverSecretsStub(),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
 			$registrar,
-			static function () use ( &$limitReads ): int {
-				++$limitReads;
+			static function () use ( &$limit_reads ): int {
+				++$limit_reads;
 
 				return 1048576;
 			}
 		);
-		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
+		$repository  = new RepositoryReference( 'owner/example', '123456789', false, null );
 
-		self::assertSame( 0, $limitReads );
+		self::assertSame( 0, $limit_reads );
 		self::assertSame(
 			'v2:' . str_repeat( 'b', 64 ),
 			$provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint
 		);
-		self::assertSame( 2, $limitReads );
+		self::assertSame( 2, $limit_reads );
 		self::assertCount( 7, $registrar->arguments );
 		self::assertSame( 1048576, $registrar->arguments[6] );
 	}
 
-	public function testReleaseSourceForwardsApi11HostLimit(): void {
+	public function test_release_source_forwards_api11_host_limit(): void {
 		$registrar  = new class() {
 			/** @var list<mixed> */
 			public array $arguments = array();
 
+			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact forbidden host-policy probe; renaming would weaken this regression.
 			public function maximumArtifactBytes(): int {
 				throw new \LogicException( 'GitHub must not discover host policy from the updater registrar.' );
 			}
@@ -122,7 +126,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		self::assertSame( 52_428_800, $registrar->arguments[6] );
 	}
 
-	public function testUnavailableReleaseRuntimeFailsOnlyAtReleaseBoundary(): void {
+	public function test_unavailable_release_runtime_fails_only_at_release_boundary(): void {
 		$provider = GitHubProvider::create(
 			new RepositoryResolverSecretsStub(),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
@@ -146,7 +150,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		);
 	}
 
-	public function testNativeTargetForwardsSuppliedHostLimit(): void {
+	public function test_native_target_forwards_supplied_host_limit(): void {
 		$runtime = new class() {
 			/** @var list<mixed> */
 			public array $arguments = array();
@@ -178,7 +182,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		self::assertSame( 1048576, $runtime->arguments[7] );
 	}
 
-	public function testDirectNativeTargetWithoutHostLimitUsesUpdaterOwnedDefaultContract(): void {
+	public function test_direct_native_target_without_host_limit_uses_updater_owned_default_contract(): void {
 		$runtime = new class() {
 			/** @var list<mixed> */
 			public array $arguments = array();
@@ -208,7 +212,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		self::assertCount( 7, $runtime->arguments );
 	}
 
-	public function testProviderCreatedNativeTargetForwardsApi11HostLimit(): void {
+	public function test_provider_created_native_target_forwards_api11_host_limit(): void {
 		$runtime  = new class() {
 			/** @var list<mixed> */
 			public array $arguments = array();
@@ -244,7 +248,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		self::assertSame( 52_428_800, $runtime->arguments[7] );
 	}
 
-	public function testGitHubReleaseAdaptersDoNotOwnBoosterDefaultLiteral(): void {
+	public function test_git_hub_release_adapters_do_not_own_booster_default_literal(): void {
 		foreach ( array( GitHubProvider::class, GitHubReleaseNativeTarget::class ) as $class ) {
 			$file = ( new \ReflectionClass( $class ) )->getFileName();
 			self::assertIsString( $file );

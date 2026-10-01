@@ -9,7 +9,7 @@ use RAN\BoosterGitHubProvider\V1\GitHubReleaseNativeTarget;
 
 final class NativeTargetsTest extends TestCase {
 
-	public function testConstructionDoesNotResolvePrivateCredentials(): void {
+	public function test_construction_does_not_resolve_private_credentials(): void {
 		$reads  = 0;
 		$target = $this->target(
 			static function () use ( &$reads ): string {
@@ -25,23 +25,26 @@ final class NativeTargetsTest extends TestCase {
 		self::assertSame( 0, $reads );
 	}
 
-	public function testCallableLookingAccessTokenRemainsCredentialMaterial(): void {
-		$target      = $this->target( 'strlen' );
-		$accessToken = ( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'access_token' ) )->getValue( $target );
+	public function test_callable_looking_access_token_remains_credential_material(): void {
+		$target       = $this->target( 'strlen' );
+		$access_token = ( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'access_token' ) )->getValue( $target );
 
-		self::assertInstanceOf( \Closure::class, $accessToken );
+		self::assertInstanceOf( \Closure::class, $access_token );
 	}
 
-	public function testNativeStatusFailsClosedUntilTheNeutralRuntimeSuppliesOne(): void {
+	public function test_native_status_fails_closed_until_the_neutral_runtime_supplies_one(): void {
 		$status = $this->target( null )->status();
 
 		self::assertFalse( $status->active );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '', $status->offeredVersion );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '', $status->failureCode );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '', $status->candidateCode );
 	}
 
-	public function testRegisteredNeutralUpdaterIsActive(): void {
+	public function test_registered_neutral_updater_is_active(): void {
 		$target = $this->target( null );
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
@@ -50,10 +53,11 @@ final class NativeTargetsTest extends TestCase {
 
 		$status = $target->status();
 		self::assertFalse( $status->active );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'github_updater_status_unavailable', $status->failureCode );
 	}
 
-	public function testRegisteredNeutralUpdaterProjectsItsBoundedStatus(): void {
+	public function test_registered_neutral_updater_projects_its_bounded_status(): void {
 		$target = $this->target( null );
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
@@ -85,18 +89,27 @@ final class NativeTargetsTest extends TestCase {
 		$status = $target->status();
 
 		self::assertTrue( $status->active );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '1.2.0', $status->offeredVersion );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'newer', $status->versionRelationship );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 1_700_000_000, $status->lastCheck );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertNull( $status->nextCheck );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'release_identity_verified', $status->candidateCode );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'v1.2.0', $status->candidateReleaseTag );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '1.2.0', $status->candidateReleaseVersion );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '1.2.0', $status->candidatePackageHeaderVersion );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'provider-release-42', $status->candidateProviderReleaseId );
 	}
 
-	public function testRegisteredNeutralUpdaterProjectsAReorderedOuterStatus(): void {
+	public function test_registered_neutral_updater_projects_a_reordered_outer_status(): void {
 		$target = $this->target( null );
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
@@ -128,11 +141,13 @@ final class NativeTargetsTest extends TestCase {
 		$status = $target->status();
 
 		self::assertTrue( $status->active );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '1.2.0', $status->offeredVersion );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'release_identity_verified', $status->candidateCode );
 	}
 
-	public function testNativeOfferRequiresItsOpaqueIdentityAndVersionTogether(): void {
+	public function test_native_offer_requires_its_opaque_identity_and_version_together(): void {
 		foreach ( array(
 			array( 'provider-release-42', null ),
 			array( null, '1.2.0' ),
@@ -174,7 +189,7 @@ final class NativeTargetsTest extends TestCase {
 		}
 	}
 
-	public function testNullNativeOfferProjectsNoIdentity(): void {
+	public function test_null_native_offer_projects_no_identity(): void {
 		$target = $this->target( null );
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
@@ -205,11 +220,13 @@ final class NativeTargetsTest extends TestCase {
 
 		$status = $target->status();
 		self::assertTrue( $status->active );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '', $status->offeredVersion );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '', $status->candidateProviderReleaseId );
 	}
 
-	public function testQueuedAndInactiveNeutralStatesDoNotClaimNativeAuthority(): void {
+	public function test_queued_and_inactive_neutral_states_do_not_claim_native_authority(): void {
 		$target = $this->target( null );
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
@@ -248,11 +265,13 @@ final class NativeTargetsTest extends TestCase {
 
 		$status = $target->status();
 		self::assertFalse( $status->active );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'github_updater_runtime_handoff_invalid', $status->failureCode );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertLessThanOrEqual( 64, strlen( $status->failureCode ) );
 	}
 
-	public function testRepeatedRegistrationReflectsDeclinedAndThrowingPublicHandles(): void {
+	public function test_repeated_registration_reflects_declined_and_throwing_public_handles(): void {
 		$declined  = new class() {
 			public int $calls = 0;
 
@@ -304,7 +323,7 @@ final class NativeTargetsTest extends TestCase {
 		self::assertFalse( $target->register() );
 	}
 
-	public function testRegisteredNeutralUpdaterFailsClosedOnMalformedStatus(): void {
+	public function test_registered_neutral_updater_fails_closed_on_malformed_status(): void {
 		$target = $this->target( null );
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
@@ -319,19 +338,22 @@ final class NativeTargetsTest extends TestCase {
 		$status = $target->status();
 
 		self::assertFalse( $status->active );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'github_updater_status_unavailable', $status->failureCode );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '', $status->offeredVersion );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '', $status->candidateCode );
 	}
 
-	private function target( string|callable|null $accessToken, ?object $registrar = null ): GitHubReleaseNativeTarget {
+	private function target( string|callable|null $access_token, ?object $registrar = null ): GitHubReleaseNativeTarget {
 		return new GitHubReleaseNativeTarget(
 			$registrar ?? new \stdClass(),
 			'plugin',
 			'/wordpress/wp-content/plugins/example/example.php',
 			'owner/example',
 			'42',
-			$accessToken,
+			$access_token,
 			'stable',
 			'manual'
 		);

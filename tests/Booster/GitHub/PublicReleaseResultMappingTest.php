@@ -18,11 +18,12 @@ use Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
 use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 final class PublicReleaseResultMappingTest extends TestCase {
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function setUp(): void {
 		NeutralReleaseUpdaterFixtures::reset();
 	}
 
-	public function testMapsPublicSuccessAndAcquiresWithoutAnExtraInspection(): void {
+	public function test_maps_public_success_and_acquires_without_an_extra_inspection(): void {
 		$source     = new PublicReleaseSourceFixture(
 			$this->listing(),
 			$this->envelope( true, 'release_inspected', $this->facts(), 'complete' ),
@@ -41,11 +42,11 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		self::assertCount( 1, $provider->listReleaseCandidates( 'plugin', $repository, 'stable' )->candidates );
 		self::assertSame( 'v2:' . str_repeat( 'b', 64 ), $provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint );
 		$provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' )->discard();
-		self::assertSame( 1, $source->inspectCalls );
-		self::assertSame( 1, $source->acquireCalls );
+		self::assertSame( 1, $source->inspect_calls );
+		self::assertSame( 1, $source->acquire_calls );
 	}
 
-	public function testMapsReorderedPublicEnvelopesAndAcquisitionValue(): void {
+	public function test_maps_reordered_public_envelopes_and_acquisition_value(): void {
 		$source     = new PublicReleaseSourceFixture(
 			array_reverse( $this->listing(), true ),
 			array_reverse( $this->envelope( true, 'release_inspected', $this->facts(), 'complete' ), true ),
@@ -70,7 +71,7 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		$provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' )->discard();
 	}
 
-	public function testMapsReorderedPublicFailureEnvelope(): void {
+	public function test_maps_reordered_public_failure_envelope(): void {
 		$provider = $this->provider(
 			new PublicReleaseSourceFixture(
 				$this->listing(),
@@ -87,7 +88,7 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		}
 	}
 
-	public function testRejectsV1BeforeThePublicSourceAndMapsCleanupBeforeFailure(): void {
+	public function test_rejects_v1_before_the_public_source_and_maps_cleanup_before_failure(): void {
 		$source     = new PublicReleaseSourceFixture( $this->listing(), $this->envelope( true, 'release_inspected', $this->facts(), 'complete' ), $this->envelope( false, 'release_changed', null, 'failed' ) );
 		$provider   = $this->provider( $source );
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
@@ -96,7 +97,7 @@ final class PublicReleaseResultMappingTest extends TestCase {
 			self::fail( 'v1 was accepted.' );
 		} catch ( RepositoryReleaseAcquisitionRejected $failure ) {
 			self::assertSame( RepositoryReleaseAcquisitionRejected::INVALID_RELEASE, $failure->reason );
-			self::assertSame( 0, $source->acquireCalls ); }
+			self::assertSame( 0, $source->acquire_calls ); }
 		try {
 			$provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
 			self::fail( 'failed cleanup was accepted.' );
@@ -104,13 +105,13 @@ final class PublicReleaseResultMappingTest extends TestCase {
 			self::assertSame( RepositoryReleaseAcquisitionRejected::CLEANUP_FAILED, $failure->reason ); }
 	}
 
-	public function testRateLimitWithNullRetryUsesExistingReadFallback(): void {
+	public function test_rate_limit_with_null_retry_uses_existing_read_fallback(): void {
 		$provider = $this->provider( new PublicReleaseSourceFixture( array_reverse( $this->envelope( false, 'rate_limited', null ), true ), $this->envelope( true, 'release_inspected', $this->facts(), 'complete' ), $this->envelope( false, 'operation_failed', null ) ) );
 		$this->expectException( RepositoryReleaseReadUnavailable::class );
 		$provider->listReleaseCandidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
 	}
 
-	public function testRejectsNonBooleanSuccessAndMismatchedInspectionFacts(): void {
+	public function test_rejects_non_boolean_success_and_mismatched_inspection_facts(): void {
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
 		$provider   = $this->provider(
 			new PublicReleaseSourceFixture(
@@ -143,7 +144,7 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		$provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
 	}
 
-	public function testDiscardsMalformedRetainedAcquisitionBeforeRejectingIt(): void {
+	public function test_discards_malformed_retained_acquisition_before_rejecting_it(): void {
 		$fixture  = new PublicReleaseArtifactFixture( $this->archive() );
 		$provider = $this->provider(
 			new PublicReleaseSourceFixture(
@@ -224,15 +225,15 @@ final class PublicReleaseRegistrarFixture {
 		return $this->source; }
 }
 final class PublicReleaseSourceFixture {
-	public int $inspectCalls = 0;
-	public int $acquireCalls = 0;
+	public int $inspect_calls = 0;
+	public int $acquire_calls = 0;
 	public function __construct( private array $list, private array $inspect, private array $acquire ) {} public function list(): array {
 		return $this->list;
 	} public function inspect( string $id, string $tag ): array {
-		++$this->inspectCalls;
+		++$this->inspect_calls;
 		return $this->inspect;
 	} public function acquire( string $id, string $tag, string $fingerprint ): array {
-		++$this->acquireCalls;
+		++$this->acquire_calls;
 		return $this->acquire; }
 }
 final class PublicReleaseArtifactFixture {

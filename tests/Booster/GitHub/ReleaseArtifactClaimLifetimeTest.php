@@ -18,23 +18,23 @@ use RuntimeException;
 final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		#[RunInSeparateProcess]
 		#[PreserveGlobalState( false )]
-	public function testProviderArtifactIsCopiedIntoCoreCustodyBeforeProviderCleanup(): void {
+	public function test_provider_artifact_is_copied_into_core_custody_before_provider_cleanup(): void {
 		$path     = '';
 		$artifact = null;
 
 		try {
-			$this->resetFilesystemHooks();
+			$this->reset_filesystem_hooks();
 			[ $artifact, $path ] = $this->artifact();
 
 			$prepared = ReleaseArtifactCustodian::claim( $artifact->handoffToCore() );
 			self::assertFileDoesNotExist( $path );
 			$prepared->assertUnchanged();
-			$ownedPath = $prepared->getPath();
+			$owned_path = $prepared->getPath();
 			$prepared->cleanup();
-			self::assertFileDoesNotExist( $ownedPath );
-			self::assertDirectoryDoesNotExist( dirname( $ownedPath ) );
+			self::assertFileDoesNotExist( $owned_path );
+			self::assertDirectoryDoesNotExist( dirname( $owned_path ) );
 		} finally {
-			$this->resetFilesystemHooks();
+			$this->reset_filesystem_hooks();
 			if ( is_file( $path ) ) {
 				unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Test-only fallback cleanup.
 			}
@@ -43,8 +43,8 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 
 		#[RunInSeparateProcess]
 		#[PreserveGlobalState( false )]
-	public function testMkdirCollisionNeverRemovesPreexistingDirectory(): void {
-		$this->resetFilesystemHooks();
+	public function test_mkdir_collision_never_removes_preexisting_directory(): void {
+		$this->reset_filesystem_hooks();
 		$random    = str_repeat( "\x31", 16 );
 		$directory = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Test-only exact collision fixture.
@@ -56,14 +56,14 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		try {
 			$GLOBALS['ran_booster_custody_random_bytes'] = $random;
 			[ $artifact, $path ]                         = $this->artifact();
-			$this->expectHandoffFailure( $artifact );
+			$this->expect_handoff_failure( $artifact );
 
 			self::assertFileDoesNotExist( $path );
 			self::assertDirectoryExists( $directory );
 			self::assertSame( $before, lstat( $directory ) );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $path );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $path );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Test-only exact collision fixture cleanup.
 			rmdir( $directory );
 		}
@@ -71,8 +71,8 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 
 		#[RunInSeparateProcess]
 		#[PreserveGlobalState( false )]
-	public function testMkdirFailureDoesNotAttemptPathCleanup(): void {
-		$this->resetFilesystemHooks();
+	public function test_mkdir_failure_does_not_attempt_path_cleanup(): void {
+		$this->reset_filesystem_hooks();
 		$random    = str_repeat( "\x32", 16 );
 		$directory = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
 		$path      = '';
@@ -81,25 +81,25 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 			$GLOBALS['ran_booster_custody_random_bytes']  = $random;
 			$GLOBALS['ran_booster_custody_mkdir_failure'] = true;
 			[ $artifact, $path ]                          = $this->artifact();
-			$this->expectHandoffFailure( $artifact );
+			$this->expect_handoff_failure( $artifact );
 
 			self::assertFileDoesNotExist( $path );
 			self::assertDirectoryDoesNotExist( $directory );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $path );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $path );
 		}
 	}
 
 		#[RunInSeparateProcess]
 		#[PreserveGlobalState( false )]
-	public function testDirectorySwapBeforeDestinationCreationLeavesReplacementUntouched(): void {
-		$this->resetFilesystemHooks();
-		$random       = str_repeat( "\x33", 16 );
-		$directory    = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
-		$quarantine   = $directory . '-original';
-		$sentinel     = $directory . '/unrelated.txt';
-		$providerPath = '';
+	public function test_directory_swap_before_destination_creation_leaves_replacement_untouched(): void {
+		$this->reset_filesystem_hooks();
+		$random        = str_repeat( "\x33", 16 );
+		$directory     = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
+		$quarantine    = $directory . '-original';
+		$sentinel      = $directory . '/unrelated.txt';
+		$provider_path = '';
 
 		try {
 			$GLOBALS['ran_booster_custody_random_bytes']      = $random;
@@ -110,68 +110,68 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 				mkdir( $directory, 0700 );
 				file_put_contents( $sentinel, 'unrelated' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test-only replacement sentinel.
 			};
-				[ $artifact, $providerPath ]                  = $this->artifact();
-				$this->expectHandoffFailure( $artifact, true );
+				[ $artifact, $provider_path ]                 = $this->artifact();
+				$this->expect_handoff_failure( $artifact, true );
 
-				self::assertFileDoesNotExist( $providerPath );
+				self::assertFileDoesNotExist( $provider_path );
 				self::assertSame( 'unrelated', file_get_contents( $sentinel ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Test-only replacement sentinel.
 				self::assertFileDoesNotExist( $directory . '/archive.zip' );
 				self::assertDirectoryExists( $quarantine );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $providerPath );
-			$this->removeExactPath( $sentinel );
-			$this->removeExactPath( $directory . '/archive.zip' );
-			$this->removeExactDirectory( $directory );
-			$this->removeExactDirectory( $quarantine );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $provider_path );
+			$this->remove_exact_path( $sentinel );
+			$this->remove_exact_path( $directory . '/archive.zip' );
+			$this->remove_exact_directory( $directory );
+			$this->remove_exact_directory( $quarantine );
 		}
 	}
 
 		#[RunInSeparateProcess]
 		#[PreserveGlobalState( false )]
-	public function testDirectoryIdentityDriftPreventsFailureCleanup(): void {
-		$this->resetFilesystemHooks();
-		$random       = str_repeat( "\x34", 16 );
-		$directory    = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
-		$archive      = $directory . '/archive.zip';
-		$providerPath = '';
+	public function test_directory_identity_drift_prevents_failure_cleanup(): void {
+		$this->reset_filesystem_hooks();
+		$random        = str_repeat( "\x34", 16 );
+		$directory     = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
+		$archive       = $directory . '/archive.zip';
+		$provider_path = '';
 
 		try {
 			$GLOBALS['ran_booster_custody_random_bytes']           = $random;
 			$GLOBALS['ran_booster_custody_after_destination_open'] = static function () use ( $directory ): void {
 				chmod( $directory, 0755 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only identity drift.
 			};
-				[ $artifact, $providerPath ]                       = $this->artifact();
-				$this->expectHandoffFailure( $artifact, true );
+				[ $artifact, $provider_path ]                      = $this->artifact();
+				$this->expect_handoff_failure( $artifact, true );
 
-				self::assertFileDoesNotExist( $providerPath );
+				self::assertFileDoesNotExist( $provider_path );
 				self::assertFileExists( $archive );
 				self::assertSame( 'verified-release-archive', file_get_contents( $archive ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Test-only retained fail-closed copy.
 				self::assertSame( 0755, fileperms( $directory ) & 0777 );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $providerPath );
-			$this->removeExactPath( $archive );
-			$this->removeExactDirectory( $directory );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $provider_path );
+			$this->remove_exact_path( $archive );
+			$this->remove_exact_directory( $directory );
 		}
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function testThrownStreamCloseStillAttemptsCoreCopyCleanup(): void {
-		$this->resetFilesystemHooks();
-		$random       = str_repeat( "\x35", 16 );
-		$directory    = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
-		$archive      = $directory . '/archive.zip';
-		$providerPath = $this->archivePath();
+	public function test_thrown_stream_close_still_attempts_core_copy_cleanup(): void {
+		$this->reset_filesystem_hooks();
+		$random        = str_repeat( "\x35", 16 );
+		$directory     = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
+		$archive       = $directory . '/archive.zip';
+		$provider_path = $this->archive_path();
 
 		try {
 			$GLOBALS['ran_booster_custody_random_bytes']    = $random;
 			$GLOBALS['ran_booster_custody_fclose_failures'] = 1;
-			$digest = hash_file( 'sha256', $providerPath ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_hash_file -- Test-only artifact identity.
+			$digest = hash_file( 'sha256', $provider_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_hash_file -- Test-only artifact identity.
 			self::assertIsString( $digest );
 			$artifact = new GitHubReleaseArtifact(
-				new StructuralReleaseArtifact( $providerPath ),
+				new StructuralReleaseArtifact( $provider_path ),
 				'1.2.3',
 				str_repeat( 'a', 40 ),
 				'example',
@@ -180,96 +180,96 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 				52428800,
 				$digest
 			);
-			$this->expectHandoffFailure( $artifact, true );
+			$this->expect_handoff_failure( $artifact, true );
 
-			self::assertFileDoesNotExist( $providerPath );
+			self::assertFileDoesNotExist( $provider_path );
 			self::assertFileDoesNotExist( $archive );
 			self::assertDirectoryDoesNotExist( $directory );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $providerPath );
-			$this->removeExactPath( $archive );
-			$this->removeExactDirectory( $directory );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $provider_path );
+			$this->remove_exact_path( $archive );
+			$this->remove_exact_directory( $directory );
 		}
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function testFirstFailedHandoffDiscardCannotBeHiddenByRetry(): void {
-		$this->resetFilesystemHooks();
-		$path = $this->archivePath();
+	public function test_first_failed_handoff_discard_cannot_be_hidden_by_retry(): void {
+		$this->reset_filesystem_hooks();
+		$path = $this->archive_path();
 
 		try {
 			$source   = new StructuralReleaseArtifact( $path, array( false, true ) );
-			$artifact = $this->artifactFromSource( $source );
-			$this->expectHandoffFailure( $artifact, true );
+			$artifact = $this->artifact_from_source( $source );
+			$this->expect_handoff_failure( $artifact, true );
 
-			self::assertSame( 1, $source->discardCalls );
+			self::assertSame( 1, $source->discard_calls );
 			self::assertFalse( $artifact->discard() );
-			self::assertSame( 1, $source->discardCalls );
+			self::assertSame( 1, $source->discard_calls );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $path );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $path );
 		}
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function testThrownHandoffDiscardCannotBeHiddenByLaterSuccess(): void {
-		$this->resetFilesystemHooks();
-		$path = $this->archivePath();
+	public function test_thrown_handoff_discard_cannot_be_hidden_by_later_success(): void {
+		$this->reset_filesystem_hooks();
+		$path = $this->archive_path();
 
 		try {
 			$source   = new ThrowingDiscardStructuralReleaseArtifact( $path );
-			$artifact = $this->artifactFromSource( $source );
-			$this->expectHandoffFailure( $artifact, true );
+			$artifact = $this->artifact_from_source( $source );
+			$this->expect_handoff_failure( $artifact, true );
 
-			self::assertSame( 1, $source->discardCalls );
+			self::assertSame( 1, $source->discard_calls );
 			self::assertFalse( $artifact->discard() );
-			self::assertSame( 1, $source->discardCalls );
+			self::assertSame( 1, $source->discard_calls );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $path );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $path );
 		}
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function testPostReaderRuntimeLossRemovesProvisionalCopy(): void {
-		$this->resetFilesystemHooks();
-		$path = $this->archivePath();
+	public function test_post_reader_runtime_loss_removes_provisional_copy(): void {
+		$this->reset_filesystem_hooks();
+		$path = $this->archive_path();
 
 		try {
 			$source   = new FaultingStructuralReleaseArtifact( $path, false );
-			$artifact = $this->artifactFromSource( $source );
-			$this->expectHandoffFailure( $artifact );
+			$artifact = $this->artifact_from_source( $source );
+			$this->expect_handoff_failure( $artifact );
 
 			self::assertNotNull( $source->prepared );
 			self::assertFileDoesNotExist( $source->prepared->getPath() );
 			self::assertDirectoryDoesNotExist( dirname( $source->prepared->getPath() ) );
 			self::assertFileDoesNotExist( $path );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $path );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $path );
 		}
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function testThrownCoreCopyRemovalRemainsCleanupFailure(): void {
-		$this->resetFilesystemHooks();
-		$random       = str_repeat( "\x36", 16 );
-		$directory    = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
-		$archive      = $directory . '/archive.zip';
-		$providerPath = $this->archivePath();
+	public function test_thrown_core_copy_removal_remains_cleanup_failure(): void {
+		$this->reset_filesystem_hooks();
+		$random        = str_repeat( "\x36", 16 );
+		$directory     = sys_get_temp_dir() . '/ran-booster-release-' . bin2hex( $random );
+		$archive       = $directory . '/archive.zip';
+		$provider_path = $this->archive_path();
 
 		try {
 			$GLOBALS['ran_booster_custody_random_bytes'] = $random;
 			$GLOBALS['ran_booster_custody_unlink_throw'] = true;
-			$digest                                      = hash_file( 'sha256', $providerPath ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_hash_file -- Test-only artifact identity.
+			$digest                                      = hash_file( 'sha256', $provider_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_hash_file -- Test-only artifact identity.
 			self::assertIsString( $digest );
 			$artifact = new GitHubReleaseArtifact(
-				new StructuralReleaseArtifact( $providerPath ),
+				new StructuralReleaseArtifact( $provider_path ),
 				'1.2.3',
 				str_repeat( 'a', 40 ),
 				'example',
@@ -278,46 +278,46 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 				52428800,
 				$digest
 			);
-			$this->expectHandoffFailure( $artifact, true );
+			$this->expect_handoff_failure( $artifact, true );
 
-			self::assertFileDoesNotExist( $providerPath );
+			self::assertFileDoesNotExist( $provider_path );
 			self::assertFileExists( $archive );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $providerPath );
-			$this->removeExactPath( $archive );
-			$this->removeExactDirectory( $directory );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $provider_path );
+			$this->remove_exact_path( $archive );
+			$this->remove_exact_directory( $directory );
 		}
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function testFalseCloseResultRemainsCleanupFailure(): void {
-		$this->resetFilesystemHooks();
+	public function test_false_close_result_remains_cleanup_failure(): void {
+		$this->reset_filesystem_hooks();
 		$path = '';
 
 		try {
 			$GLOBALS['ran_booster_custody_fclose_false_results'] = 1;
 			[ $artifact, $path ]                                 = $this->artifact();
-			$this->expectHandoffFailure( $artifact, true );
+			$this->expect_handoff_failure( $artifact, true );
 
 			self::assertFileDoesNotExist( $path );
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $path );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $path );
 		}
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function testPreparedCopyCleanupUncertaintyRemainsReportable(): void {
-		$this->resetFilesystemHooks();
-		$path = $this->archivePath();
+	public function test_prepared_copy_cleanup_uncertainty_remains_reportable(): void {
+		$this->reset_filesystem_hooks();
+		$path = $this->archive_path();
 
 		try {
 			$source   = new FaultingStructuralReleaseArtifact( $path, true );
-			$artifact = $this->artifactFromSource( $source );
-			$this->expectHandoffFailure( $artifact, true );
+			$artifact = $this->artifact_from_source( $source );
+			$this->expect_handoff_failure( $artifact, true );
 
 			self::assertNotNull( $source->prepared );
 			self::assertFileExists( $source->prepared->getPath() );
@@ -326,14 +326,14 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 			chmod( $source->prepared->getPath(), 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only retained-copy cleanup.
 			$source->prepared->cleanup();
 		} finally {
-			$this->resetFilesystemHooks();
-			$this->removeExactPath( $path );
+			$this->reset_filesystem_hooks();
+			$this->remove_exact_path( $path );
 		}
 	}
 
 		/** @return array{GitHubReleaseArtifact, string} */
 	private function artifact(): array {
-		$path   = $this->archivePath();
+		$path   = $this->archive_path();
 		$digest = hash_file( 'sha256', $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_hash_file -- Test-only artifact identity.
 		self::assertIsString( $digest );
 
@@ -352,7 +352,7 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		);
 	}
 
-	private function archivePath(): string {
+	private function archive_path(): string {
 		$path = tempnam( sys_get_temp_dir(), 'ran-booster-real-release-artifact-' );
 		self::assertIsString( $path );
 		file_put_contents( $path, 'verified-release-archive' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test-only artifact.
@@ -361,17 +361,17 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		return $path;
 	}
 
-	private function artifactFromSource( object $source ): GitHubReleaseArtifact {
+	private function artifact_from_source( object $source ): GitHubReleaseArtifact {
 		return new GitHubReleaseArtifact( $source, '1.2.3', str_repeat( 'a', 40 ), 'example', 'example.php', strlen( 'verified-release-archive' ), 52428800, hash( 'sha256', 'verified-release-archive' ) );
 	}
 
-	private function expectHandoffFailure( GitHubReleaseArtifact $artifact, bool $cleanupFailure = false ): void {
+	private function expect_handoff_failure( GitHubReleaseArtifact $artifact, bool $cleanup_failure = false ): void {
 		try {
 			ReleaseArtifactCustodian::claim( $artifact->handoffToCore() );
 			self::fail( 'Unsafe custody handoff must fail closed.' );
 		} catch ( RuntimeException $exception ) {
 			self::assertSame(
-				$cleanupFailure
+				$cleanup_failure
 					? 'The release artifact transfer could not be cleaned up safely.'
 					: 'The release artifact could not be transferred to Core.',
 				$exception->getMessage()
@@ -379,7 +379,7 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		}
 	}
 
-	private function resetFilesystemHooks(): void {
+	private function reset_filesystem_hooks(): void {
 		unset(
 			$GLOBALS['ran_booster_custody_random_bytes'],
 			$GLOBALS['ran_booster_custody_mkdir_failure'],
@@ -391,13 +391,13 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		);
 	}
 
-	private function removeExactPath( string $path ): void {
+	private function remove_exact_path( string $path ): void {
 		if ( '' !== $path && ( is_file( $path ) || is_link( $path ) ) ) {
 			unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Test-only exact cleanup.
 		}
 	}
 
-	private function removeExactDirectory( string $directory ): void {
+	private function remove_exact_directory( string $directory ): void {
 		if ( is_dir( $directory ) && ! is_link( $directory ) ) {
 			rmdir( $directory ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Test-only exact cleanup.
 		}
@@ -405,19 +405,19 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 }
 
 final class StructuralReleaseArtifact {
-	public int $discardCalls = 0;
+	public int $discard_calls = 0;
 
-	/** @param list<bool> $discardResults */
-	public function __construct( private string $path, private array $discardResults = array() ) {}
+	/** @param list<bool> $discard_results */
+	public function __construct( private string $path, private array $discard_results = array() ) {}
 
 	public function inspect( callable $reader ): mixed {
 		return $reader( $this->path );
 	}
 
 	public function discard(): bool {
-		++$this->discardCalls;
-		if ( array() !== $this->discardResults ) {
-			return array_shift( $this->discardResults );
+		++$this->discard_calls;
+		if ( array() !== $this->discard_results ) {
+			return array_shift( $this->discard_results );
 		}
 		if ( is_file( $this->path ) ) {
 			unlink( $this->path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Test fixture discards its exact temporary artifact.
@@ -430,11 +430,11 @@ final class StructuralReleaseArtifact {
 final class FaultingStructuralReleaseArtifact {
 	public ?\RAN\Deployment\PreparedArtifact $prepared = null;
 
-	public function __construct( private string $path, private bool $breakPreparedCopy ) {}
+	public function __construct( private string $path, private bool $break_prepared_copy ) {}
 
 	public function inspect( callable $reader ): mixed {
 		$this->prepared = $reader( $this->path );
-		if ( $this->breakPreparedCopy ) {
+		if ( $this->break_prepared_copy ) {
 			chmod( $this->prepared->getPath(), 0644 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only prepared-copy identity drift.
 		}
 
@@ -451,7 +451,7 @@ final class FaultingStructuralReleaseArtifact {
 }
 
 final class ThrowingDiscardStructuralReleaseArtifact {
-	public int $discardCalls = 0;
+	public int $discard_calls = 0;
 
 	public function __construct( private string $path ) {}
 
@@ -460,8 +460,8 @@ final class ThrowingDiscardStructuralReleaseArtifact {
 	}
 
 	public function discard(): bool {
-		++$this->discardCalls;
-		if ( 1 === $this->discardCalls ) {
+		++$this->discard_calls;
+		if ( 1 === $this->discard_calls ) {
 			throw new RuntimeException( 'The provider discard operation failed.' );
 		}
 		if ( is_file( $this->path ) ) {
