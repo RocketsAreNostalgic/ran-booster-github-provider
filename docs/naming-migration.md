@@ -162,7 +162,7 @@ This cut completes all 86 remaining private production-method renames, plus 15
 private properties and safe private parameters/locals. The promoted properties
 changed here belong to private constructors. RepositorySnapshot's public
 constructor parameters/properties remain unchanged. All 91 public declaration
-signatures in the changed production files are token-identical to the base.
+signatures in the scoped production files are token-identical to the base.
 
 The 10 same-basename tests migrate 127 owned methods: 116 test methods, eight
 private helpers and three data providers. Their three DataProvider attribute
