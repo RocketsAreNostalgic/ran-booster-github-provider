@@ -40,13 +40,13 @@ final class ReleaseAcquisitionTest extends TestCase {
 		$fingerprint = $this->fingerprint( $provider, $repository );
 		NeutralReleaseUpdaterFixtures::queue( array_merge( NeutralReleaseUpdaterFixtures::proof(), NeutralReleaseUpdaterFixtures::proof() ) );
 
-		$artifact = $provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' );
+		$artifact = $provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' );
 		self::assertSame( 'example/example.php', $artifact->identifier( 'plugin' ) );
 		$provider_paths = $GLOBALS['ran_booster_release_temp_paths'];
 		self::assertNotEmpty( $provider_paths );
 		self::assertFileExists( $provider_paths[ count( $provider_paths ) - 1 ] );
 
-		$prepared = ReleaseArtifactCustodian::claim( $artifact->handoffToCore() );
+		$prepared = ReleaseArtifactCustodian::claim( $artifact->handoff_to_core() );
 		self::assertInstanceOf( PreparedArtifact::class, $prepared );
 		self::assertSame( str_repeat( 'a', 40 ), $prepared->getResolvedRef() );
 		self::assertNotContains( $prepared->getPath(), $provider_paths );
@@ -69,7 +69,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 		$private     = $this->provider( $credentials );
 		NeutralReleaseUpdaterFixtures::queue( array_merge( NeutralReleaseUpdaterFixtures::proof(), NeutralReleaseUpdaterFixtures::proof() ) );
 
-		$artifact = $private->acquireRelease(
+		$artifact = $private->acquire_release(
 			'plugin',
 			new RepositoryReference( 'owner/example', '123456789', true, 'private-release' ),
 			'42',
@@ -89,7 +89,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 		NeutralReleaseUpdaterFixtures::queue( NeutralReleaseUpdaterFixtures::proof( version: '1.2.4', tag: 'v1.2.4' ) );
 
 		try {
-			$provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.4', $fingerprint, 'stable' );
+			$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.4', $fingerprint, 'stable' );
 			self::fail( 'Changed prospective evidence must reject acquisition.' );
 		} catch ( RepositoryReleaseAcquisitionRejected $exception ) {
 			self::assertSame( RepositoryReleaseAcquisitionRejected::INVALID_RELEASE, $exception->reason );
@@ -112,7 +112,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 		);
 
 		try {
-			$provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' );
+			$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' );
 			self::fail( 'Operational acquisition failure must throw.' );
 		} catch ( RuntimeException $exception ) {
 			self::assertSame( 'GitHub could not acquire the selected release.', $exception->getMessage() );
@@ -125,7 +125,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 	private function fingerprint( GitHubProvider $provider, RepositoryReference $repository ): string {
 		NeutralReleaseUpdaterFixtures::queue( NeutralReleaseUpdaterFixtures::proof() );
 
-		return $provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint;
+		return $provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint;
 	}
 
 	private function provider( RepositoryResolverSecretsStub $credentials ): GitHubProvider&RepositoryReleaseAcquirer {

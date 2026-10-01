@@ -45,7 +45,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 			)
 		);
 
-		$result = $this->provider( new RepositoryResolverSecretsStub() )->listReleaseCandidates(
+		$result = $this->provider( new RepositoryResolverSecretsStub() )->list_release_candidates(
 			'plugin',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
 			'prerelease'
@@ -63,7 +63,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 	public function test_theme_listing_uses_stable_channel(): void {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::listing( array() ) ) );
 
-		$result = $this->provider( new RepositoryResolverSecretsStub() )->listReleaseCandidates(
+		$result = $this->provider( new RepositoryResolverSecretsStub() )->list_release_candidates(
 			'theme',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
 			'stable'
@@ -78,7 +78,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		$provider    = $this->provider( $credentials );
 		self::assertSame( array(), $credentials->lookups );
 
-		$provider->listReleaseCandidates(
+		$provider->list_release_candidates(
 			'plugin',
 			new RepositoryReference( 'owner/private-example', '123456789', true, 'private-release' ),
 			'stable'
@@ -92,7 +92,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::listing( array() ) ) );
 		self::assertArrayNotHasKey( 'wp_filesystem', $GLOBALS );
 
-		$result = $this->provider( new RepositoryResolverSecretsStub() )->listReleaseCandidates(
+		$result = $this->provider( new RepositoryResolverSecretsStub() )->list_release_candidates(
 			'plugin',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
 			'stable'
@@ -109,7 +109,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		$this->expectException( RuntimeException::class );
 		$this->expectExceptionMessage( 'GitHub release candidate listing is unavailable.' );
 		try {
-			$this->provider( $credentials )->listReleaseCandidates(
+			$this->provider( $credentials )->list_release_candidates(
 				'plugin',
 				new RepositoryReference( 'owner/private-example', '123456789', true, 'private-release' ),
 				'stable'
@@ -127,7 +127,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		$this->expectException( RuntimeException::class );
 		$this->expectExceptionMessage( 'GitHub release candidate listing is unavailable.' );
 		try {
-			$this->provider( $credentials )->listReleaseCandidates(
+			$this->provider( $credentials )->list_release_candidates(
 				'plugin',
 				new RepositoryReference( 'owner/private-example', '123456789', true, 'private-release' ),
 				'stable'
@@ -143,7 +143,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 
 		$this->expectException( RuntimeException::class );
 		$this->expectExceptionMessage( 'GitHub returned invalid release candidates.' );
-		$this->provider( new RepositoryResolverSecretsStub() )->listReleaseCandidates(
+		$this->provider( new RepositoryResolverSecretsStub() )->list_release_candidates(
 			'plugin',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
 			'stable'
@@ -156,7 +156,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 
 		$this->expectException( RepositoryReleaseReadUnavailable::class );
 		$this->expectExceptionMessage( 'GitHub release candidate access is unavailable.' );
-		$this->provider( new RepositoryResolverSecretsStub() )->listReleaseCandidates(
+		$this->provider( new RepositoryResolverSecretsStub() )->list_release_candidates(
 			'plugin',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
 			'stable'
@@ -177,7 +177,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		) as $failure ) {
 			NeutralReleaseUpdaterFixtures::queue( array( $failure ) );
 			try {
-				$this->provider( new RepositoryResolverSecretsStub() )->listReleaseCandidates(
+				$this->provider( new RepositoryResolverSecretsStub() )->list_release_candidates(
 					'plugin',
 					new RepositoryReference( 'owner/example', '123456789', false, null ),
 					'stable'

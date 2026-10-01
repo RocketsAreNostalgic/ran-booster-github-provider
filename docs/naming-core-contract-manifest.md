@@ -1,5 +1,20 @@
 # Provider/Core naming contract manifest — 2026-10-01
 
+## Operative API13 methods-only scope — 1 October 2026
+
+The current accepted tranche implements exactly 50 methods across GitHubProvider
+(30), WebhookPolicy (8), CredentialPolicy (5), GitHubReleaseArtifact (4), and
+WebhookNormalizer (3), paired with 47 Core declarations across 20 interfaces.
+Only method declarations and their receiver-resolved callers/reflection names
+change. Public parameter names and promotions in the historical broader proposal
+below remain deferred; that proposal is not blanket implementation authority.
+Core owns API13 admission and combined qualification. Bitbucket retains its
+separate owner and must provide a matching migration. Source/host overlays are
+preparation only; publication and real Core lock adoption remain separate gates.
+
+The remaining sections preserve the earlier audit evidence and proposal.
+
+
 Prepared read-only for Provider #25 and Core #167; proposed mappings are not an agreed contract change. Provider source baseline de9807f; current Core a8b635a8c9a40482ec5f125023f54e43f88bce58. Provider CI/AGENTS certifies candidate 18b0ec619174000a9a9dbc27b9d68b44b0265449, not current Core. The coordinator fetched the certified object into a separate worktree. Both exact hosts are qualified separately; no equivalence is assumed.
 
 This inventory is exhaustive for the seven named Provider source classes directly implementing Core interfaces, including RepositoryBrowser inherited through CredentialedPublicRepositoryBrowser. ProviderCapability is a marker (no method declaration). The Core consumer appendix below is a lexical occurrence inventory, deliberately including same-spelling methods on other objects; it is not a claim that every hit dispatches to these interfaces. Dynamic names constructed without the literal symbol cannot be proved absent through lexical search.

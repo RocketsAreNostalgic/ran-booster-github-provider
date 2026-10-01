@@ -12,23 +12,19 @@ use RuntimeException;
 
 final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getProvider(): ProviderCode {
+	public function get_provider(): ProviderCode {
 		return ProviderCode::parse( 'gh' );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getRetainedHeaders(): array {
+	public function get_retained_headers(): array {
 		return array( 'x-github-event', 'x-github-delivery', 'x-hub-signature-256' );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getSignatureHeader(): string {
+	public function get_signature_header(): string {
 		return 'x-hub-signature-256';
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function normalizeWebhook( array $metadata, mixed $secret ): array {
+	public function normalize_webhook( array $metadata, mixed $secret ): array {
 		$label        = $this->required_string( $metadata['label'] ?? null, 'Webhook secret label' );
 		$scope        = $this->required_string( $metadata['scope'] ?? null, 'Webhook secret scope' );
 		$target       = isset( $metadata['target'] ) && is_string( $metadata['target'] )
@@ -65,25 +61,22 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 		);
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getConstantNames(): array {
+	public function get_constant_names(): array {
 		return array();
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function webhookFromConstants( array $constants ): ?array {
+	public function webhook_from_constants( array $constants ): ?array {
 		return null;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function authorizeWebhook(
+	public function authorize_webhook(
 		SignedWebhookVerification $verification,
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $repositoryAuthorityId,
 		string $repository
 	): bool {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( '' === $repositoryAuthorityId || ! $verification->getProvider()->equals( $this->getProvider() ) ) {
+		if ( '' === $repositoryAuthorityId || ! $verification->getProvider()->equals( $this->get_provider() ) ) {
 			return false;
 		}
 
@@ -105,8 +98,8 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 		return false;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function repositoryTargetMatches( string $target, string $repositoryLocator ): bool {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function repository_target_matches( string $target, string $repositoryLocator ): bool {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		return 0 === strcasecmp( trim( $target, '/' ), trim( $repositoryLocator, '/' ) );
 	}

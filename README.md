@@ -31,7 +31,7 @@ WordPress and Provider API requirements are host contracts, not Composer checks.
 | --- | --- |
 | PHP | `^8.2` |
 | WordPress host | WordPress 7.0+ through a compatible Booster host |
-| Outer Provider API | Exactly `12`; not compatible with API 11 |
+| Outer Provider API | Exactly `13`; not compatible with API 11 or 12 |
 | Release-workflow capability | Initial-only `RepositoryReleaseWorkflowManagementV3` |
 | Shared repository paths | `ran/updater-support ^1.0.0-beta.4` |
 | Release updater | `ran/wp-release-updater 0.1.0-beta.7` |
@@ -41,8 +41,8 @@ template-pack API 3 and updater runtime protocol are separate contracts.
 Do not infer host compatibility from matching version numbers.
 
 **Published Provider compatibility is not released-Core certification.** As of
-1 October 2026, Core main has adopted Provider beta.8, but Core beta.31 remains a
-release proposal; the latest published Core beta.30 is not an API-12 host.
+1 October 2026, Core main has adopted Provider beta.9, but Core beta.31 remains a
+release proposal; the latest published Core beta.30 is not an API-13 host.
 Provider CI qualifies an exact candidate host, identified in
 [the contribution guide](CONTRIBUTING.md), rather than certifying whichever Core
 revision is newest. Use the Provider version bundled with your chosen Booster
@@ -129,7 +129,7 @@ The host supplies these capabilities deliberately:
 Booster registers the returned aggregate as `gh` with
 `ProviderRegistry::registerWithCredentialStore( 'gh', $factory )` before firing
 `ran_booster_register_providers`, then seals the registry. An external
-composition must check the exact API-12 marker and supported runtime mode before
+composition must check the exact API-13 marker and supported runtime mode before
 loading the implementation. Ordinary Booster already owns `gh`: trying to
 register it again is rejected before the second factory receives credentials.
 The Core [external composition fixture](https://github.com/RocketsAreNostalgic/ran-booster/tree/main/tests/fixtures/ran-booster-github-provider-extension)
@@ -168,3 +168,12 @@ Maintainers should use [CONTRIBUTING.md](CONTRIBUTING.md) for quality commands,
 [RELEASING.md](RELEASING.md) for publication and trust requirements, and
 [AGENTS.md](AGENTS.md) for the repository engineering contract. The package is
 licensed under [GPL-2.0-or-later](LICENSE).
+
+## API13 naming candidate
+
+This source migrates 50 implementations of Core-owned methods to snake_case.
+It requires the exact API13 Core candidate and is not compatible with API12
+method contracts. WorkflowV3 and persisted/template identities are unchanged.
+Candidate host qualification is preparation, not released-Core certification.
+See Core #167 for reviewed candidate identities and the publication/adoption
+sequence. The earlier published beta.9 remains the API12 helper release.

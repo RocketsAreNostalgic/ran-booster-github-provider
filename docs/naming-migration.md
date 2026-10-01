@@ -1,5 +1,20 @@
 # Provider naming migration — 1 October 2026
 
+## Operative API13 methods-only scope — 1 October 2026
+
+The current accepted tranche implements exactly 50 methods across GitHubProvider
+(30), WebhookPolicy (8), CredentialPolicy (5), GitHubReleaseArtifact (4), and
+WebhookNormalizer (3), paired with 47 Core declarations across 20 interfaces.
+Only method declarations and their receiver-resolved callers/reflection names
+change. Public parameter names and promotions in the historical broader proposal
+below remain deferred; that proposal is not blanket implementation authority.
+Core owns API13 admission and combined qualification. Bitbucket retains its
+separate owner and must provide a matching migration. Source/host overlays are
+preparation only; publication and real Core lock adoption remain separate gates.
+
+The remaining sections preserve the earlier audit evidence and proposal.
+
+
 Coordination: Provider #25, organisation #65, Core #167; template ownership #28.
 This first local cut starts at `de9807f415524b3e05ce20758d06f3ff2d0f1a6f`.
 It does not complete the public-contract migration or authorize a release.

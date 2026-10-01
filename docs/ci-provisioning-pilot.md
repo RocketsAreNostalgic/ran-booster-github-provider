@@ -30,8 +30,8 @@ Tracked source bytes (including locks, even with misleading index flags) and
 installed dependency file bytes/symlink targets are checked before and after the
 phases. Only a successful baseline admits the host phase for the same source.
 Host environment variables are scoped to that step; the Core revision remains
-`18b0ec619174000a9a9dbc27b9d68b44b0265449`, preserving the existing candidate-only
-API12/V3 qualification. PHPUnit/PHPStan caches are outside vendor and remain
+`a53d35f18d226bf37f8485f351a5d0decdac6066`, preserving the existing candidate-only
+API13/V3 qualification. PHPUnit/PHPStan caches are outside vendor and remain
 ordinary disposable test state. No cached vendor or certified host is trusted.
 These jobs do not establish installed or released Core composition.
 

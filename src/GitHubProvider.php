@@ -222,83 +222,72 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		);
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getMetadata(): ProviderMetadata {
+	public function get_metadata(): ProviderMetadata {
 		return $this->metadata;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getProviderDiagnostics(): ProviderDiagnostics {
+	public function get_provider_diagnostics(): ProviderDiagnostics {
 		return $this->diagnostics;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function workflowStatus( RepositoryReleaseWorkflowTarget $status ): RepositoryReleaseWorkflowStatus {
+	public function workflow_status( RepositoryReleaseWorkflowTarget $status ): RepositoryReleaseWorkflowStatus {
 		return $this->release_workflow->status( $status );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function workflowPreview( RepositoryReleaseWorkflowTarget $status, string $key ): ?RepositoryReleaseWorkflowPreview {
+	public function workflow_preview( RepositoryReleaseWorkflowTarget $status, string $key ): ?RepositoryReleaseWorkflowPreview {
 		return $this->release_workflow->preview( $status, $key );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function workflowInspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credentialId ): RepositoryReleaseWorkflowResult {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function workflow_inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credentialId ): RepositoryReleaseWorkflowResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		return $this->release_workflow->inspect( $status, $channel, $preflight, $credentialId );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function workflowSetup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credentialId ): RepositoryReleaseWorkflowResult {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function workflow_setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credentialId ): RepositoryReleaseWorkflowResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		return $this->release_workflow->setup( $status, $key, $confirmation, $preflight, $credentialId );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function workflowOutcome( RepositoryReleaseWorkflowTarget $status, ?string $credentialId ): RepositoryReleaseWorkflowResult {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function workflow_outcome( RepositoryReleaseWorkflowTarget $status, ?string $credentialId ): RepositoryReleaseWorkflowResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		return $this->release_workflow->outcome( $status, $credentialId );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getCredentialPolicy(): ProviderCredentialPolicy {
+	public function get_credential_policy(): ProviderCredentialPolicy {
 		return $this->credential_policy;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getWebhookPolicy(): ProviderWebhookPolicy {
-		return $this->webhooks->getWebhookPolicy();
+	public function get_webhook_policy(): ProviderWebhookPolicy {
+		return $this->webhooks->get_webhook_policy();
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function diagnoseWebhookReadiness(): ProviderDiagnosticResult {
-		return $this->webhooks->diagnoseWebhookReadiness();
+	public function diagnose_webhook_readiness(): ProviderDiagnosticResult {
+		return $this->webhooks->diagnose_webhook_readiness();
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function validateCredential( string $credentialId ): CredentialValidationResult {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function validate_credential( string $credentialId ): CredentialValidationResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		return $this->browser->validate_credential( $credentialId );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function browseRepositories( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
+	public function browse_repositories( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
 		return $this->browser->browse( $request );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getPublicRepositoryBrowseMetadata(): PublicRepositoryBrowseMetadata {
+	public function get_public_repository_browse_metadata(): PublicRepositoryBrowseMetadata {
 		return new PublicRepositoryBrowseMetadata( true );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function resolveRepository( RepositoryLookupRequest $request ): RepositoryDescriptor {
+	public function resolve_repository( RepositoryLookupRequest $request ): RepositoryDescriptor {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 		return $this->browser->repository( $request->locator, $request->credentialId );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function prepareArchive( ArchiveRequest $request ): PreparedArchive {
+	public function prepare_archive( ArchiveRequest $request ): PreparedArchive {
 		$repository = $request->repository;
 
 		$ref = $request->ref;
@@ -369,8 +358,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		);
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function repositoryPathExists( RepositoryReference $repository, string $ref, string $path ): bool {
+	public function repository_path_exists( RepositoryReference $repository, string $ref, string $path ): bool {
 		return $this->browser->path_exists(
 			$repository->locator,
 			$ref,
@@ -381,18 +369,15 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		);
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function normalizeWebhook( WebhookRequest $request ): WebhookEnvelope {
-		return $this->webhooks->normalizeWebhook( $request );
+	public function normalize_webhook( WebhookRequest $request ): WebhookEnvelope {
+		return $this->webhooks->normalize_webhook( $request );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function repositoryWebhookSettingsUrl( string $locator ): string {
+	public function repository_webhook_settings_url( string $locator ): string {
 		return 'https://github.com/' . $this->encode_repository_name( $locator ) . '/settings/hooks';
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function expectedUpdateUri( RepositoryReference $repository ): string {
+	public function expected_update_uri( RepositoryReference $repository ): string {
 		if ( 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}\z/D', $repository->locator ) ) {
 			return '';
 		}
@@ -400,9 +385,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return 'https://github.com/' . $this->encode_repository_name( $repository->locator );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function releaseDetailsUrl( RepositoryReference $repository, string $tag ): string {
-		$update_uri = $this->expectedUpdateUri( $repository );
+	public function release_details_url( RepositoryReference $repository, string $tag ): string {
+		$update_uri = $this->expected_update_uri( $repository );
 		if ( '' === $update_uri || '' === $tag || strlen( $tag ) > 100 ) {
 			return '';
 		}
@@ -410,8 +394,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return $update_uri . '/releases/tag/' . rawurlencode( $tag );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function hasRegisteredNativeTarget( string $packageType, string $installedIdentifier ): bool {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function has_registered_native_target( string $packageType, string $installedIdentifier ): bool {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		if ( ! in_array( $packageType, array( 'plugin', 'theme' ), true )
 			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
@@ -424,8 +408,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return isset( $this->native_targets[ $key ] ) && $this->native_targets[ $key ]->status()->active;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function createNativeTarget(
+	public function create_native_target(
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $packageType,
 		RepositoryReference $repository,
@@ -441,7 +424,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	): RepositoryReleaseNativeTarget {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 		$repository_id = $repository->providerRepositoryId;
-		if ( '' === $this->expectedUpdateUri( $repository ) || null === $repository_id ) {
+		if ( '' === $this->expected_update_uri( $repository ) || null === $repository_id ) {
 			throw new RuntimeException( 'The GitHub release native target repository is invalid.' );
 		}
 
@@ -471,8 +454,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return $package_type . ':' . ( 'plugin' === $package_type ? ltrim( $identity, '/' ) : $identity );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function listReleaseCandidates(
+	public function list_release_candidates(
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $packageType,
 		RepositoryReference $repository,
@@ -506,7 +488,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				|| ! is_string( $release['published_at'] ?? null )
 				|| ! is_array( $release['expected_asset_names'] ?? null )
 				|| ! is_string( $release['details_url'] ?? null )
-				|| ! hash_equals( $this->releaseDetailsUrl( $repository, $release['tag'] ), $release['details_url'] ) ) {
+				|| ! hash_equals( $this->release_details_url( $repository, $release['tag'] ), $release['details_url'] ) ) {
 				throw new RuntimeException( 'GitHub returned invalid release candidates.', 502 );
 			}
 			$candidates[] = new RepositoryReleaseCandidate(
@@ -522,8 +504,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return new RepositoryReleaseCandidateList( $candidates );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function inspectRelease(
+	public function inspect_release(
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $packageType,
 		RepositoryReference $repository,
@@ -568,7 +549,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 				|| ! hash_equals( $packageType, $facts['target_type'] ?? '' )
 				|| ! hash_equals( $channel, $facts['channel'] ?? '' )
-				|| ! hash_equals( $this->expectedUpdateUri( $repository ), $facts['canonical_update_uri'] ?? '' )
+				|| ! hash_equals( $this->expected_update_uri( $repository ), $facts['canonical_update_uri'] ?? '' )
 				|| ! hash_equals( $repository->locator, $facts['repository_locator'] ?? '' )
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 				|| ! hash_equals( (string) $repository->providerRepositoryId, $facts['repository_identity'] ?? '' )
@@ -589,8 +570,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function acquireRelease(
+	public function acquire_release(
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $packageType,
 		RepositoryReference $repository,
@@ -651,7 +631,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 				|| ! hash_equals( $expectedFingerprint, $facts['fingerprint'] )
 				|| ! hash_equals( $channel, $facts['channel'] ?? '' )
-				|| ! hash_equals( $this->expectedUpdateUri( $repository ), $facts['canonical_update_uri'] ?? '' )
+				|| ! hash_equals( $this->expected_update_uri( $repository ), $facts['canonical_update_uri'] ?? '' )
 				|| ! hash_equals( $repository->locator, $facts['repository_locator'] ?? '' )
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 				|| ! hash_equals( (string) $repository->providerRepositoryId, $facts['repository_identity'] ?? '' )
@@ -682,14 +662,14 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessSetup( string $repositoryId, string $repository, ?string $credentialProfileId ): RepositoryWebhookFitnessResult {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function assess_setup( string $repositoryId, string $repository, ?string $credentialProfileId ): RepositoryWebhookFitnessResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		return $this->webhook_client->assess_setup( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessCheck( string $repositoryId, string $repository, ?string $credentialProfileId, string $hookId ): RepositoryWebhookFitnessResult {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function assess_check( string $repositoryId, string $repository, ?string $credentialProfileId, string $hookId ): RepositoryWebhookFitnessResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		$this->assert_hook_id( $hookId );
 
@@ -697,8 +677,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return $this->webhook_client->assess_check( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessReconfigure( string $repositoryId, string $repository, ?string $credentialProfileId, string $hookId ): RepositoryWebhookFitnessResult {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function assess_reconfigure( string $repositoryId, string $repository, ?string $credentialProfileId, string $hookId ): RepositoryWebhookFitnessResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		$this->assert_hook_id( $hookId );
 
@@ -706,8 +686,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return $this->webhook_client->assess_reconfigure( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessRemove( string $repositoryId, string $repository, ?string $credentialProfileId, string $hookId ): RepositoryWebhookFitnessResult {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function assess_remove( string $repositoryId, string $repository, ?string $credentialProfileId, string $hookId ): RepositoryWebhookFitnessResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		$this->assert_hook_id( $hookId );
 
@@ -715,8 +695,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return $this->webhook_client->assess_remove( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function assessTest( string $repositoryId, string $repository, ?string $credentialProfileId, string $hookId ): RepositoryWebhookFitnessResult {
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+	public function assess_test( string $repositoryId, string $repository, ?string $credentialProfileId, string $hookId ): RepositoryWebhookFitnessResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		$this->assert_hook_id( $hookId );
 

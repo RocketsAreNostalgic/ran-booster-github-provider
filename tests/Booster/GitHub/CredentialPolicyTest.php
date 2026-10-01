@@ -21,7 +21,7 @@ final class CredentialPolicyTest extends TestCase {
 	#[DataProvider( 'invalid_input' )]
 	public function test_rejects_only_closed_actionable_input_failures( string $kind, string $owner, string $token, string $reason ): void {
 		try {
-			( new CredentialPolicy() )->normalizeCredential(
+			( new CredentialPolicy() )->normalize_credential(
 				array(
 					'label'         => 'Repository access',
 					'kind'          => $kind,
@@ -55,7 +55,7 @@ final class CredentialPolicyTest extends TestCase {
 		$policy = new CredentialPolicy();
 
 		try {
-			$policy->validateSubmittedCredential(
+			$policy->validate_submitted_credential(
 				array(
 					'label'         => 'Repository access',
 					'kind'          => $kind,
@@ -78,7 +78,7 @@ final class CredentialPolicyTest extends TestCase {
 			array( 'fine-grained', 'github_pat_' . str_repeat( 'b', 29 ) ),
 			array( 'classic', 'ghp_' . str_repeat( 'c', 251 ) ),
 		) as [ $kind, $token ] ) {
-			$policy->validateSubmittedCredential(
+			$policy->validate_submitted_credential(
 				array(
 					'label'         => 'Repository access',
 					'kind'          => $kind,
@@ -92,7 +92,7 @@ final class CredentialPolicyTest extends TestCase {
 
 	public function test_unknown_prefixes_remain_available_for_future_or_legacy_formats(): void {
 		$policy  = new CredentialPolicy();
-		$fine    = $policy->normalizeCredential(
+		$fine    = $policy->normalize_credential(
 			array(
 				'label'         => 'Fine-grained access',
 				'kind'          => 'fine-grained',
@@ -100,7 +100,7 @@ final class CredentialPolicyTest extends TestCase {
 			),
 			'future_token_format'
 		);
-		$classic = $policy->normalizeCredential(
+		$classic = $policy->normalize_credential(
 			array(
 				'label'         => 'Classic access',
 				'kind'          => 'classic',

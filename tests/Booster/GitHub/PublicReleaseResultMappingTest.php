@@ -39,9 +39,9 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		);
 		$provider   = $this->provider( $source );
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
-		self::assertCount( 1, $provider->listReleaseCandidates( 'plugin', $repository, 'stable' )->candidates );
-		self::assertSame( 'v2:' . str_repeat( 'b', 64 ), $provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint );
-		$provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' )->discard();
+		self::assertCount( 1, $provider->list_release_candidates( 'plugin', $repository, 'stable' )->candidates );
+		self::assertSame( 'v2:' . str_repeat( 'b', 64 ), $provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint );
+		$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' )->discard();
 		self::assertSame( 1, $source->inspect_calls );
 		self::assertSame( 1, $source->acquire_calls );
 	}
@@ -66,9 +66,9 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		$provider   = $this->provider( $source );
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
 
-		self::assertCount( 1, $provider->listReleaseCandidates( 'plugin', $repository, 'stable' )->candidates );
-		self::assertSame( 'v2:' . str_repeat( 'b', 64 ), $provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint );
-		$provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' )->discard();
+		self::assertCount( 1, $provider->list_release_candidates( 'plugin', $repository, 'stable' )->candidates );
+		self::assertSame( 'v2:' . str_repeat( 'b', 64 ), $provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint );
+		$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' )->discard();
 	}
 
 	public function test_maps_reordered_public_failure_envelope(): void {
@@ -81,7 +81,7 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		);
 
 		try {
-			$provider->acquireRelease( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
+			$provider->acquire_release( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
 			self::fail( 'A reordered release-change failure was not mapped.' );
 		} catch ( RepositoryReleaseAcquisitionRejected $failure ) {
 			self::assertSame( RepositoryReleaseAcquisitionRejected::INVALID_RELEASE, $failure->reason );
@@ -93,13 +93,13 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		$provider   = $this->provider( $source );
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
 		try {
-			$provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', 'v1:' . str_repeat( 'b', 64 ), 'stable' );
+			$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', 'v1:' . str_repeat( 'b', 64 ), 'stable' );
 			self::fail( 'v1 was accepted.' );
 		} catch ( RepositoryReleaseAcquisitionRejected $failure ) {
 			self::assertSame( RepositoryReleaseAcquisitionRejected::INVALID_RELEASE, $failure->reason );
 			self::assertSame( 0, $source->acquire_calls ); }
 		try {
-			$provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
+			$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
 			self::fail( 'failed cleanup was accepted.' );
 		} catch ( RepositoryReleaseAcquisitionRejected $failure ) {
 			self::assertSame( RepositoryReleaseAcquisitionRejected::CLEANUP_FAILED, $failure->reason ); }
@@ -108,7 +108,7 @@ final class PublicReleaseResultMappingTest extends TestCase {
 	public function test_rate_limit_with_null_retry_uses_existing_read_fallback(): void {
 		$provider = $this->provider( new PublicReleaseSourceFixture( array_reverse( $this->envelope( false, 'rate_limited', null ), true ), $this->envelope( true, 'release_inspected', $this->facts(), 'complete' ), $this->envelope( false, 'operation_failed', null ) ) );
 		$this->expectException( RepositoryReleaseReadUnavailable::class );
-		$provider->listReleaseCandidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+		$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
 	}
 
 	public function test_rejects_non_boolean_success_and_mismatched_inspection_facts(): void {
@@ -128,7 +128,7 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		);
 
 		try {
-			$provider->listReleaseCandidates( 'plugin', $repository, 'stable' );
+			$provider->list_release_candidates( 'plugin', $repository, 'stable' );
 			self::fail( 'A non-boolean success result was accepted.' );
 		} catch ( \RuntimeException ) {
 			self::addToAssertionCount( 1 );
@@ -141,7 +141,7 @@ final class PublicReleaseResultMappingTest extends TestCase {
 			)
 		);
 		$this->expectException( \RuntimeException::class );
-		$provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
+		$provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
 	}
 
 	public function test_discards_malformed_retained_acquisition_before_rejecting_it(): void {
@@ -164,7 +164,7 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		);
 
 		$this->expectException( \RuntimeException::class );
-		$provider->acquireRelease( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
+		$provider->acquire_release( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
 	}
 
 	private function provider( PublicReleaseSourceFixture $source ): GitHubProvider {

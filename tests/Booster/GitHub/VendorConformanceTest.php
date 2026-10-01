@@ -145,7 +145,7 @@ final class VendorConformanceTest extends TestCase {
 		$registry->seal();
 
 		$provider = $registry->get( 'gh' );
-		$metadata = $provider->getMetadata();
+		$metadata = $provider->get_metadata();
 		self::assertInstanceOf( GitHubProvider::class, $provider );
 		self::assertTrue( $registry->isSealed() );
 		self::assertSame( array( 'gh' ), $requested_stores );
@@ -184,15 +184,15 @@ final class VendorConformanceTest extends TestCase {
 		}
 		$release_metadata = $registry->requireCapability( 'gh', RepositoryReleaseMetadata::class );
 		$repository       = new RepositoryReference( 'owner/repository', '42', false, null );
-		self::assertSame( 'https://github.com/owner/repository', $release_metadata->expectedUpdateUri( $repository ) );
-		self::assertSame( 'https://github.com/owner/repository/releases/tag/v1.0.0%2Bbuild', $release_metadata->releaseDetailsUrl( $repository, 'v1.0.0+build' ) );
-		self::assertSame( '', $release_metadata->releaseDetailsUrl( $repository, '' ) );
-		self::assertSame( '', $release_metadata->expectedUpdateUri( new RepositoryReference( 'owner name/repository', '42', false, null ) ) );
+		self::assertSame( 'https://github.com/owner/repository', $release_metadata->expected_update_uri( $repository ) );
+		self::assertSame( 'https://github.com/owner/repository/releases/tag/v1.0.0%2Bbuild', $release_metadata->release_details_url( $repository, 'v1.0.0+build' ) );
+		self::assertSame( '', $release_metadata->release_details_url( $repository, '' ) );
+		self::assertSame( '', $release_metadata->expected_update_uri( new RepositoryReference( 'owner name/repository', '42', false, null ) ) );
 
-		self::assertSame( $provider->getCredentialPolicy(), $policies->credentialPolicy( 'gh' ) );
-		self::assertSame( $provider->getWebhookPolicy(), $policies->webhookPolicy( 'gh' ) );
-		self::assertSame( array( 'RAN_BOOSTER_GITHUB_TOKEN' ), $policies->credentialPolicy( 'gh' )->getConstantNames() );
-		self::assertSame( 'x-hub-signature-256', $policies->webhookPolicy( 'gh' )->getSignatureHeader() );
+		self::assertSame( $provider->get_credential_policy(), $policies->credentialPolicy( 'gh' ) );
+		self::assertSame( $provider->get_webhook_policy(), $policies->webhookPolicy( 'gh' ) );
+		self::assertSame( array( 'RAN_BOOSTER_GITHUB_TOKEN' ), $policies->credentialPolicy( 'gh' )->get_constant_names() );
+		self::assertSame( 'x-hub-signature-256', $policies->webhookPolicy( 'gh' )->get_signature_header() );
 
 		self::assertFalse( class_exists( 'RAN\\BoosterServiceProvider', false ) );
 		self::assertFalse( class_exists( 'RAN\\Internal\\CoreContainer', false ) );

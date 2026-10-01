@@ -31,13 +31,11 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		$this->policy = new WebhookPolicy();
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getWebhookPolicy(): ProviderWebhookPolicy {
+	public function get_webhook_policy(): ProviderWebhookPolicy {
 		return $this->policy;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function diagnoseWebhookReadiness(): ProviderDiagnosticResult {
+	public function diagnose_webhook_readiness(): ProviderDiagnosticResult {
 		try {
 			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 			if ( ! $this->webhookProfiles->hasWebhookProfile() ) {
@@ -105,8 +103,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		);
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function normalizeWebhook( WebhookRequest $request ): WebhookEnvelope {
+	public function normalize_webhook( WebhookRequest $request ): WebhookEnvelope {
 		if ( ! $request->getProvider()->equals( ProviderCode::parse( 'gh' ) ) ) {
 			throw new WebhookRejected( 400, 'Webhook provider does not match GitHub.' );
 		}
@@ -127,7 +124,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		$payload = $this->decode_push_payload( $body );
 		$push    = $this->validate_push_payload( $payload );
 
-		if ( ! $this->policy->authorizeWebhook( $verification, $push['repository_id'], $push['repository'] ) ) {
+		if ( ! $this->policy->authorize_webhook( $verification, $push['repository_id'], $push['repository'] ) ) {
 			throw new WebhookRejected( 401, 'Webhook authentication failed.' );
 		}
 

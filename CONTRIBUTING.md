@@ -27,11 +27,11 @@ candidate Booster checkout pinned in [CI](.github/workflows/ci.yml):
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the candidate host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ed9585e760a4443b018fa8f4eaa853b129cddc53 &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = a53d35f18d226bf37f8485f351a5d0decdac6066 &&
   composer check:host
 ```
 
-This is candidate-only Provider API 12 / workflow V3 qualification, not
+This is candidate-only Provider API 13 / workflow V3 qualification, not
 certification against a released Core host. The SHA above mirrors the existing
 CI configuration; update the example when that authoritative tuple changes,
 not the certification pin to match prose.
@@ -74,7 +74,8 @@ The accepted Provider-owned helper tranche migrates 52 methods, 64 camelCase
 parameter occurrences (including three private promotions) and four reserved
 parameters, with connected callers and Core consumers. This intentionally
 breaks the old beta PHP API; no mixed old/new tuple compatibility is claimed.
-The 50 Core-interface implementations and other residual public parameters and
-promotions remain a separate coordinated migration. Persisted/template keys,
+The separate API13 tranche migrates all 50 Core-interface implementation methods
+with Core declarations and receiver-resolved callers. Public parameters and
+promotions remain separate obligations. Persisted/template keys,
 credentials and runtime protocols are unchanged. See [the migration ledger](docs/naming-migration.md) and
 [the proposed Core contract manifest](docs/naming-core-contract-manifest.md).
