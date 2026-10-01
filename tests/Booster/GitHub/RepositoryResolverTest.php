@@ -22,14 +22,15 @@ final class RepositoryResolverTest extends TestCase {
 
 	private const TOKEN = 'github-resolution-token-canary';
 
-	private bool $hadWebhookTransients;
-	private mixed $previousWebhookTransients;
+	private bool $had_webhook_transients;
+	private mixed $previous_webhook_transients;
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->hadWebhookTransients                     = array_key_exists( 'ran_booster_webhook_test_transients', $GLOBALS );
-		$this->previousWebhookTransients                = $GLOBALS['ran_booster_webhook_test_transients'] ?? null;
+		$this->had_webhook_transients                   = array_key_exists( 'ran_booster_webhook_test_transients', $GLOBALS );
+		$this->previous_webhook_transients              = $GLOBALS['ran_booster_webhook_test_transients'] ?? null;
 		$GLOBALS['ran_booster_webhook_test_transients'] = array();
 
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
@@ -45,9 +46,10 @@ final class RepositoryResolverTest extends TestCase {
 		);
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function tearDown(): void {
-		if ( $this->hadWebhookTransients ) {
-			$GLOBALS['ran_booster_webhook_test_transients'] = $this->previousWebhookTransients;
+		if ( $this->had_webhook_transients ) {
+			$GLOBALS['ran_booster_webhook_test_transients'] = $this->previous_webhook_transients;
 		} else {
 			unset( $GLOBALS['ran_booster_webhook_test_transients'] );
 		}
@@ -55,20 +57,27 @@ final class RepositoryResolverTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function testDocumentsOrganisationScopedFineGrainedTokenProfiles(): void {
+	public function test_documents_organisation_scoped_fine_grained_token_profiles(): void {
 		$setup = $this->provider( new RepositoryResolverSecretsStub() )->getMetadata()->admin?->setup;
 
 		self::assertNotNull( $setup );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertStringContainsString( 'limited to one user or organisation', $setup->credentialSummary );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertStringContainsString( 'select the project repositories once', $setup->credentialSummary );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertStringContainsString( 'Booster does not change that GitHub repository selection', $setup->credentialSummary );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertStringContainsString( 'Contents to Read-only', $setup->credentialSummary );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertStringContainsString( 'admin:repo_hook', $setup->credentialSummary );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertStringContainsString( 'Webhooks: Read and write', $setup->credentialSummary );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertStringContainsString( 'Workflows: Read and write', $setup->credentialSummary );
 	}
 
-	public function testAnonymousLookupResolvesCanonicalPublicRepositoryMetadata(): void {
+	public function test_anonymous_lookup_resolves_canonical_public_repository_metadata(): void {
 		$secrets    = new RepositoryResolverSecretsStub();
 		$repository = ( new RepositoryBrowser( $secrets ) )->repository( 'rocketsarenostalgic/ran-booster' );
 
@@ -107,7 +116,7 @@ final class RepositoryResolverTest extends TestCase {
 		);
 	}
 
-	public function testMixedCaseRepositoryNameKeepsCanonicalProviderIdentity(): void {
+	public function test_mixed_case_repository_name_keeps_canonical_provider_identity(): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
 			$this->response(
 				200,
@@ -125,11 +134,13 @@ final class RepositoryResolverTest extends TestCase {
 		);
 
 		self::assertSame( 'RocketsAreNostalgic/tnyGmaps', $repository->locator );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'tnyGmaps', $repository->packageSlug );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '565105478', $repository->providerRepositoryId );
 	}
 
-	public function testSelectedGitHubCredentialResolvesActualPrivateRepositoryMetadata(): void {
+	public function test_selected_git_hub_credential_resolves_actual_private_repository_metadata(): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
 			$this->response(
 				200,
@@ -153,8 +164,11 @@ final class RepositoryResolverTest extends TestCase {
 		$requests   = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
 
 		self::assertTrue( $repository->private );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'develop', $repository->defaultBranch );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '9223372036854775807123', $repository->providerRepositoryId );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'private-profile', $repository->credentialId );
 		self::assertSame( array( 'private-profile' ), $secrets->lookups );
 		self::assertSame(
@@ -164,7 +178,7 @@ final class RepositoryResolverTest extends TestCase {
 		self::assertStringNotContainsString( self::TOKEN, $requests[0]['url'] );
 	}
 
-	public function testInvalidGitHubHandleIsRejectedBeforeAnyHttpRequest(): void {
+	public function test_invalid_git_hub_handle_is_rejected_before_any_http_request(): void {
 		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub() );
 
 		try {
@@ -176,7 +190,7 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
-	public function testMissingSelectedCredentialFailsBeforeAnyHttpRequest(): void {
+	public function test_missing_selected_credential_fails_before_any_http_request(): void {
 		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub() );
 
 		try {
@@ -189,7 +203,7 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
-	public function testRejectedCredentialNeverAppearsInUrlOrError(): void {
+	public function test_rejected_credential_never_appears_in_url_or_error(): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
 			array(
 				'response' => array( 'code' => 401 ),
@@ -212,14 +226,14 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
-	#[DataProvider( 'rateLimitResponseProvider' )]
-	public function testExactRepositoryMapsRateLimitResponses(
+	#[DataProvider( 'rate_limit_response_provider' )]
+	public function test_exact_repository_maps_rate_limit_responses(
 		int $status,
 		array $headers,
-		int $expectedStatus
+		int $expected_status
 	): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
-			$this->errorResponse( $status, $headers )
+			$this->error_response( $status, $headers )
 		);
 		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub() );
 
@@ -227,20 +241,20 @@ final class RepositoryResolverTest extends TestCase {
 			$browser->repository( 'RocketsAreNostalgic/rate-limited-plugin' );
 			self::fail( 'A failed exact-repository request must not return repository data.' );
 		} catch ( RuntimeException $exception ) {
-			self::assertSame( $expectedStatus, $exception->getCode() );
+			self::assertSame( $expected_status, $exception->getCode() );
 			self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
 			self::assertStringNotContainsString( 'header-canary', $exception->getMessage() );
 		}
 	}
 
-	#[DataProvider( 'rateLimitResponseProvider' )]
-	public function testAuthenticatedListingMapsRateLimitResponses(
+	#[DataProvider( 'rate_limit_response_provider' )]
+	public function test_authenticated_listing_maps_rate_limit_responses(
 		int $status,
 		array $headers,
-		int $expectedStatus
+		int $expected_status
 	): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
-			$this->errorResponse( $status, $headers )
+			$this->error_response( $status, $headers )
 		);
 		$browser = new RepositoryBrowser(
 			new RepositoryResolverSecretsStub( array( 'listing-profile' => self::TOKEN ) )
@@ -250,21 +264,21 @@ final class RepositoryResolverTest extends TestCase {
 			$browser->browse( RepositoryBrowseRequest::accessible( 'listing-profile' ) );
 			self::fail( 'A failed authenticated listing must not return repository data.' );
 		} catch ( RuntimeException $exception ) {
-			self::assertSame( $expectedStatus, $exception->getCode() );
+			self::assertSame( $expected_status, $exception->getCode() );
 			self::assertStringNotContainsString( self::TOKEN, $exception->getMessage() );
 			self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
 			self::assertStringNotContainsString( 'header-canary', $exception->getMessage() );
 		}
 	}
 
-	#[DataProvider( 'rateLimitResponseProvider' )]
-	public function testPublicListingMapsRateLimitResponses(
+	#[DataProvider( 'rate_limit_response_provider' )]
+	public function test_public_listing_maps_rate_limit_responses(
 		int $status,
 		array $headers,
-		int $expectedStatus
+		int $expected_status
 	): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
-			$this->errorResponse( $status, $headers )
+			$this->error_response( $status, $headers )
 		);
 		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub() );
 
@@ -272,7 +286,7 @@ final class RepositoryResolverTest extends TestCase {
 			$browser->browse( RepositoryBrowseRequest::publicOwner( 'RocketsAreNostalgic' ) );
 			self::fail( 'A failed public listing must not return repository data.' );
 		} catch ( RuntimeException $exception ) {
-			self::assertSame( $expectedStatus, $exception->getCode() );
+			self::assertSame( $expected_status, $exception->getCode() );
 			self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
 			self::assertStringNotContainsString( 'header-canary', $exception->getMessage() );
 		}
@@ -281,7 +295,7 @@ final class RepositoryResolverTest extends TestCase {
 	/**
 	 * @return array<string, array{string, array{token: string, kind: string, owner: string}}>
 	 */
-	public static function publicLookupProfileProvider(): array {
+	public static function public_lookup_profile_provider(): array {
 		return array(
 			'classic PAT across owners'      => array(
 				'classic-public',
@@ -305,14 +319,14 @@ final class RepositoryResolverTest extends TestCase {
 	/**
 	 * @param array{token: string, kind: string, owner: string} $profile
 	 */
-	#[DataProvider( 'publicLookupProfileProvider' )]
-	public function testExplicitPublicProfileAuthenticatesOwnerAndEveryPageWithoutAssociatingResults(
-		string $profileId,
+	#[DataProvider( 'public_lookup_profile_provider' )]
+	public function test_explicit_public_profile_authenticates_owner_and_every_page_without_associating_results(
+		string $profile_id,
 		array $profile
 	): void {
-		$firstPage = array();
+		$first_page = array();
 		for ( $index = 1; $index <= 30; ++$index ) {
-			$firstPage[] = array(
+			$first_page[] = array(
 				'id'             => $index,
 				'full_name'      => 'UnrelatedOwner/package-' . $index,
 				'private'        => 30 === $index,
@@ -328,7 +342,7 @@ final class RepositoryResolverTest extends TestCase {
 						'login' => 'UnrelatedOwner',
 					)
 				),
-				$this->response( 200, $firstPage ),
+				$this->response( 200, $first_page ),
 				$this->response(
 					200,
 					array(
@@ -342,15 +356,16 @@ final class RepositoryResolverTest extends TestCase {
 				),
 			)
 		);
-		$secrets = new RepositoryResolverSecretsStub( array( $profileId => $profile ) );
+		$secrets = new RepositoryResolverSecretsStub( array( $profile_id => $profile ) );
 		$result  = ( new RepositoryBrowser( $secrets ) )->browse(
-			RepositoryBrowseRequest::publicOwner( 'UnrelatedOwner', $profileId )
+			RepositoryBrowseRequest::publicOwner( 'UnrelatedOwner', $profile_id )
 		);
 
 		self::assertCount( 30, $result->repositories );
-		self::assertSame( array( $profileId ), $secrets->lookups );
+		self::assertSame( array( $profile_id ), $secrets->lookups );
 		foreach ( $result->repositories as $repository ) {
 			self::assertFalse( $repository->private );
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 			self::assertNull( $repository->credentialId );
 		}
 
@@ -364,7 +379,7 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
-	public function testMissingExplicitPublicProfileFailsBeforeAnyHttpRequest(): void {
+	public function test_missing_explicit_public_profile_fails_before_any_http_request(): void {
 		$secrets = new RepositoryResolverSecretsStub();
 		$browser = new RepositoryBrowser( $secrets );
 
@@ -379,13 +394,13 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
-	#[DataProvider( 'rateLimitResponseProvider' )]
-	public function testExplicitPublicProfileNeverRetriesDenialsAnonymously(
+	#[DataProvider( 'rate_limit_response_provider' )]
+	public function test_explicit_public_profile_never_retries_denials_anonymously(
 		int $status,
 		array $headers,
-		int $expectedStatus
+		int $expected_status
 	): void {
-		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->errorResponse( $status, $headers ) );
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->error_response( $status, $headers ) );
 		$browser = new RepositoryBrowser(
 			new RepositoryResolverSecretsStub( array( 'public-profile' => self::TOKEN ) )
 		);
@@ -395,16 +410,16 @@ final class RepositoryResolverTest extends TestCase {
 			self::fail( 'An authenticated public lookup denial must fail closed.' );
 		} catch ( RuntimeException $exception ) {
 			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
-			self::assertSame( $expectedStatus, $exception->getCode() );
+			self::assertSame( $expected_status, $exception->getCode() );
 			self::assertCount( 1, $requests );
 			self::assertSame( 'Bearer ' . self::TOKEN, $requests[0]['arguments']['headers']['Authorization'] );
 		}
 	}
 
-	public function testExplicitPublicProfileFailsClosedWhenALaterPageIsRateLimited(): void {
-		$firstPage = array();
+	public function test_explicit_public_profile_fails_closed_when_a_later_page_is_rate_limited(): void {
+		$first_page = array();
 		for ( $index = 1; $index <= 30; ++$index ) {
-			$firstPage[] = array(
+			$first_page[] = array(
 				'id'             => $index,
 				'full_name'      => 'RocketsAreNostalgic/package-' . $index,
 				'private'        => false,
@@ -420,8 +435,8 @@ final class RepositoryResolverTest extends TestCase {
 						'login' => 'RocketsAreNostalgic',
 					)
 				),
-				$this->response( 200, $firstPage ),
-				$this->errorResponse( 429, array() ),
+				$this->response( 200, $first_page ),
+				$this->error_response( 429, array() ),
 			)
 		);
 		$browser = new RepositoryBrowser(
@@ -441,7 +456,7 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
-	public function testAnonymousPublicLookupNeverInfersAConstantOrRemembersAPriorProfile(): void {
+	public function test_anonymous_public_lookup_never_infers_a_constant_or_remembers_a_prior_profile(): void {
 		$secrets = new RepositoryResolverSecretsStub(
 			array(
 				'constant'       => 'github-constant-canary',
@@ -487,7 +502,7 @@ final class RepositoryResolverTest extends TestCase {
 			self::assertArrayNotHasKey( 'Authorization', $request['arguments']['headers'] );
 		}
 
-		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->repositoryIdentityResponse() );
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->repository_identity_response() );
 		$browser->repository( 'RocketsAreNostalgic/example-plugin' );
 		self::assertSame( array( 'public-profile' ), $secrets->lookups );
 		self::assertArrayNotHasKey(
@@ -496,7 +511,7 @@ final class RepositoryResolverTest extends TestCase {
 		);
 	}
 
-	public function testListingKeepsEarlierResultsWhenALaterPageIsRateLimited(): void {
+	public function test_listing_keeps_earlier_results_when_a_later_page_is_rate_limited(): void {
 		$items = array();
 		for ( $index = 1; $index <= 30; ++$index ) {
 			$items[] = array(
@@ -509,7 +524,7 @@ final class RepositoryResolverTest extends TestCase {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 			array(
 				$this->response( 200, $items ),
-				$this->errorResponse( 429, array() ),
+				$this->error_response( 429, array() ),
 			)
 		);
 		$browser = new RepositoryBrowser(
@@ -519,12 +534,13 @@ final class RepositoryResolverTest extends TestCase {
 		$result = $browser->browse( RepositoryBrowseRequest::accessible( 'listing-profile' ) );
 
 		self::assertTrue( $result->isPartial() );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( RepositoryBrowseResult::RATE_LIMIT, $result->partialReason );
 		self::assertCount( 30, $result->repositories );
 		self::assertCount( 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
 
-	public function testListingReturnsAnExplicitPartialResultAfterFivePages(): void {
+	public function test_listing_returns_an_explicit_partial_result_after_five_pages(): void {
 		$pages = array();
 		for ( $page = 0; $page < RepositoryBrowseRequest::MAX_REMOTE_CALLS; ++$page ) {
 			$items = array();
@@ -547,12 +563,13 @@ final class RepositoryResolverTest extends TestCase {
 		$result = $browser->browse( RepositoryBrowseRequest::accessible( 'listing-profile' ) );
 
 		self::assertTrue( $result->isPartial() );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( RepositoryBrowseResult::LIMIT, $result->partialReason );
 		self::assertCount( 150, $result->repositories );
 		self::assertCount( RepositoryBrowseRequest::MAX_REMOTE_CALLS, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
 
-	public function testThirtyRepresentativeRepositoryObjectsFitWithinTheResponseBudget(): void {
+	public function test_thirty_representative_repository_objects_fit_within_the_response_budget(): void {
 		$items = array();
 		for ( $index = 1; $index <= 30; ++$index ) {
 			$items[] = array(
@@ -563,13 +580,13 @@ final class RepositoryResolverTest extends TestCase {
 				'description'    => str_repeat( 'Representative repository metadata. ', 150 ),
 			);
 		}
-		$largePage = $this->response( 200, $items );
-		self::assertGreaterThan( 150000, strlen( $largePage['body'] ) );
-		self::assertLessThanOrEqual( RepositoryBrowseRequest::PER_RESPONSE_BYTES, strlen( $largePage['body'] ) );
+		$large_page = $this->response( 200, $items );
+		self::assertGreaterThan( 150000, strlen( $large_page['body'] ) );
+		self::assertLessThanOrEqual( RepositoryBrowseRequest::PER_RESPONSE_BYTES, strlen( $large_page['body'] ) );
 
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 			array(
-				$largePage,
+				$large_page,
 				$this->response( 200, array() ),
 			)
 		);
@@ -585,7 +602,7 @@ final class RepositoryResolverTest extends TestCase {
 		self::assertSame( RepositoryBrowseRequest::PER_RESPONSE_BYTES + 1, $requests[0]['arguments']['limit_response_size'] );
 	}
 
-	public function testListingRejectsAnInvalidSuccessResponseWithoutLeakingIt(): void {
+	public function test_listing_rejects_an_invalid_success_response_without_leaking_it(): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
 			$this->response( 200, array( 'message' => 'upstream-response-canary' ) )
 		);
@@ -605,7 +622,7 @@ final class RepositoryResolverTest extends TestCase {
 	/**
 	 * @return array<string, array{int, array<string, string>, int}>
 	 */
-	public static function rateLimitResponseProvider(): array {
+	public static function rate_limit_response_provider(): array {
 		return array(
 			'explicit 429'                   => array( 429, array(), 429 ),
 			'exhausted rate-limit allowance' => array( 403, array( 'X-RateLimit-Remaining' => '0' ), 429 ),
@@ -623,7 +640,7 @@ final class RepositoryResolverTest extends TestCase {
 		);
 	}
 
-	public function testDiscoveryAndCredentialValidationDoNotExposeRetryableDeploymentFailures(): void {
+	public function test_discovery_and_credential_validation_do_not_expose_retryable_deployment_failures(): void {
 		$transport = new \RAN\BoosterGitHubProvider\V1\RepositoryResolverWpError( 'http_request_failed' );
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $transport );
 		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub() );
@@ -643,7 +660,7 @@ final class RepositoryResolverTest extends TestCase {
 		self::assertSame( 'unavailable', $result->reason );
 	}
 
-	public function testRepositoryPathCheckDistinguishesDirectoriesFromFilesAndMissingPaths(): void {
+	public function test_repository_path_check_distinguishes_directories_from_files_and_missing_paths(): void {
 		$browser = new RepositoryBrowser(
 			new RepositoryResolverSecretsStub( array( 'private-profile' => self::TOKEN ) )
 		);
@@ -682,11 +699,11 @@ final class RepositoryResolverTest extends TestCase {
 		);
 		self::assertFalse( $browser->pathExists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/plugin.php', 'private-profile', true ) );
 
-		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->errorResponse( 404, array() ) );
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->error_response( 404, array() ) );
 		self::assertFalse( $browser->pathExists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/missing', 'private-profile', true ) );
 	}
 
-	public function testRepositoryPathCheckRejectsMalformedOrUnexpectedSuccessfulBodies(): void {
+	public function test_repository_path_check_rejects_malformed_or_unexpected_successful_bodies(): void {
 		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub() );
 		$ref     = str_repeat( 'a', 40 );
 
@@ -735,7 +752,7 @@ final class RepositoryResolverTest extends TestCase {
 		return $provider;
 	}
 
-	private function repositoryIdentityResponse( bool $private = false, string $id = '987654321' ): array {
+	private function repository_identity_response( bool $private = false, string $id = '987654321' ): array {
 		return $this->response(
 			200,
 			array(
@@ -755,7 +772,7 @@ final class RepositoryResolverTest extends TestCase {
 		);
 	}
 
-	private function errorResponse( int $status, array $headers ): array {
+	private function error_response( int $status, array $headers ): array {
 		return array(
 			'response' => array( 'code' => $status ),
 			'headers'  => $headers,

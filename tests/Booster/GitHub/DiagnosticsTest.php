@@ -20,7 +20,7 @@ final class DiagnosticsTest extends TestCase {
 
 	private const SECRET_CANARY = 'github_pat_diagnostic_canary_secret';
 
-	public function testMissingSelectionsReturnStableNotConfiguredResultsWithoutCallingGitHub(): void {
+	public function test_missing_selections_return_stable_not_configured_results_without_calling_git_hub(): void {
 		$browser = $this->browser();
 		$request = new ProviderDiagnosticRequest();
 
@@ -44,14 +44,14 @@ final class DiagnosticsTest extends TestCase {
 			array_map( static fn( ProviderDiagnosticResult $result ): array => $result->toArray(), $results )
 		);
 		self::assertSame( 0, $request->getRemoteCalls() );
-		self::assertSame( array(), $browser->credentialCalls );
-		self::assertSame( array(), $browser->repositoryCalls );
+		self::assertSame( array(), $browser->credential_calls );
+		self::assertSame( array(), $browser->repository_calls );
 	}
 
 	/**
 	 * @return iterable<string, array{CredentialValidationResult, array{status: string, code: string, message: string, remediation: string}}>
 	 */
-	public static function credentialResults(): iterable {
+	public static function credential_results(): iterable {
 		yield 'accepted' => array(
 			CredentialValidationResult::valid(),
 			array(
@@ -99,14 +99,14 @@ final class DiagnosticsTest extends TestCase {
 		);
 	}
 
-	#[DataProvider( 'credentialResults' )]
-	public function testCredentialResultsKeepStableStatusCodeAndOperatorCopy(
-		CredentialValidationResult $credentialResult,
+	#[DataProvider( 'credential_results' )]
+	public function test_credential_results_keep_stable_status_code_and_operator_copy(
+		CredentialValidationResult $credential_result,
 		array $expected
 	): void {
-		$browser                   = $this->browser();
-		$browser->credentialResult = $credentialResult;
-		$request                   = new ProviderDiagnosticRequest(
+		$browser                    = $this->browser();
+		$browser->credential_result = $credential_result;
+		$request                    = new ProviderDiagnosticRequest(
 			'diagnostic-profile',
 			clock: static fn(): float => 100.0
 		);
@@ -114,14 +114,14 @@ final class DiagnosticsTest extends TestCase {
 		$results = ( new Diagnostics( $browser ) )->diagnose( $request );
 
 		self::assertSame( $expected, $results[0]->toArray() );
-		self::assertSame( array( array( 'diagnostic-profile', 10.0 ) ), $browser->credentialCalls );
+		self::assertSame( array( array( 'diagnostic-profile', 10.0 ) ), $browser->credential_calls );
 		self::assertSame( 1, $request->getRemoteCalls() );
 	}
 
 	/**
 	 * @return iterable<string, array{int|null, array{status: string, code: string, message: string, remediation: string}}>
 	 */
-	public static function repositoryResults(): iterable {
+	public static function repository_results(): iterable {
 		yield 'reachable' => array(
 			null,
 			array(
@@ -173,14 +173,14 @@ final class DiagnosticsTest extends TestCase {
 		}
 	}
 
-	#[DataProvider( 'repositoryResults' )]
-	public function testRepositoryRuntimeResultsKeepStableMappingWithoutLoggingRawFailure(
-		?int $exceptionCode,
+	#[DataProvider( 'repository_results' )]
+	public function test_repository_runtime_results_keep_stable_mapping_without_logging_raw_failure(
+		?int $exception_code,
 		array $expected
 	): void {
 		$browser = $this->browser();
-		if ( null !== $exceptionCode ) {
-			$browser->repositoryException = new RuntimeException( self::SECRET_CANARY, $exceptionCode );
+		if ( null !== $exception_code ) {
+			$browser->repository_exception = new RuntimeException( self::SECRET_CANARY, $exception_code );
 		}
 		$request = new ProviderDiagnosticRequest(
 			null,
@@ -193,12 +193,12 @@ final class DiagnosticsTest extends TestCase {
 		self::assertSame( $expected, $results[1]->toArray() );
 		self::assertSame(
 			array( array( 'RocketsAreNostalgic/ran-booster', null, 10.0, 65536 ) ),
-			$browser->repositoryCalls
+			$browser->repository_calls
 		);
 		self::assertStringNotContainsString( self::SECRET_CANARY, implode( ' ', $results[1]->toArray() ) );
 	}
 
-	public function testRemoteCallBudgetIsConsumedInCredentialThenRepositoryOrder(): void {
+	public function test_remote_call_budget_is_consumed_in_credential_then_repository_order(): void {
 		$browser = $this->browser();
 		$request = new ProviderDiagnosticRequest( 'diagnostic-profile', 'owner/repository', 1 );
 
@@ -216,11 +216,11 @@ final class DiagnosticsTest extends TestCase {
 		);
 		self::assertSame( 1, $request->getRemoteCalls() );
 		self::assertSame( 'remote_calls', $request->getExhaustionReason() );
-		self::assertCount( 1, $browser->credentialCalls );
-		self::assertSame( array(), $browser->repositoryCalls );
+		self::assertCount( 1, $browser->credential_calls );
+		self::assertSame( array(), $browser->repository_calls );
 	}
 
-	public function testExpiredDeadlineSkipsBothChecksWithoutCallingGitHub(): void {
+	public function test_expired_deadline_skips_both_checks_without_calling_git_hub(): void {
 		$now     = 100.0;
 		$request = new ProviderDiagnosticRequest(
 			'diagnostic-profile',
@@ -240,55 +240,64 @@ final class DiagnosticsTest extends TestCase {
 		self::assertSame( ProviderDiagnosticResult::WARNING, $results[1]->status );
 		self::assertSame( 0, $request->getRemoteCalls() );
 		self::assertSame( 'deadline', $request->getExhaustionReason() );
-		self::assertSame( array(), $browser->credentialCalls );
-		self::assertSame( array(), $browser->repositoryCalls );
+		self::assertSame( array(), $browser->credential_calls );
+		self::assertSame( array(), $browser->repository_calls );
 	}
 
 	private function browser(): RepositoryBrowser {
 		return new class() extends RepositoryBrowser {
 
-			public CredentialValidationResult $credentialResult;
-			public ?Throwable $credentialException = null;
-			public ?Throwable $repositoryException = null;
+			public CredentialValidationResult $credential_result;
+			public ?Throwable $credential_exception = null;
+			public ?Throwable $repository_exception = null;
 
 			/** @var list<array{string, float}> */
-			public array $credentialCalls = array();
+			public array $credential_calls = array();
 
 			/** @var list<array{string, string|null, float|int, int|null}> */
-			public array $repositoryCalls = array();
+			public array $repository_calls = array();
 
 			public function __construct() {
-				$this->credentialResult = CredentialValidationResult::valid();
+				$this->credential_result = CredentialValidationResult::valid();
 			}
 
+			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming. Preserve production override or updater named-parameter compatibility.
 			public function validateCredential( string $credentialId, float $timeout = 15.0 ): CredentialValidationResult {
-				$this->credentialCalls[] = array( $credentialId, $timeout );
-				if ( null !== $this->credentialException ) {
-					throw $this->credentialException;
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
+				$this->credential_calls[] = array( $credentialId, $timeout );
+				if ( null !== $this->credential_exception ) {
+					throw $this->credential_exception;
 				}
 
-				return $this->credentialResult;
+				return $this->credential_result;
 			}
 
 			public function repository(
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
 				string $fullName,
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
 				?string $credentialId = null,
 				float|int $timeout = 15,
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
 				?int $responseSize = null,
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
 				bool $authenticateDefault = false
 			): RepositoryDescriptor {
-				$this->repositoryCalls[] = array( $fullName, $credentialId, $timeout, $responseSize );
-				if ( null !== $this->repositoryException ) {
-					throw $this->repositoryException;
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
+				$this->repository_calls[] = array( $fullName, $credentialId, $timeout, $responseSize );
+				if ( null !== $this->repository_exception ) {
+					throw $this->repository_exception;
 				}
 
 				return new RepositoryDescriptor(
 					ProviderCode::parse( 'gh' ),
+					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
 					$fullName,
 					'ran-booster',
 					'987654321',
 					false,
 					'main',
+					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
 					$credentialId
 				);
 			}

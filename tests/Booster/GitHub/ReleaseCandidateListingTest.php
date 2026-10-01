@@ -23,15 +23,17 @@ use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 #[RunTestsInSeparateProcesses]
 #[PreserveGlobalState( false )]
 final class ReleaseCandidateListingTest extends TestCase {
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function setUp(): void {
 		NeutralReleaseUpdaterFixtures::reset();
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function tearDown(): void {
 		NeutralReleaseUpdaterFixtures::cleanup();
 	}
 
-	public function testListsNeutralUpdaterCandidatesAndPreservesDetailsIdentity(): void {
+	public function test_lists_neutral_updater_candidates_and_preserves_details_identity(): void {
 		NeutralReleaseUpdaterFixtures::queue(
 			array(
 				NeutralReleaseUpdaterFixtures::listing(
@@ -58,7 +60,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		self::assertStringContainsString( '/repos/owner/example/releases', NeutralReleaseUpdaterFixtures::requests()[0][0] );
 	}
 
-	public function testThemeListingUsesStableChannel(): void {
+	public function test_theme_listing_uses_stable_channel(): void {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::listing( array() ) ) );
 
 		$result = $this->provider( new RepositoryResolverSecretsStub() )->listReleaseCandidates(
@@ -70,7 +72,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		self::assertSame( array(), $result->candidates );
 	}
 
-	public function testPrivateListingResolvesProviderCredentialOnlyAtRequestTime(): void {
+	public function test_private_listing_resolves_provider_credential_only_at_request_time(): void {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::listing( array() ) ) );
 		$credentials = new RepositoryResolverSecretsStub( array( 'private-release' => 'secret-token' ) );
 		$provider    = $this->provider( $credentials );
@@ -86,7 +88,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		self::assertSame( 'Bearer secret-token', NeutralReleaseUpdaterFixtures::requests()[0][1]['headers']['Authorization'] ?? null );
 	}
 
-	public function testListingInitializesTheUnconfiguredDirectFilesystemBeforeReadingTheRelease(): void {
+	public function test_listing_initializes_the_unconfigured_direct_filesystem_before_reading_the_release(): void {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::listing( array() ) ) );
 		self::assertArrayNotHasKey( 'wp_filesystem', $GLOBALS );
 
@@ -100,7 +102,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		self::assertInstanceOf( \WP_Filesystem_Direct::class, $GLOBALS['wp_filesystem'] );
 	}
 
-	public function testListingRejectsANonDirectFilesystemBeforeCredentialsOrHttp(): void {
+	public function test_listing_rejects_a_non_direct_filesystem_before_credentials_or_http(): void {
 		$GLOBALS['ran_booster_release_filesystem_method'] = 'ftpext';
 		$credentials                                      = new RepositoryResolverSecretsStub( array( 'private-release' => 'secret-token' ) );
 
@@ -118,7 +120,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		}
 	}
 
-	public function testListingRejectsACurrentNonDirectFilesystemBeforeCredentialsOrHttp(): void {
+	public function test_listing_rejects_a_current_non_direct_filesystem_before_credentials_or_http(): void {
 		$GLOBALS['wp_filesystem'] = new \stdClass(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test-only current non-direct filesystem fixture.
 		$credentials              = new RepositoryResolverSecretsStub( array( 'private-release' => 'secret-token' ) );
 
@@ -136,7 +138,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		}
 	}
 
-	public function testOperationalListingFailureIsRedacted(): void {
+	public function test_operational_listing_failure_is_redacted(): void {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::response( 500, array( 'message' => 'upstream-secret-message' ) ) ) );
 
 		$this->expectException( RuntimeException::class );
@@ -148,8 +150,8 @@ final class ReleaseCandidateListingTest extends TestCase {
 		);
 	}
 
-	#[DataProvider( 'unavailableStatusProvider' )]
-	public function testRepositoryAccessFailurePreservesFallbackSignal( int $status ): void {
+	#[DataProvider( 'unavailable_status_provider' )]
+	public function test_repository_access_failure_preserves_fallback_signal( int $status ): void {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::response( $status, array( 'message' => 'upstream-secret-message' ) ) ) );
 
 		$this->expectException( RepositoryReleaseReadUnavailable::class );
@@ -162,13 +164,13 @@ final class ReleaseCandidateListingTest extends TestCase {
 	}
 
 	/** @return iterable<string,array{0:int}> */
-	public static function unavailableStatusProvider(): iterable {
+	public static function unavailable_status_provider(): iterable {
 		yield 'authentication' => array( 401 );
 		yield 'forbidden' => array( 403 );
 		yield 'concealed or missing repository' => array( 404 );
 	}
 
-	public function testRateLimitPreservesFallbackWhileTransportFailureStaysOperational(): void {
+	public function test_rate_limit_preserves_fallback_while_transport_failure_stays_operational(): void {
 		foreach ( array(
 			NeutralReleaseUpdaterFixtures::response( 429, array(), array( 'retry-after' => '30' ) ),
 			new \WP_Error( 'http_request_failed', 'upstream-secret-message' ),
@@ -197,6 +199,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		$provider = GitHubProvider::create(
 			$credentials,
 			new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
+				// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
 				public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
 					return null;
 				}

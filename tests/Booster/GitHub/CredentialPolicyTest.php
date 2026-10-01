@@ -12,14 +12,14 @@ use RAN\RepositoryProvider\InvalidCredentialInput;
 final class CredentialPolicyTest extends TestCase {
 
 	/** @return array<string, array{string, string, string, string}> */
-	public static function invalidInput(): array {
+	public static function invalid_input(): array {
 		return array(
 			'email owner' => array( 'fine-grained', 'person@example.test', 'github_pat_example', InvalidCredentialInput::INVALID_CONFIGURATION ),
 		);
 	}
 
-	#[DataProvider( 'invalidInput' )]
-	public function testRejectsOnlyClosedActionableInputFailures( string $kind, string $owner, string $token, string $reason ): void {
+	#[DataProvider( 'invalid_input' )]
+	public function test_rejects_only_closed_actionable_input_failures( string $kind, string $owner, string $token, string $reason ): void {
 		try {
 			( new CredentialPolicy() )->normalizeCredential(
 				array(
@@ -37,7 +37,7 @@ final class CredentialPolicyTest extends TestCase {
 	}
 
 	/** @return array<string, array{string, string, string}> */
-	public static function invalidSubmittedToken(): array {
+	public static function invalid_submitted_token(): array {
 		return array(
 			'classic uses fine prefix'           => array( 'classic', 'github_pat_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH ),
 			'classic has unknown prefix'         => array( 'classic', 'future_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH ),
@@ -50,8 +50,8 @@ final class CredentialPolicyTest extends TestCase {
 		);
 	}
 
-	#[DataProvider( 'invalidSubmittedToken' )]
-	public function testNewlySubmittedTokensUseClosedPrefixAndShapeValidation( string $kind, string $token, string $reason ): void {
+	#[DataProvider( 'invalid_submitted_token' )]
+	public function test_newly_submitted_tokens_use_closed_prefix_and_shape_validation( string $kind, string $token, string $reason ): void {
 		$policy = new CredentialPolicy();
 
 		try {
@@ -70,7 +70,7 @@ final class CredentialPolicyTest extends TestCase {
 		}
 	}
 
-	public function testSubmittedTokenLengthRemainsVariableWithinTheDefensiveBounds(): void {
+	public function test_submitted_token_length_remains_variable_within_the_defensive_bounds(): void {
 		$policy = new CredentialPolicy();
 
 		foreach ( array(
@@ -90,7 +90,7 @@ final class CredentialPolicyTest extends TestCase {
 		}
 	}
 
-	public function testUnknownPrefixesRemainAvailableForFutureOrLegacyFormats(): void {
+	public function test_unknown_prefixes_remain_available_for_future_or_legacy_formats(): void {
 		$policy  = new CredentialPolicy();
 		$fine    = $policy->normalizeCredential(
 			array(

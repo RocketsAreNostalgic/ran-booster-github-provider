@@ -29,8 +29,8 @@ final class WebhookNormalizerTest extends TestCase {
 	private const DELIVERY_ID      = 'delivery-one';
 	private const RETAINED_HEADERS = array( 'x-github-event', 'x-github-delivery', 'x-hub-signature-256' );
 
-	public function testValidPushIsNormalizedToTheExactProviderNeutralShape(): void {
-		$body     = $this->encode( $this->validPushPayload() );
+	public function test_valid_push_is_normalized_to_the_exact_provider_neutral_shape(): void {
+		$body     = $this->encode( $this->valid_push_payload() );
 		$envelope = $this->normalizer()->normalizeWebhook( $this->request( $body ) );
 
 		self::assertTrue( $envelope->hasEvents() );
@@ -47,16 +47,17 @@ final class WebhookNormalizerTest extends TestCase {
 		);
 	}
 
-	public function testRepositoryIdsThatFitNativeIntegersRemainOpaqueStrings(): void {
-		$payload                     = $this->validPushPayload();
+	public function test_repository_ids_that_fit_native_integers_remain_opaque_strings(): void {
+		$payload                     = $this->valid_push_payload();
 		$payload['repository']['id'] = 123456;
 		$body                        = $this->encode( $payload );
 		$event                       = $this->normalizer()->normalizeWebhook( $this->request( $body ) )->getEvents()[0];
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '123456', $event->providerRepositoryId );
 	}
 
-	public function testSignedPingIsReturnedAsAProbe(): void {
+	public function test_signed_ping_is_returned_as_a_probe(): void {
 		$body     = '{"zen":"Keep it logically awesome."}';
 		$request  = $this->request( $body, 'ping' );
 		$envelope = $this->normalizer()->normalizeWebhook( $request );
@@ -65,7 +66,7 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertSame( array(), $envelope->getEvents() );
 	}
 
-	public function testSignedUnrelatedEventIsIgnoredWithoutParsingItsBody(): void {
+	public function test_signed_unrelated_event_is_ignored_without_parsing_its_body(): void {
 		$body     = 'not-json-and-not-needed';
 		$request  = $this->request( $body, 'issues' );
 		$envelope = $this->normalizer()->normalizeWebhook( $request );
@@ -73,7 +74,7 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertTrue( $envelope->isIgnored() );
 	}
 
-	public function testExactBodyAndHeaderLimitsAreAccepted(): void {
+	public function test_exact_body_and_header_limits_are_accepted(): void {
 		$body = str_repeat( 'a', 262144 );
 
 		$envelope = $this->normalizer()->normalizeWebhook(
@@ -83,18 +84,18 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertTrue( $envelope->isIgnored() );
 	}
 
-	public function testBodyAboveTheLimitIsRejectedBeforeSecrets(): void {
+	public function test_body_above_the_limit_is_rejected_before_secrets(): void {
 		$body                         = str_repeat( 'a', 262145 );
-		list( $normalizer, $secrets ) = $this->countingNormalizer();
+		list( $normalizer, $secrets ) = $this->counting_normalizer();
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			413,
 			fn (): WebhookEnvelope => $normalizer->normalizeWebhook( $this->request( $body, 'issues' ) )
 		);
 		self::assertSame( 0, $secrets->calls );
 	}
 
-	public function testMissingProcessorVerificationIsRejectedAfterBoundedHeaders(): void {
+	public function test_missing_processor_verification_is_rejected_after_bounded_headers(): void {
 		$normalizer = $this->normalizer( array() );
 		$request    = new WebhookRequest(
 			ProviderCode::parse( 'gh' ),
@@ -107,23 +108,23 @@ final class WebhookNormalizerTest extends TestCase {
 			self::RETAINED_HEADERS
 		);
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			401,
 			fn (): WebhookEnvelope => $normalizer->normalizeWebhook( $request )
 		);
 	}
 
-	#[DataProvider( 'malformedSignatureFormProvider' )]
-	public function testMalformedSignatureFormsAreRejectedBeforeSecrets( array $values ): void {
+	#[DataProvider( 'malformed_signature_form_provider' )]
+	public function test_malformed_signature_forms_are_rejected_before_secrets( array $values ): void {
 		$body                         = '{}';
-		list( $normalizer, $secrets ) = $this->countingNormalizer();
+		list( $normalizer, $secrets ) = $this->counting_normalizer();
 		$headers                      = array(
 			'X-GitHub-Event'      => 'issues',
 			'X-GitHub-Delivery'   => self::DELIVERY_ID,
 			'X-Hub-Signature-256' => $values,
 		);
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			401,
 			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
@@ -135,7 +136,7 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @return iterable<string, array{list<string>}>
 	 */
-	public static function malformedSignatureFormProvider(): iterable {
+	public static function malformed_signature_form_provider(): iterable {
 		yield 'leading whitespace' => array( array( ' sha256=' . str_repeat( 'a', 64 ) ) );
 		yield 'trailing whitespace' => array( array( 'sha256=' . str_repeat( 'a', 64 ) . ' ' ) );
 		yield 'control byte' => array( array( 'sha256=' . str_repeat( 'a', 63 ) . "\x7F" ) );
@@ -151,10 +152,10 @@ final class WebhookNormalizerTest extends TestCase {
 		);
 	}
 
-	public function testMissingSignatureIsRejectedBeforeSecrets(): void {
-		list( $normalizer, $secrets ) = $this->countingNormalizer();
+	public function test_missing_signature_is_rejected_before_secrets(): void {
+		list( $normalizer, $secrets ) = $this->counting_normalizer();
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			401,
 			static fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
 				new WebhookRequest(
@@ -171,13 +172,13 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertSame( 0, $secrets->calls );
 	}
 
-	#[DataProvider( 'invalidBoundedHeaderProvider' )]
-	public function testInvalidEventAndDeliveryHeadersAreRejectedBeforeSecrets(
+	#[DataProvider( 'invalid_bounded_header_provider' )]
+	public function test_invalid_event_and_delivery_headers_are_rejected_before_secrets(
 		string $header,
 		string|array $value
 	): void {
 		$body                         = '{}';
-		list( $normalizer, $secrets ) = $this->countingNormalizer();
+		list( $normalizer, $secrets ) = $this->counting_normalizer();
 		$headers                      = array(
 			'X-GitHub-Event'      => 'issues',
 			'X-GitHub-Delivery'   => self::DELIVERY_ID,
@@ -185,7 +186,7 @@ final class WebhookNormalizerTest extends TestCase {
 		);
 		$headers[ $header ]           = $value;
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			400,
 			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
@@ -197,7 +198,7 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @return iterable<string, array{string, string|list<string>}>
 	 */
-	public static function invalidBoundedHeaderProvider(): iterable {
+	public static function invalid_bounded_header_provider(): iterable {
 		yield 'event leading whitespace' => array( 'X-GitHub-Event', ' push' );
 		yield 'event trailing whitespace' => array( 'X-GitHub-Event', 'push ' );
 		yield 'event tab' => array( 'X-GitHub-Event', "pu\tsh" );
@@ -214,10 +215,10 @@ final class WebhookNormalizerTest extends TestCase {
 		yield 'delivery repeated equivalent' => array( 'X-GitHub-Delivery', array( 'delivery', 'delivery' ) );
 	}
 
-	#[DataProvider( 'missingBoundedHeaderProvider' )]
-	public function testMissingEventAndDeliveryHeadersAreRejectedBeforeSecrets( string $header ): void {
+	#[DataProvider( 'missing_bounded_header_provider' )]
+	public function test_missing_event_and_delivery_headers_are_rejected_before_secrets( string $header ): void {
 		$body                         = '{}';
-		list( $normalizer, $secrets ) = $this->countingNormalizer();
+		list( $normalizer, $secrets ) = $this->counting_normalizer();
 		$headers                      = array(
 			'X-GitHub-Event'      => 'issues',
 			'X-GitHub-Delivery'   => self::DELIVERY_ID,
@@ -225,7 +226,7 @@ final class WebhookNormalizerTest extends TestCase {
 		);
 		unset( $headers[ $header ] );
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			400,
 			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
@@ -237,15 +238,15 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @return iterable<string, array{string}>
 	 */
-	public static function missingBoundedHeaderProvider(): iterable {
+	public static function missing_bounded_header_provider(): iterable {
 		yield 'event missing' => array( 'X-GitHub-Event' );
 		yield 'delivery missing' => array( 'X-GitHub-Delivery' );
 	}
 
-	#[DataProvider( 'aliasedHeaderProvider' )]
-	public function testAliasedHeadersAreRejectedBeforeSecrets( string $canonical, string $alias, int $status ): void {
+	#[DataProvider( 'aliased_header_provider' )]
+	public function test_aliased_headers_are_rejected_before_secrets( string $canonical, string $alias, int $status ): void {
 		$body                         = '{}';
-		list( $normalizer, $secrets ) = $this->countingNormalizer();
+		list( $normalizer, $secrets ) = $this->counting_normalizer();
 		$headers                      = array(
 			'X-GitHub-Event'      => 'issues',
 			'X-GitHub-Delivery'   => self::DELIVERY_ID,
@@ -253,7 +254,7 @@ final class WebhookNormalizerTest extends TestCase {
 		);
 		$headers[ $alias ]            = $headers[ $canonical ];
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			$status,
 			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
@@ -265,15 +266,15 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @return iterable<string, array{string, string, int}>
 	 */
-	public static function aliasedHeaderProvider(): iterable {
+	public static function aliased_header_provider(): iterable {
 		yield 'signature alias' => array( 'X-Hub-Signature-256', 'X_Hub_Signature_256', 401 );
 		yield 'event alias' => array( 'X-GitHub-Event', 'X_GitHub_Event', 400 );
 		yield 'delivery alias' => array( 'X-GitHub-Delivery', 'X_GitHub_Delivery', 400 );
 	}
 
-	#[DataProvider( 'invalidSignatureProvider' )]
-	public function testMissingAndInvalidSignaturesAreRejected( ?string $signature ): void {
-		$body    = $this->encode( $this->validPushPayload() );
+	#[DataProvider( 'invalid_signature_provider' )]
+	public function test_missing_and_invalid_signatures_are_rejected( ?string $signature ): void {
+		$body    = $this->encode( $this->valid_push_payload() );
 		$headers = array(
 			'X-GitHub-Event'    => 'push',
 			'X-GitHub-Delivery' => self::DELIVERY_ID,
@@ -283,7 +284,7 @@ final class WebhookNormalizerTest extends TestCase {
 			$headers['X-Hub-Signature-256'] = $signature;
 		}
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			401,
 			fn (): WebhookEnvelope => $this->normalizer()->normalizeWebhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
@@ -294,17 +295,17 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @return iterable<string, array{?string}>
 	 */
-	public static function invalidSignatureProvider(): iterable {
+	public static function invalid_signature_provider(): iterable {
 		yield 'missing' => array( null );
 		yield 'wrong digest' => array( 'sha256=' . str_repeat( 'a', 64 ) );
 		yield 'obsolete algorithm' => array( 'sha1=' . str_repeat( 'a', 40 ) );
 		yield 'invalid encoding' => array( 'sha256=not-hex' );
 	}
 
-	public function testPushRequiresADeliveryIdentifier(): void {
-		$body = $this->encode( $this->validPushPayload() );
+	public function test_push_requires_a_delivery_identifier(): void {
+		$body = $this->encode( $this->valid_push_payload() );
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			400,
 			fn (): WebhookEnvelope => $this->normalizer()->normalizeWebhook(
 				new WebhookRequest(
@@ -320,12 +321,12 @@ final class WebhookNormalizerTest extends TestCase {
 		);
 	}
 
-	public function testMalformedJsonIsRejectedWithASafeMessage(): void {
-		$secretBody                   = '{"token":"body-secret"';
-		list( $normalizer, $secrets ) = $this->countingNormalizer();
+	public function test_malformed_json_is_rejected_with_a_safe_message(): void {
+		$secret_body                  = '{"token":"body-secret"';
+		list( $normalizer, $secrets ) = $this->counting_normalizer();
 
 		try {
-			$normalizer->normalizeWebhook( $this->request( $secretBody ) );
+			$normalizer->normalizeWebhook( $this->request( $secret_body ) );
 			self::fail( 'Malformed JSON should be rejected.' );
 		} catch ( WebhookRejected $exception ) {
 			self::assertSame( 400, $exception->getStatusCode() );
@@ -336,9 +337,9 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertSame( 0, $secrets->calls );
 	}
 
-	public function testInvalidSignatureOnMalformedJsonIsRejectedBeforeJsonParsing(): void {
+	public function test_invalid_signature_on_malformed_json_is_rejected_before_json_parsing(): void {
 		$body                         = '{"token":"body-secret"';
-		list( $normalizer, $secrets ) = $this->countingNormalizer();
+		list( $normalizer, $secrets ) = $this->counting_normalizer();
 		$request                      = new WebhookRequest(
 			ProviderCode::parse( 'gh' ),
 			$body,
@@ -350,18 +351,18 @@ final class WebhookNormalizerTest extends TestCase {
 			self::RETAINED_HEADERS
 		);
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			401,
 			fn (): WebhookEnvelope => $normalizer->normalizeWebhook( $request )
 		);
 		self::assertSame( 0, $secrets->calls );
 	}
 
-	#[DataProvider( 'malformedPushProvider' )]
-	public function testMissingOrMalformedRequiredPushFieldsAreRejected( array $payload ): void {
+	#[DataProvider( 'malformed_push_provider' )]
+	public function test_missing_or_malformed_required_push_fields_are_rejected( array $payload ): void {
 		$body = $this->encode( $payload );
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			400,
 			fn (): WebhookEnvelope => $this->normalizer()->normalizeWebhook( $this->request( $body ) )
 		);
@@ -370,8 +371,8 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @return iterable<string, array{array<string, mixed>}>
 	 */
-	public static function malformedPushProvider(): iterable {
-		$valid = self::staticValidPushPayload();
+	public static function malformed_push_provider(): iterable {
+		$valid = self::static_valid_push_payload();
 
 		$payload = $valid;
 		unset( $payload['repository'] );
@@ -406,8 +407,8 @@ final class WebhookNormalizerTest extends TestCase {
 		yield 'non-boolean deletion flag' => array( $payload );
 	}
 
-	#[DataProvider( 'ignoredPushProvider' )]
-	public function testNonDeployablePushesAreIgnored( array $payload ): void {
+	#[DataProvider( 'ignored_push_provider' )]
+	public function test_non_deployable_pushes_are_ignored( array $payload ): void {
 		$body     = $this->encode( $payload );
 		$envelope = $this->normalizer()->normalizeWebhook( $this->request( $body ) );
 
@@ -418,8 +419,8 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @return iterable<string, array{array<string, mixed>}>
 	 */
-	public static function ignoredPushProvider(): iterable {
-		$valid = self::staticValidPushPayload();
+	public static function ignored_push_provider(): iterable {
+		$valid = self::static_valid_push_payload();
 
 		$payload            = $valid;
 		$payload['deleted'] = true;
@@ -438,65 +439,66 @@ final class WebhookNormalizerTest extends TestCase {
 		yield 'zero commit' => array( $payload );
 	}
 
-	#[DataProvider( 'authorizedScopeProvider' )]
-	public function testMatchedProfilesAuthorizeOnlyTheirConfiguredScope( string $scope, string $target ): void {
-		$body       = $this->encode( $this->validPushPayload() );
+	#[DataProvider( 'authorized_scope_provider' )]
+	public function test_matched_profiles_authorize_only_their_configured_scope( string $scope, string $target ): void {
+		$body       = $this->encode( $this->valid_push_payload() );
 		$normalizer = $this->normalizer( array( $this->profile( self::OWNER_SECRET, $scope, $target ) ) );
 
-		self::assertTrue( $normalizer->normalizeWebhook( $this->verifiedRequest( $body, $scope, $target ) )->hasEvents() );
+		self::assertTrue( $normalizer->normalizeWebhook( $this->verified_request( $body, $scope, $target ) )->hasEvents() );
 	}
 
 	/**
 	 * @return iterable<string, array{string, string}>
 	 */
-	public static function authorizedScopeProvider(): iterable {
+	public static function authorized_scope_provider(): iterable {
 		yield 'owner case insensitive' => array( 'owner', 'rocketsarenostalgic' );
 		yield 'repository case insensitive' => array( 'repository', 'rocketsarenostalgic/RAN-BOOSTER' );
 	}
 
-	#[DataProvider( 'unauthorizedScopeProvider' )]
-	public function testMatchedSecretOutsideItsConfiguredScopeIsRejected( string $scope, string $target ): void {
-		$body       = $this->encode( $this->validPushPayload() );
+	#[DataProvider( 'unauthorized_scope_provider' )]
+	public function test_matched_secret_outside_its_configured_scope_is_rejected( string $scope, string $target ): void {
+		$body       = $this->encode( $this->valid_push_payload() );
 		$normalizer = $this->normalizer( array( $this->profile( self::OWNER_SECRET, $scope, $target ) ) );
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			401,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook( $this->verifiedRequest( $body, $scope, $target ) )
+			fn (): WebhookEnvelope => $normalizer->normalizeWebhook( $this->verified_request( $body, $scope, $target ) )
 		);
 	}
 
 	/**
 	 * @return iterable<string, array{string, string}>
 	 */
-	public static function unauthorizedScopeProvider(): iterable {
+	public static function unauthorized_scope_provider(): iterable {
 		yield 'different owner' => array( 'owner', 'ProtestsAndSuffergettes' );
 		yield 'different repository' => array( 'repository', 'RocketsAreNostalgic/other-plugin' );
 		yield 'removed global scope' => array( 'global', '' );
 		yield 'unknown scope' => array( 'organization', 'RocketsAreNostalgic' );
 	}
 
-	public function testASecondRequestCannotReuseTheFirstRequestsMatchedProfile(): void {
+	public function test_a_second_request_cannot_reuse_the_first_requests_matched_profile(): void {
 		$profiles   = array(
 			$this->profile( self::OWNER_SECRET, 'owner', 'RocketsAreNostalgic' ),
 			$this->profile( self::OTHER_SECRET, 'owner', 'ProtestsAndSuffergettes' ),
 		);
 		$normalizer = $this->normalizer( $profiles );
-		$body       = $this->encode( $this->validPushPayload() );
+		$body       = $this->encode( $this->valid_push_payload() );
 
 		self::assertTrue( $normalizer->normalizeWebhook( $this->request( $body ) )->hasEvents() );
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			401,
 			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
-				$this->verifiedRequest( $body, 'owner', 'ProtestsAndSuffergettes', self::OTHER_SECRET )
+				$this->verified_request( $body, 'owner', 'ProtestsAndSuffergettes', self::OTHER_SECRET )
 			)
 		);
 	}
 
-	public function testWebhookReadinessReportsMissingConfigurationWithoutReadingDeliveryState(): void {
+	public function test_webhook_readiness_reports_missing_configuration_without_reading_delivery_state(): void {
 		$deliveries = new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
 			public int $calls = 0;
 
+			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
 			public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
 				++$this->calls;
 
@@ -510,7 +512,7 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertSame( 0, $deliveries->calls );
 	}
 
-	public function testWebhookReadinessReportsConfiguredButNoRetainedDeliveryEvidence(): void {
+	public function test_webhook_readiness_reports_configured_but_no_retained_delivery_evidence(): void {
 		$result = $this->normalizer()->diagnoseWebhookReadiness();
 		$output = implode( ' ', $result->toArray() );
 
@@ -523,10 +525,10 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertStringNotContainsString( self::OTHER_SECRET, $output );
 	}
 
-	public function testWebhookReadinessReportsLatestAuthenticatedMatchedDelivery(): void {
+	public function test_webhook_readiness_reports_latest_authenticated_matched_delivery(): void {
 		$result = $this->normalizer(
 			null,
-			$this->deliveryReader( new AuthenticatedWebhookDeliveryEvidence( ProviderCode::parse( 'gh' ), '2026-07-26 18:30:00', true ) )
+			$this->delivery_reader( new AuthenticatedWebhookDeliveryEvidence( ProviderCode::parse( 'gh' ), '2026-07-26 18:30:00', true ) )
 		)->diagnoseWebhookReadiness();
 
 		self::assertSame( ProviderDiagnosticResult::PASSED, $result->status );
@@ -537,10 +539,10 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertStringContainsString( 'If the webhook secret or provider hook changed after this time', $result->remediation );
 	}
 
-	public function testWebhookReadinessReportsAuthenticatedDeliveryThatMatchedNoPackage(): void {
+	public function test_webhook_readiness_reports_authenticated_delivery_that_matched_no_package(): void {
 		$result = $this->normalizer(
 			null,
-			$this->deliveryReader( new AuthenticatedWebhookDeliveryEvidence( ProviderCode::parse( 'gh' ), '2026-07-26 18:31:00', false ) )
+			$this->delivery_reader( new AuthenticatedWebhookDeliveryEvidence( ProviderCode::parse( 'gh' ), '2026-07-26 18:31:00', false ) )
 		)->diagnoseWebhookReadiness();
 
 		self::assertSame( ProviderDiagnosticResult::WARNING, $result->status );
@@ -550,8 +552,9 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertStringContainsString( 'repository identity, configured branch, and package deployment policy', strtolower( $result->remediation ) );
 	}
 
-	public function testWebhookReadinessSafelyReportsUnavailableDeliveryEvidence(): void {
+	public function test_webhook_readiness_safely_reports_unavailable_delivery_evidence(): void {
 		$deliveries = new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
+			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
 			public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
 				throw new \RuntimeException( 'delivery-evidence-canary' );
 			}
@@ -564,7 +567,7 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertStringNotContainsString( 'delivery-evidence-canary', $output );
 	}
 
-	public function testWebhookReadinessSafelyReportsUnreadableConfiguration(): void {
+	public function test_webhook_readiness_safely_reports_unreadable_configuration(): void {
 		$result = ( new WebhookNormalizer(
 			new WebhookProfileReaderStub( unreadable: true ),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader()
@@ -576,8 +579,8 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertStringNotContainsString( 'github-webhook-secret-canary', $output );
 	}
 
-	public function testNormalizerRejectsARequestForAnotherProvider(): void {
-		$body    = $this->encode( $this->validPushPayload() );
+	public function test_normalizer_rejects_a_request_for_another_provider(): void {
+		$body    = $this->encode( $this->valid_push_payload() );
 		$request = new WebhookRequest(
 			ProviderCode::parse( 'bb' ),
 			$body,
@@ -589,7 +592,7 @@ final class WebhookNormalizerTest extends TestCase {
 			self::RETAINED_HEADERS
 		);
 
-		$this->assertRejected(
+		$this->assert_rejected(
 			400,
 			fn (): WebhookEnvelope => $this->normalizer()->normalizeWebhook( $request )
 		);
@@ -602,30 +605,31 @@ final class WebhookNormalizerTest extends TestCase {
 		?array $profiles = null,
 		?AuthenticatedWebhookDeliveryEvidenceReader $deliveries = null
 	): WebhookNormalizer {
-		return $this->countingNormalizer( $profiles, $deliveries )[0];
+		return $this->counting_normalizer( $profiles, $deliveries )[0];
 	}
 
 	/**
 	 * @param list<array<string, mixed>>|null $profiles Secret profiles.
 	 * @return array{WebhookNormalizer, object}
 	 */
-	private function countingNormalizer(
+	private function counting_normalizer(
 		?array $profiles = null,
 		?AuthenticatedWebhookDeliveryEvidenceReader $deliveries = null
 	): array {
 		$profiles   ??= array( $this->profile( self::OWNER_SECRET, 'owner', 'RocketsAreNostalgic' ) );
 		$deliveries ??= new EmptyAuthenticatedWebhookDeliveryEvidenceReader();
 
-		$profileReader = new WebhookProfileReaderStub( array() !== $profiles );
+		$profile_reader = new WebhookProfileReaderStub( array() !== $profiles );
 
-		return array( new WebhookNormalizer( $profileReader, $deliveries ), $profileReader );
+		return array( new WebhookNormalizer( $profile_reader, $deliveries ), $profile_reader );
 	}
 
-	private function deliveryReader( ?AuthenticatedWebhookDeliveryEvidence $evidence ): AuthenticatedWebhookDeliveryEvidenceReader {
+	private function delivery_reader( ?AuthenticatedWebhookDeliveryEvidence $evidence ): AuthenticatedWebhookDeliveryEvidenceReader {
 		return new class( $evidence ) implements AuthenticatedWebhookDeliveryEvidenceReader {
 			public function __construct( private ?AuthenticatedWebhookDeliveryEvidence $evidence ) {
 			}
 
+			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
 			public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
 				return $this->evidence;
 			}
@@ -635,7 +639,7 @@ final class WebhookNormalizerTest extends TestCase {
 	private function request(
 		string $body,
 		string $event = 'push',
-		string $deliveryId = self::DELIVERY_ID,
+		string $delivery_id = self::DELIVERY_ID,
 		string $secret = self::OWNER_SECRET
 	): WebhookRequest {
 		return ( new WebhookRequest(
@@ -643,14 +647,14 @@ final class WebhookNormalizerTest extends TestCase {
 			$body,
 			array(
 				'X-GitHub-Event'      => $event,
-				'X-GitHub-Delivery'   => $deliveryId,
+				'X-GitHub-Delivery'   => $delivery_id,
 				'X-Hub-Signature-256' => $this->signature( $body, $secret ),
 			),
 			self::RETAINED_HEADERS
 		) )->withVerification( $this->verification( 'owner', 'RocketsAreNostalgic' ) );
 	}
 
-	private function verifiedRequest( string $body, string $scope, string $target, string $secret = self::OWNER_SECRET ): WebhookRequest {
+	private function verified_request( string $body, string $scope, string $target, string $secret = self::OWNER_SECRET ): WebhookRequest {
 		return $this->request( $body, 'push', self::DELIVERY_ID, $secret )
 			->withVerification( $this->verification( $scope, $target ) );
 	}
@@ -674,14 +678,14 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @return array<string, mixed>
 	 */
-	private function validPushPayload(): array {
-		return self::staticValidPushPayload();
+	private function valid_push_payload(): array {
+		return self::static_valid_push_payload();
 	}
 
 	/**
 	 * @return array<string, mixed>
 	 */
-	private static function staticValidPushPayload(): array {
+	private static function static_valid_push_payload(): array {
 		return array(
 			'ref'        => 'refs/heads/release/alpha',
 			'after'      => self::COMMIT,
@@ -730,12 +734,12 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @param callable(): WebhookEnvelope $operation Normalizer operation expected to reject.
 	 */
-	private function assertRejected( int $statusCode, callable $operation ): void {
+	private function assert_rejected( int $status_code, callable $operation ): void {
 		try {
 			$operation();
 			self::fail( 'Webhook request should have been rejected.' );
 		} catch ( WebhookRejected $exception ) {
-			self::assertSame( $statusCode, $exception->getStatusCode() );
+			self::assertSame( $status_code, $exception->getStatusCode() );
 			self::assertNotSame( '', $exception->getMessage() );
 			self::assertStringNotContainsString( self::OWNER_SECRET, $exception->getMessage() );
 			self::assertStringNotContainsString( self::OTHER_SECRET, $exception->getMessage() );

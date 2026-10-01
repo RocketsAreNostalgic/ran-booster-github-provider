@@ -64,6 +64,9 @@ check, including classes implementing Core interfaces, and WPCS variable naming.
 Declaration/use-local deferrals retain public named arguments, promoted properties
 and Core DTO members until their coordinated caller cohort. They are migration
 debt, not external-signature exemptions. Do not extend them to new private code.
-WorkflowAssistance and test naming remain separate cohorts. See
+The 17 direct `tests/Booster/GitHub/*Test.php` files also enforce owned method
+and variable naming. PHPUnit lifecycle methods and unchanged production/Core
+test doubles have precise declaration/use-local exceptions. WorkflowAssistance,
+shared test support and bootstrap naming remain separate cohorts. See
 [the migration ledger](docs/naming-migration.md) and
 [the proposed Core contract manifest](docs/naming-core-contract-manifest.md).

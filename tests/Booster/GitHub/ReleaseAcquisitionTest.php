@@ -24,15 +24,17 @@ use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 #[RunTestsInSeparateProcesses]
 #[PreserveGlobalState( false )]
 final class ReleaseAcquisitionTest extends TestCase {
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function setUp(): void {
 		NeutralReleaseUpdaterFixtures::reset();
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function tearDown(): void {
 		NeutralReleaseUpdaterFixtures::cleanup();
 	}
 
-	public function testProviderCustodyTransfersOnlyThroughBoundedCoreCopy(): void {
+	public function test_provider_custody_transfers_only_through_bounded_core_copy(): void {
 		$provider    = $this->provider( new RepositoryResolverSecretsStub() );
 		$repository  = new RepositoryReference( 'owner/example', '123456789', false, null );
 		$fingerprint = $this->fingerprint( $provider, $repository );
@@ -40,15 +42,15 @@ final class ReleaseAcquisitionTest extends TestCase {
 
 		$artifact = $provider->acquireRelease( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' );
 		self::assertSame( 'example/example.php', $artifact->identifier( 'plugin' ) );
-		$providerPaths = $GLOBALS['ran_booster_release_temp_paths'];
-		self::assertNotEmpty( $providerPaths );
-		self::assertFileExists( $providerPaths[ count( $providerPaths ) - 1 ] );
+		$provider_paths = $GLOBALS['ran_booster_release_temp_paths'];
+		self::assertNotEmpty( $provider_paths );
+		self::assertFileExists( $provider_paths[ count( $provider_paths ) - 1 ] );
 
 		$prepared = ReleaseArtifactCustodian::claim( $artifact->handoffToCore() );
 		self::assertInstanceOf( PreparedArtifact::class, $prepared );
 		self::assertSame( str_repeat( 'a', 40 ), $prepared->getResolvedRef() );
-		self::assertNotContains( $prepared->getPath(), $providerPaths );
-		foreach ( $providerPaths as $path ) {
+		self::assertNotContains( $prepared->getPath(), $provider_paths );
+		foreach ( $provider_paths as $path ) {
 			self::assertFileDoesNotExist( $path );
 		}
 		self::assertSame( 0600, fileperms( $prepared->getPath() ) & 0777 );
@@ -59,7 +61,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 		self::assertDirectoryDoesNotExist( $directory );
 	}
 
-	public function testPrivateAcquisitionResolvesCredentialForEachFreshRequestChain(): void {
+	public function test_private_acquisition_resolves_credential_for_each_fresh_request_chain(): void {
 		$public      = $this->provider( new RepositoryResolverSecretsStub() );
 		$repository  = new RepositoryReference( 'owner/example', '123456789', false, null );
 		$fingerprint = $this->fingerprint( $public, $repository );
@@ -80,7 +82,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 		self::assertTrue( $artifact->discard() );
 	}
 
-	public function testFingerprintContinuityRejectsChangedReleaseAndCleansProviderFile(): void {
+	public function test_fingerprint_continuity_rejects_changed_release_and_cleans_provider_file(): void {
 		$provider    = $this->provider( new RepositoryResolverSecretsStub() );
 		$repository  = new RepositoryReference( 'owner/example', '123456789', false, null );
 		$fingerprint = $this->fingerprint( $provider, $repository );
@@ -98,7 +100,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 		}
 	}
 
-	public function testAcquisitionFailureIsRedactedAndCleansInspectionArtifact(): void {
+	public function test_acquisition_failure_is_redacted_and_cleans_inspection_artifact(): void {
 		$provider    = $this->provider( new RepositoryResolverSecretsStub() );
 		$repository  = new RepositoryReference( 'owner/example', '123456789', false, null );
 		$fingerprint = $this->fingerprint( $provider, $repository );
@@ -130,6 +132,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 		$provider = GitHubProvider::create(
 			$credentials,
 			new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
+				// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
 				public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
 					return null;
 				}
