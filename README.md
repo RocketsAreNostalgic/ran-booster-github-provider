@@ -23,7 +23,9 @@ not grant it a private host API or extra mutation authority.
 
 The current published package is
 [`v1.0.0-beta.8`](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/releases/tag/v1.0.0-beta.8).
-Its [Composer metadata](composer.json) requires:
+Its Composer dependencies and host compatibility requirements are listed below.
+[Composer metadata](composer.json) declares PHP and package dependencies; the
+WordPress and Provider API requirements are host contracts, not Composer checks.
 
 | Requirement | Contract |
 | --- | --- |
