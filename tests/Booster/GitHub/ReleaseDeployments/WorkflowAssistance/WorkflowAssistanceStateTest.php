@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowAssistanceState;
 
 final class WorkflowAssistanceStateTest extends TestCase {
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function setUp(): void {
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array_fill_keys(
 			array(
@@ -25,9 +26,9 @@ final class WorkflowAssistanceStateTest extends TestCase {
 				'ran_booster_release_deployments_setup_records',
 				'ran_booster_release_deployments_assessment_observations',
 				'ran_booster_release_deployments_failure_history',
-			) as $legacyOption
+			) as $legacy_option
 		) {
-			$GLOBALS['ran_booster_release_deployments_test_options'][ $legacyOption ] = array( 'legacy' => true );
+			$GLOBALS['ran_booster_release_deployments_test_options'][ $legacy_option ] = array( 'legacy' => true );
 		}
 		$GLOBALS['ran_booster_release_deployments_test_options']['unrelated_option'] = 'preserved';
 
@@ -35,11 +36,12 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function tearDown(): void {
 		$GLOBALS['wpdb']->disconnect();
 	}
 
-	public function testDurableCleanupOwnsOnlyCurrentProviderStateAndIsRepeatable(): void {
+	public function test_durable_cleanup_owns_only_current_provider_state_and_is_repeatable(): void {
 		$state = new WorkflowAssistanceState();
 
 		self::assertTrue( $state->removeDurableState() );
@@ -57,7 +59,7 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		self::assertCount( 4, $GLOBALS['ran_booster_release_deployments_test_options'] );
 	}
 
-	public function testLockAndPreviewNamesAreProviderOwned(): void {
+	public function test_lock_and_preview_names_are_provider_owned(): void {
 		self::assertSame(
 			'ran_booster_github_workflow_' . substr( hash( 'sha256', 'wp_options' ), 0, 32 ),
 			WorkflowAssistanceState::claimLockName()

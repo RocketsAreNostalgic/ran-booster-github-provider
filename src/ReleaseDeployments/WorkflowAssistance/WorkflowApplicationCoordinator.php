@@ -31,14 +31,14 @@ final class WorkflowApplicationCoordinator {
 			$reason = '' !== $preflight->reasonCode() ? $preflight->reasonCode() : 'provider_unavailable';
 			return $this->result( $status, 'preflight_unavailable', false, '', 'release_preflight', $reason );
 		}
-		if ( ! $this->acceptsBootstrapPreflight( $preflight->code() ) ) {
-			return $this->result( $status, $preflight->code(), 'ready' === $preflight->code(), '', 'release_preflight', $this->preflightDiagnostic( $preflight->code(), $preflight->reasonCode() ) );
+		if ( ! $this->accepts_bootstrap_preflight( $preflight->code() ) ) {
+			return $this->result( $status, $preflight->code(), 'ready' === $preflight->code(), '', 'release_preflight', $this->preflight_diagnostic( $preflight->code(), $preflight->reasonCode() ) );
 		}
-		$remote = $this->bootstrapBundle( $status, $token, null );
+		$remote = $this->bootstrap_bundle( $status, $token, null );
 		if ( 'ok' !== $remote['code'] ) {
 			return $this->result( $status, $remote['code'], 'release_automation_present' === $remote['code'] );
 		}
-		$preview = $this->previewRecord( 'bootstrap', $status, $remote, $channel );
+		$preview = $this->preview_record( 'bootstrap', $status, $remote, $channel );
 		try {
 			$key = bin2hex( random_bytes( 16 ) );
 		} catch ( Throwable ) {
@@ -58,8 +58,8 @@ final class WorkflowApplicationCoordinator {
 			$reason = '' !== $preflight->reasonCode() ? $preflight->reasonCode() : 'provider_unavailable';
 			return $this->result( $status, 'preflight_unavailable', false, $key, 'release_preflight', $reason );
 		}
-		if ( ! $this->acceptsBootstrapPreflight( $preflight->code() ) ) {
-			return $this->result( $status, 'target_changed', false, $key, 'release_preflight', $this->preflightDiagnostic( $preflight->code(), $preflight->reasonCode() ) );
+		if ( ! $this->accepts_bootstrap_preflight( $preflight->code() ) ) {
+			return $this->result( $status, 'target_changed', false, $key, 'release_preflight', $this->preflight_diagnostic( $preflight->code(), $preflight->reasonCode() ) );
 		}
 		$latest = $this->templates->discover( $token );
 		$exact  = 'ok' === $latest['code'] && $latest['pack']->identity() === $preview['template_identity']
@@ -67,18 +67,18 @@ final class WorkflowApplicationCoordinator {
 		if ( 'ok' !== $exact['code'] ) {
 			return $this->result( $status, $exact['code'], false, $key );
 		}
-		$remote = $this->bootstrapBundle( $status, $token, $exact['pack'] );
-		if ( 'ok' !== $remote['code'] || ! $this->previewMatchesBundle( $preview, $remote ) ) {
+		$remote = $this->bootstrap_bundle( $status, $token, $exact['pack'] );
+		if ( 'ok' !== $remote['code'] || ! $this->preview_matches_bundle( $preview, $remote ) ) {
 			return $this->result( $status, 'target_changed', false, $key );
 		}
-		return $this->openDraft( $status, $key, $remote, $token );
+		return $this->open_draft( $status, $key, $remote, $token );
 	}
 
-	private function acceptsBootstrapPreflight( string $code ): bool {
+	private function accepts_bootstrap_preflight( string $code ): bool {
 		return in_array( $code, array( 'ready', 'release_unavailable' ), true );
 	}
 
-	private function preflightDiagnostic( string $code, string $reason ): string {
+	private function preflight_diagnostic( string $code, string $reason ): string {
 		if ( in_array( $reason, self::PREFLIGHT_REASON_CODES, true ) ) {
 			return $reason;
 		}
@@ -87,7 +87,7 @@ final class WorkflowApplicationCoordinator {
 	}
 
 	public function outcome( RepositoryReleaseWorkflowTarget $status, string $token ): array {
-		$record = $this->currentRecord( $status );
+		$record = $this->current_record( $status );
 		if ( null === $record ) {
 			return $this->result( $status, 'invalid_request' );
 		}
@@ -115,12 +115,13 @@ final class WorkflowApplicationCoordinator {
 	}
 
 	/** Check stored workflow state before an adapter reads credential material. */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function hasCurrentRecord( RepositoryReleaseWorkflowTarget $status ): bool {
-		return null !== $this->currentRecord( $status );
+		return null !== $this->current_record( $status );
 	}
 
 	/** @return array<string,mixed>|null */
-	private function currentRecord( RepositoryReleaseWorkflowTarget $status ): ?array {
+	private function current_record( RepositoryReleaseWorkflowTarget $status ): ?array {
 		$record = $this->records->find( $status->providerRepositoryId() );
 		if ( null === $record || ! hash_equals( $status->type(), $record['package_type'] )
 			|| ! hash_equals( $status->identifier(), $record['package_identifier'] ) ) {
@@ -140,8 +141,8 @@ final class WorkflowApplicationCoordinator {
 
 	/** Return only a strict, current-user, current-package schema 3 preview. */
 	public function preview( string $key, RepositoryReleaseWorkflowTarget $status ): ?array {
-		$preview       = get_transient( self::PREVIEW_PREFIX . $key );
-		$validIdentity = static function ( mixed $identity ): bool {
+		$preview        = get_transient( self::PREVIEW_PREFIX . $key );
+		$valid_identity = static function ( mixed $identity ): bool {
 			if ( ! is_array( $identity ) || array_keys( $identity ) !== self::IDENTITY_FIELDS
 				|| 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates' !== $identity['repository_name']
 				|| '1322743261' !== $identity['repository_id'] || ! is_int( $identity['release_id'] ) || $identity['release_id'] < 1
@@ -178,7 +179,7 @@ final class WorkflowApplicationCoordinator {
 			|| ! is_string( $preview['bundle_hash'] ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $preview['bundle_hash'] )
 			|| ! is_string( $preview['changed_path_hash'] ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $preview['changed_path_hash'] )
 			|| ! is_string( $preview['allowlist_hash'] ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $preview['allowlist_hash'] )
-			|| ! $validIdentity( $preview['template_identity'] ) || ! hash_equals( 'v' . $preview['pack_version'], $preview['template_identity']['release_tag'] )
+			|| ! $valid_identity( $preview['template_identity'] ) || ! hash_equals( 'v' . $preview['pack_version'], $preview['template_identity']['release_tag'] )
 			|| ! is_array( $preview['changes'] ) || array() === $preview['changes'] || count( $preview['changes'] ) > 32 ) {
 			return null;
 		}
@@ -197,7 +198,7 @@ final class WorkflowApplicationCoordinator {
 		return $preview;
 	}
 
-	private function bootstrapBundle( RepositoryReleaseWorkflowTarget $status, string $token, ?TemplatePack $pack = null ): array {
+	private function bootstrap_bundle( RepositoryReleaseWorkflowTarget $status, string $token, ?TemplatePack $pack = null ): array {
 		$target = $this->target( $status, $token );
 		if ( 'ok' !== $target['code'] ) {
 			return $target;
@@ -247,37 +248,37 @@ final class WorkflowApplicationCoordinator {
 		);
 	}
 
-	private function openDraft( RepositoryReleaseWorkflowTarget $status, string $previewKey, array $remote, string $token ): array {
+	private function open_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, string $token ): array {
 		$claim = $this->records->claim( $status->providerRepositoryId(), $status->type(), $status->identifier(), $status->sourceRevision() );
 		if ( null === $claim ) {
-			return $this->result( $status, 'invalid_request', false, $previewKey );
+			return $this->result( $status, 'invalid_request', false, $preview_key );
 		}
 		try {
-			$outcome = $this->openClaimedDraft( $status, $previewKey, $remote, $token );
+			$outcome = $this->open_claimed_draft( $status, $preview_key, $remote, $token );
 		} finally {
-			$released = $this->releaseClaim( $status, $claim );
+			$released = $this->release_claim( $status, $claim );
 		}
 		return $released || ! $outcome['successful'] ? $outcome : $this->result( $status, 'partial', false, '', 'local_persistence' );
 	}
 
-	private function releaseClaim( RepositoryReleaseWorkflowTarget $status, string $claim ): bool {
+	private function release_claim( RepositoryReleaseWorkflowTarget $status, string $claim ): bool {
 		return $this->records->releaseClaim( $status->providerRepositoryId(), $claim );
 	}
 
-	private function openClaimedDraft( RepositoryReleaseWorkflowTarget $status, string $previewKey, array $remote, string $token ): array {
-		if ( ! delete_transient( self::PREVIEW_PREFIX . $previewKey ) ) {
-			return $this->result( $status, 'invalid_request', false, $previewKey );
+	private function open_claimed_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, string $token ): array {
+		if ( ! delete_transient( self::PREVIEW_PREFIX . $preview_key ) ) {
+			return $this->result( $status, 'invalid_request', false, $preview_key );
 		}
 		$bundle = $remote['bundle'];
 		$branch = sprintf( 'ran-booster/release-setup-v3-%s-%s', substr( $remote['base_sha'], 0, 12 ), substr( $bundle->hash(), 0, 8 ) );
-		$lookup = $this->findPull( $remote['repository'], $branch, $remote['default_branch'], $token );
+		$lookup = $this->find_pull( $remote['repository'], $branch, $remote['default_branch'], $token );
 		if ( 'ok' !== $lookup['code'] ) {
-			return $this->result( $status, $lookup['code'], false, $previewKey );
+			return $this->result( $status, $lookup['code'], false, $preview_key );
 		}
 		$pull = $lookup['pull'];
-		$head = null === $pull ? $this->createAtomicCommit( $remote, $bundle, $branch, $token ) : $pull['head_sha'];
-		if ( null === $head || ! $this->verifyBranch( $remote, $branch, $head, $bundle, $token ) ) {
-			return $this->result( $status, 'partial', false, $previewKey, 'repository_mutation' );
+		$head = null === $pull ? $this->create_atomic_commit( $remote, $bundle, $branch, $token ) : $pull['head_sha'];
+		if ( null === $head || ! $this->verify_branch( $remote, $branch, $head, $bundle, $token ) ) {
+			return $this->result( $status, 'partial', false, $preview_key, 'repository_mutation' );
 		}
 		$recovered = null !== $pull;
 		if ( null === $pull ) {
@@ -288,22 +289,22 @@ final class WorkflowApplicationCoordinator {
 			$lookup    = 'ok' === $created['code'] ? array(
 				'code' => 'ok',
 				'pull' => $created['pull'],
-			) : $this->findPull( $remote['repository'], $branch, $remote['default_branch'], $token );
+			) : $this->find_pull( $remote['repository'], $branch, $remote['default_branch'], $token );
 			$pull      = 'ok' === $lookup['code'] ? $lookup['pull'] : null;
 		}
 		$files = null !== $pull ? $this->github->pullRequestFileSet( $remote['repository'], $pull['number'], $token ) : array( 'code' => 'invalid_request' );
 		if ( null === $pull || ! $pull['draft'] || 'open' !== $pull['state'] || ! hash_equals( $head, $pull['head_sha'] )
 			|| ! hash_equals( $remote['base_sha'], $pull['base_sha'] ) || 'ok' !== $files['code'] || $files['files'] !== $bundle->expectedPullFiles() ) {
-			return $this->result( $status, 'partial', false, $previewKey, 'repository_mutation' );
+			return $this->result( $status, 'partial', false, $preview_key, 'repository_mutation' );
 		}
 		$record = $this->record( $status, $remote, $bundle, $branch, $head, $pull['number'] );
 		if ( ! $this->records->save( $record ) ) {
-			return $this->result( $status, 'partial', false, $previewKey, 'local_persistence' );
+			return $this->result( $status, 'partial', false, $preview_key, 'local_persistence' );
 		}
 		return $this->result( $status, $recovered ? 'setup_recovered' : 'setup_open', true );
 	}
 
-	private function createAtomicCommit( array $remote, InitialReleaseBundle $bundle, string $branch, string $token ): ?string {
+	private function create_atomic_commit( array $remote, InitialReleaseBundle $bundle, string $branch, string $token ): ?string {
 		$repo = '' !== $token ? $this->github->repository( $remote['repository'], $token ) : array( 'code' => 'invalid_request' );
 		$base = 'ok' === $repo['code'] ? $this->github->branchRef( $remote['repository'], $remote['default_branch'], $token ) : $repo;
 		if ( 'ok' !== $base['code'] || ! hash_equals( $remote['repository_id'], (string) ( $repo['repository_id'] ?? '' ) )
@@ -313,7 +314,7 @@ final class WorkflowApplicationCoordinator {
 		}
 		$existing = $this->github->branchRef( $remote['repository'], $branch, $token );
 		if ( 'ok' === $existing['code'] ) {
-			return $this->verifyBranch( $remote, $branch, $existing['sha'], $bundle, $token ) ? $existing['sha'] : null;
+			return $this->verify_branch( $remote, $branch, $existing['sha'], $bundle, $token ) ? $existing['sha'] : null;
 		}
 		if ( 'missing' !== $existing['code'] ) {
 			return null;
@@ -349,10 +350,10 @@ final class WorkflowApplicationCoordinator {
 		}
 		$created = $this->github->createRef( $remote['repository'], $branch, $remote['default_branch'], $commit['sha'], $token );
 		$ref     = 'ok' === $created['code'] ? $created : $this->github->branchRef( $remote['repository'], $branch, $token );
-		return 'ok' === $ref['code'] && hash_equals( $commit['sha'], $ref['sha'] ) && $this->verifyBranch( $remote, $branch, $commit['sha'], $bundle, $token ) ? $commit['sha'] : null;
+		return 'ok' === $ref['code'] && hash_equals( $commit['sha'], $ref['sha'] ) && $this->verify_branch( $remote, $branch, $commit['sha'], $bundle, $token ) ? $commit['sha'] : null;
 	}
 
-	private function verifyBranch( array $remote, string $branch, string $head, InitialReleaseBundle $bundle, string $token ): bool {
+	private function verify_branch( array $remote, string $branch, string $head, InitialReleaseBundle $bundle, string $token ): bool {
 		$ref    = $this->github->branchRef( $remote['repository'], $branch, $token );
 		$commit = 'ok' === $ref['code'] && hash_equals( $head, $ref['sha'] ) ? $this->github->gitCommit( $remote['repository'], $head, $token ) : $ref;
 		$tree   = 'ok' === $commit['code'] && $commit['parents'] === array( $remote['base_sha'] ) ? $this->github->snapshot( $remote['repository'], $remote['repository_id'], $remote['default_branch'], $head, $token ) : $commit;
@@ -368,7 +369,7 @@ final class WorkflowApplicationCoordinator {
 		return true;
 	}
 
-	private function findPull( string $repository, string $branch, string $base, string $token ): array {
+	private function find_pull( string $repository, string $branch, string $base, string $token ): array {
 		$result = $this->github->pullRequests( $repository, $branch, $token );
 		if ( 'ok' !== $result['code'] ) {
 			return $result;
@@ -389,7 +390,7 @@ final class WorkflowApplicationCoordinator {
 		);
 	}
 
-	private function previewRecord( string $kind, RepositoryReleaseWorkflowTarget $status, array $remote, string $channel ): array {
+	private function preview_record( string $kind, RepositoryReleaseWorkflowTarget $status, array $remote, string $channel ): array {
 		$bundle  = $remote['bundle'];
 		$changes = array();
 		foreach ( $bundle->files() as $file ) {
@@ -423,7 +424,7 @@ final class WorkflowApplicationCoordinator {
 		);
 	}
 
-	private function previewMatchesBundle( array $preview, array $remote ): bool {
+	private function preview_matches_bundle( array $preview, array $remote ): bool {
 		$bundle  = $remote['bundle'];
 		$changes = array();
 		foreach ( $bundle->files() as $file ) {
@@ -493,21 +494,21 @@ final class WorkflowApplicationCoordinator {
 			'code'            => $mapped,
 			'successful'      => $successful,
 			'preview_key'     => $preview,
-			'failure_stage'   => $successful ? '' : $this->failureStage( $code, $stage ),
-			'diagnostic_code' => $successful ? '' : $this->diagnosticCode( $code, $stage, $diagnostic ),
+			'failure_stage'   => $successful ? '' : $this->failure_stage( $code, $stage ),
+			'diagnostic_code' => $successful ? '' : $this->diagnostic_code( $code, $stage, $diagnostic ),
 		);
 	}
 
-	private function diagnosticCode( string $code, string $stage, string $diagnostic ): string {
+	private function diagnostic_code( string $code, string $stage, string $diagnostic ): string {
 		$allowed = array( 'credential_authorisation_unavailable', 'preflight_contract_unavailable', ...self::PREFLIGHT_REASON_CODES, 'release_automation_detected', 'repository_snapshot_unavailable', 'template_pack_unavailable', 'preview_storage_unavailable', 'repository_mutation_unverified', 'local_persistence_unavailable', 'unexpected_runtime_failure' );
 		if ( in_array( $diagnostic, $allowed, true ) ) {
 			return $diagnostic;
 		}
-		$resolvedStage = '' !== $stage ? $stage : $this->failureStage( $code, '' );
+		$resolved_stage = '' !== $stage ? $stage : $this->failure_stage( $code, '' );
 		if ( 'release_automation_conflict' === $code ) {
 			return 'release_automation_detected';
 		}
-		return match ( $resolvedStage ) {
+		return match ( $resolved_stage ) {
 			'credential_authorisation' => 'credential_authorisation_unavailable',
 			'release_preflight' => 'preflight_contract_unavailable',
 			'repository_snapshot' => 'repository_snapshot_unavailable',
@@ -519,7 +520,7 @@ final class WorkflowApplicationCoordinator {
 		};
 	}
 
-	private function failureStage( string $code, string $stage ): string {
+	private function failure_stage( string $code, string $stage ): string {
 		if ( in_array( $stage, array( 'credential_authorisation', 'release_preflight', 'repository_snapshot', 'template_pack', 'preview_storage', 'repository_mutation', 'local_persistence', 'unexpected' ), true ) ) {
 			return $stage;
 		}

@@ -22,12 +22,14 @@ final class StarterSecurityCheck {
 	 * Missing provenance does not block ordinary adoption. Core wiring is a separate contract.
 	 * @return array{status:string,matches:list<array<string,mixed>>}
 	 */
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
 	public function check( string $originBytes, string $token = '' ): array {
 		$unknown = array(
 			'status'  => 'unknown',
 			'matches' => array(),
 		);
-		$origin  = StarterOrigin::decode( $originBytes );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
+		$origin = StarterOrigin::decode( $originBytes );
 		if ( null === $origin ) {
 			return $unknown;
 		}
@@ -38,7 +40,7 @@ final class StarterSecurityCheck {
 			return $unknown;
 		}
 		$index = $this->read( '/repos/' . StarterOrigin::PACK_REPOSITORY . '/contents/security/release-starter-advisories.json?ref=' . rawurlencode( $repository['default_branch'] ), $token, true );
-		if ( null === $index || ! self::validIndex( $index ) ) {
+		if ( null === $index || ! self::valid_index( $index ) ) {
 			return $unknown;
 		}
 		// Two reads above plus one published-GHSA read per entry exceed the 60-call
@@ -68,7 +70,7 @@ final class StarterSecurityCheck {
 	}
 
 	/** @param array<string,mixed> $index */
-	private static function validIndex( array $index ): bool {
+	private static function valid_index( array $index ): bool {
 		if ( ! self::keys( $index, array( 'schema', 'schema_version', 'advisories' ) )
 			|| 'ran-release-starter-advisories' !== $index['schema'] || 1 !== $index['schema_version']
 			|| ! is_array( $index['advisories'] ) || ! array_is_list( $index['advisories'] ) || count( $index['advisories'] ) > 64 ) {
@@ -84,19 +86,19 @@ final class StarterSecurityCheck {
 				return false;
 			}
 			$seen[ $entry['ghsa_id'] ] = true;
-			$isPack                    = StarterOrigin::PACK_REPOSITORY === $entry['repository'];
-			$active                    = $isPack ? 'pack_versions' : 'shared_profile_b_commits';
-			$inactive                  = $isPack ? 'shared_profile_b_commits' : 'pack_versions';
-			$fixed                     = $entry['fixed'][ $isPack ? 'pack_version' : 'shared_profile_b_commit' ];
+			$is_pack                   = StarterOrigin::PACK_REPOSITORY === $entry['repository'];
+			$active                    = $is_pack ? 'pack_versions' : 'shared_profile_b_commits';
+			$inactive                  = $is_pack ? 'shared_profile_b_commits' : 'pack_versions';
+			$fixed                     = $entry['fixed'][ $is_pack ? 'pack_version' : 'shared_profile_b_commit' ];
 			$list                      = $entry['affected'][ $active ];
-			if ( array() !== $entry['affected'][ $inactive ] || null !== $entry['fixed'][ $isPack ? 'shared_profile_b_commit' : 'pack_version' ]
-				|| ! ( $isPack ? StarterOrigin::version( $fixed ) : StarterOrigin::hash( $fixed, 40 ) )
+			if ( array() !== $entry['affected'][ $inactive ] || null !== $entry['fixed'][ $is_pack ? 'shared_profile_b_commit' : 'pack_version' ]
+				|| ! ( $is_pack ? StarterOrigin::version( $fixed ) : StarterOrigin::hash( $fixed, 40 ) )
 				|| ! is_array( $list ) || ! array_is_list( $list ) || array() === $list ) {
 				return false;
 			}
 			$identities = array();
 			foreach ( $list as $value ) {
-				if ( ! ( $isPack ? StarterOrigin::version( $value ) : StarterOrigin::hash( $value, 40 ) ) || isset( $identities[ $value ] ) || $value === $fixed ) {
+				if ( ! ( $is_pack ? StarterOrigin::version( $value ) : StarterOrigin::hash( $value, 40 ) ) || isset( $identities[ $value ] ) || $value === $fixed ) {
 					return false;
 				}
 				$identities[ $value ] = true;

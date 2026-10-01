@@ -15,7 +15,7 @@ final class StarterOrigin {
 	public static function encode( TemplatePack $pack, string $profile ): string {
 		$identity = $pack->identity();
 		$rendered = $pack->render( $profile, 'release-workflow', array( 'PACKAGE_SLUG' => 'origin-check' ) );
-		$pin      = 'ok' === $rendered['code'] ? self::workflowPin( $rendered['content'] ) : null;
+		$pin      = 'ok' === $rendered['code'] ? self::workflow_pin( $rendered['content'] ) : null;
 		if ( null === $pin ) {
 			throw new \RuntimeException( 'Shared workflow provenance is unavailable.' );
 		}
@@ -41,18 +41,18 @@ final class StarterOrigin {
 	}
 
 	/** Accept only the one reusable-workflow call at jobs.release.uses. */
-	private static function workflowPin( string $workflow ): ?string {
+	private static function workflow_pin( string $workflow ): ?string {
 		$lines = preg_split( '/\r?\n/', $workflow );
 		if ( ! is_array( $lines ) ) {
 			return null;
 		}
-		$jobs        = false;
-		$release     = false;
-		$jobsSeen    = false;
-		$releaseSeen = false;
-		$pin         = null;
-		$rootKeys    = array();
-		$pattern     = '~^uses[ \t]*:[ \t]*(["\x27]?)RocketsAreNostalgic/\.github/\.github/workflows/release-profile-b\.yml@([a-f0-9]{40})\1[ \t]*(?:\#[^\r\n]*)?$~';
+		$jobs         = false;
+		$release      = false;
+		$jobs_seen    = false;
+		$release_seen = false;
+		$pin          = null;
+		$root_keys    = array();
+		$pattern      = '~^uses[ \t]*:[ \t]*(["\x27]?)RocketsAreNostalgic/\.github/\.github/workflows/release-profile-b\.yml@([a-f0-9]{40})\1[ \t]*(?:\#[^\r\n]*)?$~';
 		foreach ( $lines as $line ) {
 			if ( '' === trim( $line ) || str_starts_with( ltrim( $line ), '#' ) ) {
 				continue;
@@ -63,24 +63,24 @@ final class StarterOrigin {
 			}
 			$key = substr( $line, $indent );
 			if ( 0 === $indent ) {
-				if ( 1 !== preg_match( '/\A(name|on|permissions|jobs):(?:\s|\z)/', $key, $rootMatch ) || isset( $rootKeys[ $rootMatch[1] ] ) ) {
+				if ( 1 !== preg_match( '/\A(name|on|permissions|jobs):(?:\s|\z)/', $key, $root_match ) || isset( $root_keys[ $root_match[1] ] ) ) {
 					return null;
 				}
-				$rootKeys[ $rootMatch[1] ] = true;
-				$jobs                      = 'jobs:' === $key;
-				$release                   = false;
+				$root_keys[ $root_match[1] ] = true;
+				$jobs                        = 'jobs:' === $key;
+				$release                     = false;
 				if ( $jobs ) {
-					if ( $jobsSeen ) {
+					if ( $jobs_seen ) {
 						return null;
 					}
-					$jobsSeen = true;
+					$jobs_seen = true;
 				}
 			} elseif ( $jobs && 2 === $indent ) {
-				if ( 'release:' !== $key || $releaseSeen ) {
+				if ( 'release:' !== $key || $release_seen ) {
 					return null;
 				}
-				$releaseSeen = true;
-				$release     = true;
+				$release_seen = true;
+				$release      = true;
 			} elseif ( $jobs && ( 1 === $indent || 3 === $indent ) ) {
 				return null;
 			} elseif ( $jobs && $release && 4 === $indent && 1 === preg_match( '/\Auses[ \t]*:/', $key ) ) {
@@ -90,7 +90,7 @@ final class StarterOrigin {
 				$pin = $match[2];
 			}
 		}
-		return $jobsSeen && $releaseSeen ? $pin : null;
+		return $jobs_seen && $release_seen ? $pin : null;
 	}
 
 	/** @return array<string,mixed>|null */

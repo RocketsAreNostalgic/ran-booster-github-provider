@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\RepositorySnapshot;
 
 final class RepositorySnapshotTest extends TestCase {
-	public function testReturnsCanonicalDocumentOrderWithoutChangingIdentity(): void {
+	public function test_returns_canonical_document_order_without_changing_identity(): void {
 		$snapshot = $this->snapshot(
 			array(
 				'z.php' => '<?php',
@@ -27,14 +27,14 @@ final class RepositorySnapshotTest extends TestCase {
 		self::assertSame( 'blob', $snapshot->entries()['a.php']['type'] );
 	}
 
-	#[DataProvider( 'invalidDocuments' )]
-	public function testRejectsUnsafeOrNonTextDocuments( string $path, string $content ): void {
+	#[DataProvider( 'invalid_documents' )]
+	public function test_rejects_unsafe_or_non_text_documents( string $path, string $content ): void {
 		$this->expectException( InvalidArgumentException::class );
 		$this->snapshot( array( $path => $content ) );
 	}
 
 	/** @return iterable<string,array{string,string}> */
-	public static function invalidDocuments(): iterable {
+	public static function invalid_documents(): iterable {
 		yield 'parent traversal' => array( '../unsafe.php', '<?php' );
 		yield 'absolute' => array( '/unsafe.php', '<?php' );
 		yield 'backslash' => array( 'unsafe\\path.php', '<?php' );
@@ -42,7 +42,7 @@ final class RepositorySnapshotTest extends TestCase {
 		yield 'invalid utf8' => array( 'unsafe.php', "bad\xC3\x28" );
 	}
 
-	public function testRejectsDocumentSizeAndEntryModeMismatches(): void {
+	public function test_rejects_document_size_and_entry_mode_mismatches(): void {
 		$entry = array(
 			'type' => 'blob',
 			'mode' => '040000',
@@ -61,7 +61,7 @@ final class RepositorySnapshotTest extends TestCase {
 		new RepositorySnapshot( '101', 'owner/repository', 'main', str_repeat( 'a', 40 ), array( 'a.php' => $entry ), array( 'a.php' => '<?php' ) );
 	}
 
-	public function testRejectsEntryAndDocumentCountOverflow(): void {
+	public function test_rejects_entry_and_document_count_overflow(): void {
 		$entry   = array(
 			'type' => 'blob',
 			'mode' => '100644',

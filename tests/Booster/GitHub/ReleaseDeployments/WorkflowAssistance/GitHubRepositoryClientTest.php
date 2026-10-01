@@ -16,7 +16,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 	private const TREE       = '1111111111111111111111111111111111111111';
 	private const BLOB       = '2222222222222222222222222222222222222222';
 
-	public function testExactRepositoryBranchCommitAndSnapshotReadsAreBounded(): void {
+	public function test_exact_repository_branch_commit_and_snapshot_reads_are_bounded(): void {
 		$header    = "<?php\n/** Plugin Name: Example\n * Requires PHP: 8.2\n * Requires at least: 7.0\n * Version: 1.2.3\n */\n";
 		$transport = new D23GitHubTransport(
 			array(
@@ -78,7 +78,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertSame( array( 'GET', 'GET', 'GET', 'GET', 'GET' ), array_column( $transport->requests, 'method' ) );
 	}
 
-	public function testSnapshotRejectsDuplicateTruncatedUnsafeAndNonTextEvidence(): void {
+	public function test_snapshot_rejects_duplicate_truncated_unsafe_and_non_text_evidence(): void {
 		$entry     = array(
 			'path' => 'example.php',
 			'type' => 'blob',
@@ -133,7 +133,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		}
 	}
 
-	public function testSnapshotReadsExactAlternateAutomationEvidenceAndSkipsUnrelatedDocuments(): void {
+	public function test_snapshot_reads_exact_alternate_automation_evidence_and_skips_unrelated_documents(): void {
 		$documents = array(
 			'example.php'                       => "<?php\n/** Plugin Name: Example */\n",
 			'.github/workflows/ci.yml'          => "steps:\n  - run: composer check\n",
@@ -188,7 +188,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertCount( 8, $transport->requests );
 	}
 
-	public function testSnapshotReadsOnlyABoundedPrefixOfLargeRuntimeBlobs(): void {
+	public function test_snapshot_reads_only_a_bounded_prefix_of_large_runtime_blobs(): void {
 		$transport = new D23GitHubTransport(
 			array(
 				$this->response(
@@ -245,7 +245,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertNull( $result['snapshot']->blobPrefix( 'tests/large-fixture.bin' ) );
 	}
 
-	public function testRuntimeAssetPrefixIsInspectedBeforeSourceReadiness(): void {
+	public function test_runtime_asset_prefix_is_inspected_before_source_readiness(): void {
 		foreach ( array( "version https://git-lfs.github.com/spec/v1\n" . str_repeat( 'x', 2048 ), str_repeat( "\0", 2048 ) ) as $content ) {
 			$transport = new D23ApplicationTransport();
 			$transport->mutateDefaultDocument( 'assets/logo.png', $content );
@@ -261,7 +261,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		}
 	}
 
-	public function testThemeRootJsonPrefixIsFetchedWithoutReadingDevelopmentBlobs(): void {
+	public function test_theme_root_json_prefix_is_fetched_without_reading_development_blobs(): void {
 		$transport = new D23ApplicationTransport();
 		$transport->mutateDefaultDocument( 'theme.json', str_repeat( '{', 2048 ) );
 		$result = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', str_repeat( 'a', 40 ) );
@@ -269,7 +269,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertSame( str_repeat( '{', 43 ), $result['snapshot']->blobPrefix( 'theme.json' ) );
 	}
 
-	public function testShortOversizedOrUnavailableBlobPrefixFailsClosed(): void {
+	public function test_short_oversized_or_unavailable_blob_prefix_fails_closed(): void {
 		$entry = array(
 			'path' => 'assets/logo.png',
 			'type' => 'blob',
@@ -297,7 +297,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		}
 	}
 
-	public function testSnapshotRefusesMoreThanTheBoundedAdmissionDocumentSetBeforeBlobReads(): void {
+	public function test_snapshot_refuses_more_than_the_bounded_admission_document_set_before_blob_reads(): void {
 		$tree = array();
 		for ( $index = 0; $index < 257; ++$index ) {
 			$tree[] = array(
@@ -325,7 +325,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertCount( 1, $transport->requests );
 	}
 
-	public function testAnonymousSnapshotRequiresCredentialBeforeExceedingItsRequestBudget(): void {
+	public function test_anonymous_snapshot_requires_credential_before_exceeding_its_request_budget(): void {
 		$tree      = array();
 		$responses = array();
 		for ( $index = 0; $index < 25; ++$index ) {
@@ -341,19 +341,19 @@ final class GitHubRepositoryClientTest extends TestCase {
 				'body'     => str_repeat( 'x', 43 ),
 			);
 		}
-		$treeResponse = $this->response(
+		$tree_response = $this->response(
 			200,
 			array(
 				'truncated' => false,
 				'tree'      => $tree,
 			)
 		);
-		$anonymous    = new D23GitHubTransport( array( $treeResponse ) );
-		$result       = ( new GitHubRepositoryClient( $anonymous ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA );
+		$anonymous     = new D23GitHubTransport( array( $tree_response ) );
+		$result        = ( new GitHubRepositoryClient( $anonymous ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA );
 		self::assertSame( 'unauthorised', $result['code'] );
 		self::assertCount( 1, $anonymous->requests );
 
-		$authenticated = new D23GitHubTransport( array_merge( array( $treeResponse ), $responses ) );
+		$authenticated = new D23GitHubTransport( array_merge( array( $tree_response ), $responses ) );
 		$result        = ( new GitHubRepositoryClient( $authenticated ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA, 'selected-token' );
 		self::assertSame( 'ok', $result['code'] );
 		self::assertCount( 26, $authenticated->requests );
@@ -362,7 +362,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		}
 	}
 
-	public function testGitObjectDraftAndRefWritesHaveNoUpdateMergeOrSecretAuthority(): void {
+	public function test_git_object_draft_and_ref_writes_have_no_update_merge_or_secret_authority(): void {
 		$pull      = $this->pull( 17, 'open', 'ran-booster/setup', 'main', self::SHA );
 		$transport = new D23GitHubTransport(
 			array(
@@ -407,7 +407,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertTrue( $this->body( $transport, 4 )['draft'] );
 	}
 
-	public function testPullReadbackAndFileSetAreExactSortedAndBounded(): void {
+	public function test_pull_readback_and_file_set_are_exact_sorted_and_bounded(): void {
 		$transport = new D23GitHubTransport(
 			array(
 				$this->response( 200, array( $this->pull( 17, 'open', 'ran-booster/setup', 'main', self::SHA ) ) ),
@@ -437,7 +437,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertStringEndsWith( '/pulls/17/files?per_page=100', $transport->requests[2]['url'] );
 	}
 
-	public function testMalformedInputsResponsesAndConflictsFailClosed(): void {
+	public function test_malformed_inputs_responses_and_conflicts_fail_closed(): void {
 		$wrong                              = $this->pull( 17, 'open', 'setup', 'main', self::SHA );
 		$wrong['head']['repo']['full_name'] = 'owner/other';
 		$transport                          = new D23GitHubTransport( array( $this->response( 200, $wrong ), $this->response( 422, array() ), $this->response( 422, array() ) ) );
@@ -449,7 +449,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertSame( 'conflict', $client->createDraftPullRequest( self::REPOSITORY, 'setup', 'main', 'Title', 'Body', 'token' )['code'] );
 		self::assertSame( 'invalid_request', $client->repository( '../unsafe', "bad\ntoken" )['code'] );
 	}
-	public function testRateLimitedResponsesInclude429AndOnlyExhausted403Responses(): void {
+	public function test_rate_limited_responses_include429_and_only_exhausted403_responses(): void {
 		$transport = new D23GitHubTransport(
 			array(
 				$this->response( 403, array(), array( 'x-ratelimit-remaining' => '0' ) ),

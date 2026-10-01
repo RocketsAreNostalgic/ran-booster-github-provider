@@ -50,42 +50,52 @@ final class SetupRecordStore {
 	private const FAILURE_STAGES           = array( 'credential_authorisation', 'release_preflight', 'repository_snapshot', 'template_pack', 'preview_storage', 'repository_mutation', 'local_persistence', 'unexpected' );
 	private const FAILURE_DIAGNOSTIC_CODES = array( 'credential_authorisation_unavailable', 'preflight_contract_unavailable', 'provider_unavailable', 'no_releases', 'invalid_release', 'release_identity_mismatch', 'release_incompatible', 'release_version_mismatch', 'package_header_missing', 'package_header_invalid', 'package_archive_unreadable', 'package_zip_extension_unavailable', 'package_archive_size_invalid', 'package_archive_too_large', 'package_archive_path_unsafe', 'package_archive_path_duplicate', 'package_archive_root_invalid', 'package_archive_entry_duplicate', 'package_archive_entry_limit', 'release_version_invalid', 'package_update_uri_missing', 'package_update_uri_invalid', 'package_compatibility_missing', 'package_compatibility_invalid', 'package_header_ambiguous', 'release_automation_detected', 'repository_snapshot_unavailable', 'template_pack_unavailable', 'preview_storage_unavailable', 'repository_mutation_unverified', 'local_persistence_unavailable', 'unexpected_runtime_failure' );
 
-	private ?string $claimToken      = null;
-	private ?string $claimConnection = null;
+	private ?string $claim_token      = null;
+	private ?string $claim_connection = null;
 	/** @return array<string,mixed>|null */
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function find( string $repositoryId ): ?array {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		$raw = $this->raw( $repositoryId );
 		if ( null === $raw || 3 !== ( $raw['schema_version'] ?? null ) ) {
 			return null;
 		}
 		$record = $this->normalize( $raw );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		return null !== $record && hash_equals( $repositoryId, $record['repo_id'] ) ? $record : null;
 	}
 	/** Any existing value owns its repository key, including unknown or malformed evidence. */
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function occupied( string $repositoryId ): bool {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		if ( ! $this->text( $repositoryId, 191 ) ) {
 			return false;
 		}
 		$all = get_option( self::OPTION, array() );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		return is_array( $all ) && array_key_exists( $repositoryId, $all );
 	}
 	/** Serialize setup and the shared record write before any provider mutation. @return string|null Opaque exact-owner claim. */
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function claim( string $repositoryId, string $type, string $identifier, int $revision ): ?string {
-		$this->hasActiveClaim();
+		$this->has_active_claim();
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		if ( ! $this->number( $repositoryId ) || ! in_array( $type, array( 'plugin', 'theme' ), true )
-			|| ! $this->text( $identifier, 255 ) || $revision < 1 || null !== $this->claimToken ) {
+			|| ! $this->text( $identifier, 255 ) || $revision < 1 || null !== $this->claim_token ) {
 			return null;
 		}
 		$claim = bin2hex( random_bytes( 16 ) );
-		if ( ! $this->acquireClaimLock() ) {
+		if ( ! $this->acquire_claim_lock() ) {
 			return null;
 		}
-		$this->claimToken      = $claim;
-		$this->claimConnection = $this->connectionFingerprint();
+		$this->claim_token      = $claim;
+		$this->claim_connection = $this->connection_fingerprint();
 		if ( function_exists( 'wp_cache_delete' ) ) {
 			wp_cache_delete( self::OPTION, 'options' );
 		}
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		if ( $this->occupied( $repositoryId ) ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 			$this->releaseClaim( $repositoryId, $claim );
 			return null;
 		}
@@ -93,32 +103,34 @@ final class SetupRecordStore {
 	}
 
 	/** Release only the exact connection-local lock held by this store instance. */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function releaseClaim( string $repositoryId, string $claim ): bool {
-		if ( ! $this->number( $repositoryId ) || ! $this->hasActiveClaim() || ! hash_equals( $this->claimToken, $claim ) ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
+		if ( ! $this->number( $repositoryId ) || ! $this->has_active_claim() || ! hash_equals( $this->claim_token, $claim ) ) {
 			return false;
 		}
-		$released = $this->releaseClaimLock();
+		$released = $this->release_claim_lock();
 		if ( $released ) {
-			$this->claimToken      = null;
-			$this->claimConnection = null;
+			$this->claim_token      = null;
+			$this->claim_connection = null;
 		}
 		return $released;
 	}
 
 	/** Keep a failed release claim only while its original database connection remains current. */
-	private function hasActiveClaim(): bool {
-		if ( null === $this->claimToken ) {
+	private function has_active_claim(): bool {
+		if ( null === $this->claim_token ) {
 			return false;
 		}
-		if ( null !== $this->claimConnection && hash_equals( $this->claimConnection, $this->connectionFingerprint() ) ) {
+		if ( null !== $this->claim_connection && hash_equals( $this->claim_connection, $this->connection_fingerprint() ) ) {
 			return true;
 		}
-		$this->claimToken      = null;
-		$this->claimConnection = null;
+		$this->claim_token      = null;
+		$this->claim_connection = null;
 		return false;
 	}
 
-	private function connectionFingerprint(): string {
+	private function connection_fingerprint(): string {
 		global $wpdb;
 		if ( ! is_object( $wpdb ) ) {
 			return '';
@@ -132,48 +144,51 @@ final class SetupRecordStore {
 		return $fingerprint;
 	}
 
-	private function acquireClaimLock(): bool {
+	private function acquire_claim_lock(): bool {
 		global $wpdb;
 		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) ) {
 			return false;
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Connection-local advisory lock serializes remote setup and the shared evidence option.
-		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', self::claimLockName() ) );
+		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', self::claim_lock_name() ) );
 		return '' === trim( (string) ( $wpdb->last_error ?? '' ) ) && '1' === (string) $result;
 	}
 
-	private function releaseClaimLock(): bool {
+	private function release_claim_lock(): bool {
 		global $wpdb;
 		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) ) {
 			return false;
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Connection-local advisory locks are released automatically if the database connection closes.
-		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', self::claimLockName() ) );
+		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', self::claim_lock_name() ) );
 		return '' === trim( (string) ( $wpdb->last_error ?? '' ) ) && '1' === (string) $result;
 	}
 
-	private static function claimLockName(): string {
+	private static function claim_lock_name(): string {
 		return WorkflowAssistanceState::claimLockName();
 	}
 	/** Refresh only the monotonic Core source revision for the same exact package record. @return array<string,mixed>|null */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function refreshSourceRevision( string $repositoryId, string $type, string $identifier, int $revision ): ?array {
-		$acquired = ! $this->hasActiveClaim();
-		if ( $acquired && ! $this->acquireClaimLock() ) {
+		$acquired = ! $this->has_active_claim();
+		if ( $acquired && ! $this->acquire_claim_lock() ) {
 			return null;
 		}
 		$readback = null;
 		$released = true;
 		try {
-			$this->refreshRecordCache();
+			$this->refresh_record_cache();
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 			$record = $this->find( $repositoryId );
 			if ( null !== $record && $revision > $record['source_revision']
 				&& hash_equals( $type, $record['package_type'] ) && hash_equals( $identifier, $record['package_identifier'] ) ) {
 				$record['source_revision'] = $revision;
-				$readback                  = $this->persistRecord( $record ) ? $this->find( $repositoryId ) : null;
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
+				$readback = $this->persist_record( $record ) ? $this->find( $repositoryId ) : null;
 			}
 		} finally {
 			if ( $acquired ) {
-				$released = $this->releaseClaimLock();
+				$released = $this->release_claim_lock();
 			}
 		}
 		return $released ? $readback : null;
@@ -184,25 +199,25 @@ final class SetupRecordStore {
 		if ( null === $record ) {
 			return false;
 		}
-		$acquired = ! $this->hasActiveClaim();
-		if ( $acquired && ! $this->acquireClaimLock() ) {
+		$acquired = ! $this->has_active_claim();
+		if ( $acquired && ! $this->acquire_claim_lock() ) {
 			return false;
 		}
 		$saved    = false;
 		$released = true;
 		try {
-			$this->refreshRecordCache();
-			$saved = $this->persistRecord( $record );
+			$this->refresh_record_cache();
+			$saved = $this->persist_record( $record );
 		} finally {
 			if ( $acquired ) {
-				$released = $this->releaseClaimLock();
+				$released = $this->release_claim_lock();
 			}
 		}
 		return $saved && $released;
 	}
 
 	/** @param array<string,mixed> $record */
-	private function persistRecord( array $record ): bool {
+	private function persist_record( array $record ): bool {
 		$all = get_option( self::OPTION, array() );
 		if ( ! is_array( $all ) || count( $all ) > self::MAX_RECORDS
 			|| ( ! array_key_exists( $record['repo_id'], $all ) && count( $all ) >= self::MAX_RECORDS ) ) {
@@ -221,51 +236,52 @@ final class SetupRecordStore {
 		return $this->find( $record['repo_id'] ) === $record;
 	}
 
-	private function refreshRecordCache(): void {
+	private function refresh_record_cache(): void {
 		if ( function_exists( 'wp_cache_delete' ) ) {
 			wp_cache_delete( self::OPTION, 'options' );
 		}
 	}
-	private function refreshFailureCache(): void {
+	private function refresh_failure_cache(): void {
 		if ( function_exists( 'wp_cache_delete' ) ) {
 			wp_cache_delete( self::FAILURE_OPTION, 'options' );
 		}
 	}
-	private function refreshAssessmentCache(): void {
+	private function refresh_assessment_cache(): void {
 		if ( function_exists( 'wp_cache_delete' ) ) {
 			wp_cache_delete( self::ASSESSMENT_OPTION, 'options' );
 		}
 	}
 	/** @param array<string,mixed> $observation */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function saveAssessmentObservation( array $observation ): bool {
-		$observation = $this->normalizeObservation( $observation );
+		$observation = $this->normalize_observation( $observation );
 		if ( null === $observation ) {
 			return false;
 		}
-		$acquired = ! $this->hasActiveClaim();
-		if ( $acquired && ! $this->acquireClaimLock() ) {
+		$acquired = ! $this->has_active_claim();
+		if ( $acquired && ! $this->acquire_claim_lock() ) {
 			return false;
 		}
 		$saved    = false;
 		$released = true;
 		try {
-			$this->refreshAssessmentCache();
-			$saved = $this->persistAssessmentObservation( $observation );
+			$this->refresh_assessment_cache();
+			$saved = $this->persist_assessment_observation( $observation );
 		} finally {
 			if ( $acquired ) {
-				$released = $this->releaseClaimLock();
+				$released = $this->release_claim_lock();
 			}
 		}
 		return $saved && $released;
 	}
 	/** @param array<string,mixed> $observation */
-	private function persistAssessmentObservation( array $observation ): bool {
-		$all = $this->assessmentObservations();
+	private function persist_assessment_observation( array $observation ): bool {
+		$all = $this->assessment_observations();
 		if ( null === $all ) {
 			return false;
 		}
 		foreach ( $all as $index => $existing ) {
-			if ( $this->sameAssessmentPackage( $observation, $existing ) ) {
+			if ( $this->same_assessment_package( $observation, $existing ) ) {
 				unset( $all[ $index ] );
 			}
 		}
@@ -284,16 +300,20 @@ final class SetupRecordStore {
 			&& $this->assessmentObservation( $observation['repository_id'], $observation['package_type'], $observation['package_identifier'], $observation['source_revision'] ) === $observation;
 	}
 	/** @return array<string,mixed>|null */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function assessmentObservation( string $repositoryId, string $type, string $identifier, int $sourceRevision ): ?array {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		if ( ! $this->number( $repositoryId ) || ! in_array( $type, array( 'plugin', 'theme' ), true ) || ! $this->text( $identifier, 255 ) || $sourceRevision < 1 ) {
 			return null;
 		}
-		$all = $this->assessmentObservations();
+		$all = $this->assessment_observations();
 		if ( null === $all ) {
 			return null;
 		}
 		foreach ( $all as $observation ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 			if ( $repositoryId === $observation['repository_id'] && $type === $observation['package_type']
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 				&& $identifier === $observation['package_identifier'] && $sourceRevision === $observation['source_revision'] ) {
 				return $observation;
 			}
@@ -301,35 +321,36 @@ final class SetupRecordStore {
 		return null;
 	}
 	/** @param array<string,mixed> $failure */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function recordFailure( array $failure ): bool {
-		$failure = $this->normalizeFailure( $failure );
+		$failure = $this->normalize_failure( $failure );
 		if ( null === $failure ) {
 			return false;
 		}
-		$acquired = ! $this->hasActiveClaim();
-		if ( $acquired && ! $this->acquireClaimLock() ) {
+		$acquired = ! $this->has_active_claim();
+		if ( $acquired && ! $this->acquire_claim_lock() ) {
 			return false;
 		}
 		$recorded = false;
 		$released = true;
 		try {
-			$this->refreshFailureCache();
-			$recorded = $this->persistFailure( $failure );
+			$this->refresh_failure_cache();
+			$recorded = $this->persist_failure( $failure );
 		} finally {
 			if ( $acquired ) {
-				$released = $this->releaseClaimLock();
+				$released = $this->release_claim_lock();
 			}
 		}
 		return $recorded && $released;
 	}
 	/** @param array<string,mixed> $failure */
-	private function persistFailure( array $failure ): bool {
+	private function persist_failure( array $failure ): bool {
 		$history = get_option( self::FAILURE_OPTION, array() );
 		if ( ! is_array( $history ) || ! array_is_list( $history ) || count( $history ) > self::MAX_FAILURES ) {
 			return false;
 		}
 		foreach ( $history as $index => $entry ) {
-			$entry = is_array( $entry ) ? $this->normalizeFailure( $entry ) : null;
+			$entry = is_array( $entry ) ? $this->normalize_failure( $entry ) : null;
 			if ( null === $entry ) {
 				return false;
 			}
@@ -344,7 +365,9 @@ final class SetupRecordStore {
 		return in_array( $failure, $readback, true );
 	}
 	/** @return list<array<string,mixed>> */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function failureHistory( string $repositoryId, string $type, string $identifier, int $sourceRevision ): array {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		if ( ! $this->number( $repositoryId ) || ! in_array( $type, array( 'plugin', 'theme' ), true ) || ! $this->text( $identifier, 255 ) || $sourceRevision < 1 ) {
 			return array();
 		}
@@ -354,11 +377,13 @@ final class SetupRecordStore {
 		}
 		$matched = array();
 		foreach ( $history as $entry ) {
-			$entry = is_array( $entry ) ? $this->normalizeFailure( $entry ) : null;
+			$entry = is_array( $entry ) ? $this->normalize_failure( $entry ) : null;
 			if ( null === $entry ) {
 				return array();
 			}
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 			if ( hash_equals( $repositoryId, $entry['repository_id'] ) && hash_equals( $type, $entry['package_type'] )
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 				&& hash_equals( $identifier, $entry['package_identifier'] ) && $sourceRevision === $entry['source_revision'] ) {
 				$matched[] = $entry;
 			}
@@ -366,29 +391,29 @@ final class SetupRecordStore {
 		return array_slice( $matched, -self::MAX_HISTORY );
 	}
 	/** @return array<string,mixed>|null */
-	private function raw( string $repositoryId ): ?array {
-		if ( ! $this->text( $repositoryId, 191 ) ) {
+	private function raw( string $repository_id ): ?array {
+		if ( ! $this->text( $repository_id, 191 ) ) {
 			return null;
 		}
 		$all = get_option( self::OPTION, array() );
-		return is_array( $all ) && count( $all ) <= self::MAX_RECORDS && is_array( $all[ $repositoryId ] ?? null ) ? $all[ $repositoryId ] : null;
+		return is_array( $all ) && count( $all ) <= self::MAX_RECORDS && is_array( $all[ $repository_id ] ?? null ) ? $all[ $repository_id ] : null;
 	}
 	/** @param array<string,mixed> $raw @return array<string,mixed>|null */
 	private function normalize( array $raw ): ?array {
 		if ( array_keys( $raw ) !== self::FIELDS || 3 !== ( $raw['schema_version'] ?? null )
 			|| 'bootstrap' !== ( $raw['operation'] ?? null )
-			|| ! $this->currentIdentityValid( array_intersect_key( $raw, array_flip( self::IDENTITY_FIELDS ) ) )
+			|| ! $this->current_identity_valid( array_intersect_key( $raw, array_flip( self::IDENTITY_FIELDS ) ) )
 			|| ! str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v3-' )
 			|| ! $this->hash( $raw['base_sha'] ?? null, 40 )
 			|| ! in_array( $raw['profile_id'] ?? null, array( 'source-ready-wordpress-plugin/3', 'source-ready-wordpress-theme/3' ), true )
 			|| 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates' !== ( $raw['template_repo_name'] ?? null )
 			|| '1322743261' !== ( $raw['template_repo_id'] ?? null )
-			|| ! $this->positiveInt( $raw['template_release_id'] ?? null ) || ! $this->textValue( $raw['template_tag'] ?? null, 191 )
-			|| ! $this->hash( $raw['template_commit'] ?? null, 40 ) || ! $this->positiveInt( $raw['template_asset_id'] ?? null )
+			|| ! $this->positive_int( $raw['template_release_id'] ?? null ) || ! $this->text_value( $raw['template_tag'] ?? null, 191 )
+			|| ! $this->hash( $raw['template_commit'] ?? null, 40 ) || ! $this->positive_int( $raw['template_asset_id'] ?? null )
 			|| 'ran-booster-release-bootstrap-templates.zip' !== ( $raw['template_asset_name'] ?? null )
-			|| ! $this->positiveInt( $raw['template_asset_size'] ?? null ) || $raw['template_asset_size'] > 2097152
+			|| ! $this->positive_int( $raw['template_asset_size'] ?? null ) || $raw['template_asset_size'] > 2097152
 			|| ! $this->hash( $raw['template_asset_digest'] ?? null, 64 ) || ! $this->hash( $raw['manifest_digest'] ?? null, 64 )
-			|| ! $this->validChangedFiles( $raw['changed_files'] ?? null ) || TemplatePack::CONSUMER_API !== ( $raw['consumer_api'] ?? null )
+			|| ! $this->valid_changed_files( $raw['changed_files'] ?? null ) || TemplatePack::CONSUMER_API !== ( $raw['consumer_api'] ?? null )
 			|| ! is_string( $raw['pack_version'] ?? null ) || 1 !== preg_match( '/\A[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\z/D', $raw['pack_version'] )
 			|| ! $this->hash( $raw['bundle_hash'] ?? null, 64 ) || ! $this->hash( $raw['changed_path_hash'] ?? null, 64 ) ) {
 			return null;
@@ -397,14 +422,14 @@ final class SetupRecordStore {
 		return $raw;
 	}
 	/** @return list<array<string,mixed>>|null */
-	private function assessmentObservations(): ?array {
+	private function assessment_observations(): ?array {
 		$all = get_option( self::ASSESSMENT_OPTION, array() );
 		if ( ! is_array( $all ) || ! array_is_list( $all ) || count( $all ) > self::MAX_OBSERVATIONS ) {
 			return null;
 		}
 		$seen = array();
 		foreach ( $all as $index => $observation ) {
-			$observation = is_array( $observation ) ? $this->normalizeObservation( $observation ) : null;
+			$observation = is_array( $observation ) ? $this->normalize_observation( $observation ) : null;
 			if ( null === $observation ) {
 				return null;
 			}
@@ -418,11 +443,11 @@ final class SetupRecordStore {
 		return $all;
 	}
 	/** @param array<string,mixed> $observation @return array<string,mixed>|null */
-	private function normalizeObservation( array $observation ): ?array {
+	private function normalize_observation( array $observation ): ?array {
 		if ( array_keys( $observation ) !== self::OBSERVATION_FIELDS || ! in_array( $observation['kind'] ?? null, self::OBSERVATION_STATUSES, true )
 			|| ! $this->number( $observation['repository_id'] ?? null )
 			|| ! in_array( $observation['package_type'] ?? null, array( 'plugin', 'theme' ), true )
-			|| ! $this->textValue( $observation['package_identifier'] ?? null, 255 ) || ! $this->positiveInt( $observation['source_revision'] ?? null )
+			|| ! $this->text_value( $observation['package_identifier'] ?? null, 255 ) || ! $this->positive_int( $observation['source_revision'] ?? null )
 			|| ! is_string( $observation['observed_at'] ?? null ) || 1 !== preg_match( '/\A[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\z/D', $observation['observed_at'] ) ) {
 			return null;
 		}
@@ -430,18 +455,18 @@ final class SetupRecordStore {
 		return $observation;
 	}
 	/** @param array<string,mixed> $first @param array<string,mixed> $second */
-	private function sameAssessmentPackage( array $first, array $second ): bool {
+	private function same_assessment_package( array $first, array $second ): bool {
 		return $first['repository_id'] === $second['repository_id'] && $first['package_type'] === $second['package_type']
 			&& $first['package_identifier'] === $second['package_identifier'];
 	}
 	/** @param array<string,mixed> $failure @return array<string,mixed>|null */
-	private function normalizeFailure( array $failure ): ?array {
+	private function normalize_failure( array $failure ): ?array {
 		if ( array_keys( $failure ) !== self::FAILURE_FIELDS
 			|| ! in_array( $failure['operation'] ?? null, array( 'inspect', 'setup', 'outcome' ), true )
 			|| ! is_string( $failure['outcome_code'] ?? null ) || 1 !== preg_match( '/\Aworkflow_[a-z0-9_]{1,55}\z/D', $failure['outcome_code'] )
 			|| ! in_array( $failure['failure_stage'] ?? null, self::FAILURE_STAGES, true )
 			|| ! in_array( $failure['package_type'] ?? null, array( 'plugin', 'theme' ), true )
-			|| ! $this->textValue( $failure['package_identifier'] ?? null, 255 ) || ! $this->positiveInt( $failure['source_revision'] ?? null )
+			|| ! $this->text_value( $failure['package_identifier'] ?? null, 255 ) || ! $this->positive_int( $failure['source_revision'] ?? null )
 			|| ! $this->number( $failure['repository_id'] ?? null )
 			|| ! in_array( $failure['diagnostic_code'] ?? null, self::FAILURE_DIAGNOSTIC_CODES, true )
 			|| ! is_bool( $failure['diagnostic_available'] ?? null )
@@ -453,15 +478,15 @@ final class SetupRecordStore {
 		return $failure;
 	}
 	/** @param array<string,mixed> $raw */
-	private function currentIdentityValid( array $raw ): bool {
+	private function current_identity_valid( array $raw ): bool {
 		return count( $raw ) === count( self::IDENTITY_FIELDS ) && $this->number( $raw['repo_id'] ?? null )
 			&& $this->repository( $raw['repository'] ?? null ) && in_array( $raw['package_type'] ?? null, array( 'plugin', 'theme' ), true )
-			&& $this->textValue( $raw['package_identifier'] ?? null, 255 ) && $this->positiveInt( $raw['source_revision'] ?? null )
+			&& $this->text_value( $raw['package_identifier'] ?? null, 255 ) && $this->positive_int( $raw['source_revision'] ?? null )
 			&& $this->branch( $raw['default_branch'] ?? null ) && $this->branch( $raw['setup_branch'] ?? null )
 			&& str_starts_with( $raw['setup_branch'], 'ran-booster/release-setup-v3-' )
-			&& $this->hash( $raw['head_sha'] ?? null, 40 ) && $this->positiveInt( $raw['pr_number'] ?? null );
+			&& $this->hash( $raw['head_sha'] ?? null, 40 ) && $this->positive_int( $raw['pr_number'] ?? null );
 	}
-	private function validChangedFiles( mixed $files ): bool {
+	private function valid_changed_files( mixed $files ): bool {
 		if ( ! is_array( $files ) || ! array_is_list( $files ) || array() === $files || count( $files ) > 32 ) {
 			return false;
 		}
@@ -483,19 +508,19 @@ final class SetupRecordStore {
 		return is_string( $value ) && 1 === preg_match( '#\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z#D', $value );
 	}
 	private function branch( mixed $value ): bool {
-		return $this->textValue( $value, 191 ) && ! str_contains( $value, '..' ) && ! str_contains( $value, '@{' )
+		return $this->text_value( $value, 191 ) && ! str_contains( $value, '..' ) && ! str_contains( $value, '@{' )
 			&& 0 === preg_match( '/[ ~^:?*\[\\\\]|]|(?:\A|\/)\.|\.(?:lock)?\z|\/\//', $value );
 	}
 	private function number( mixed $value ): bool {
 		return is_string( $value ) && 1 === preg_match( '/\A[1-9][0-9]*\z/D', $value );
 	}
-	private function positiveInt( mixed $value ): bool {
+	private function positive_int( mixed $value ): bool {
 		return is_int( $value ) && $value > 0;
 	}
 	private function hash( mixed $value, int $length ): bool {
 		return is_string( $value ) && 1 === preg_match( '/\A[a-f0-9]{' . $length . '}\z/D', $value );
 	}
-	private function textValue( mixed $value, int $limit ): bool {
+	private function text_value( mixed $value, int $limit ): bool {
 		return is_string( $value ) && $this->text( $value, $limit );
 	}
 	private function text( string $value, int $limit ): bool {

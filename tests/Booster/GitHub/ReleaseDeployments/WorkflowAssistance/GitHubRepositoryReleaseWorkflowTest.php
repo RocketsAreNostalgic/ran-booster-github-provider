@@ -19,6 +19,7 @@ require_once __DIR__ . '/Support/WorkflowCredentialStore.php';
 require_once __DIR__ . '/Support/WorkflowProviderFixtures.php';
 
 final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function setUp(): void {
 		$GLOBALS['ran_booster_release_deployments_test_options']    = array();
 		$GLOBALS['ran_booster_release_deployments_test_transients'] = array();
@@ -27,12 +28,13 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function tearDown(): void {
 		$GLOBALS['wpdb']->disconnect();
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
 	}
 
-	public function testPassiveStatusUsesOnlyDisplaySafeProfilesAndExactActionsUrl(): void {
+	public function test_passive_status_uses_only_display_safe_profiles_and_exact_actions_url(): void {
 		$credentials = new WorkflowCredentialStore();
 		$workflow    = $this->workflow( $credentials );
 		$status      = WorkflowProviderFixtures::target();
@@ -49,12 +51,14 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 			),
 			$result->credentialChoices()
 		);
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 		self::assertSame( 1, $credentials->profileReads );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 		self::assertSame( array(), $credentials->materialReads );
 		self::assertSame( array(), $GLOBALS['ran_booster_release_deployments_test_options'] );
 	}
 
-	public function testStatusUsesStoredRecordIdentityWhenRecordOccupiesRepository(): void {
+	public function test_status_uses_stored_record_identity_when_record_occupies_repository(): void {
 		$records = new SetupRecordStore();
 		self::assertTrue(
 			$records->save(
@@ -80,7 +84,7 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		self::assertTrue( $result->recordOccupied() );
 	}
 
-	public function testStatusPreservesBootstrapOperationAcrossSourceRevisionsWithoutWriting(): void {
+	public function test_status_preserves_bootstrap_operation_across_source_revisions_without_writing(): void {
 		$records = new SetupRecordStore();
 		self::assertTrue( $records->save( $this->record() ) );
 		$before      = $GLOBALS['ran_booster_release_deployments_test_options'];
@@ -98,11 +102,12 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 			self::assertSame( 'example-plugin/example-plugin.php', $result->packageIdentifier() );
 		}
 		self::assertSame( $before, $GLOBALS['ran_booster_release_deployments_test_options'] );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 		self::assertSame( array(), $credentials->materialReads );
 		self::assertSame( array(), $transport->requests );
 	}
 
-	public function testStatusDoesNotProjectAnOperationFromRetiredOrMalformedOccupiedRecords(): void {
+	public function test_status_does_not_project_an_operation_from_retired_or_malformed_occupied_records(): void {
 		foreach ( array(
 			array(
 				'schema_version' => 2,
@@ -121,24 +126,27 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 			self::assertSame( '', $result->recordOperation() );
 			self::assertSame( '', $result->pullRequestUrl() );
 			self::assertSame( $before, $GLOBALS['ran_booster_release_deployments_test_options'] );
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 			self::assertSame( array(), $credentials->materialReads );
 			self::assertSame( array(), $transport->requests );
 		}
 	}
 
-	public function testInvalidOutcomeDoesNotReadCredentialMaterial(): void {
+	public function test_invalid_outcome_does_not_read_credential_material(): void {
 		$credentials = new WorkflowCredentialStore();
 		$workflow    = $this->workflow( $credentials );
 		$status      = WorkflowProviderFixtures::target();
 
 		self::assertSame( 'workflow_invalid_request', $workflow->outcome( $status, 'eligible' )->workflowCode() );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 		self::assertSame( array(), $credentials->materialReads );
 		self::assertFalse( method_exists( $workflow, 'inspectUpdate' ) );
 		self::assertFalse( method_exists( $workflow, 'setupUpdate' ) );
 	}
 
-	public function testUnavailableSelectedCredentialRefusesCurrentReadOperationsBeforeTransport(): void {
-		$credentials                   = new WorkflowCredentialStore();
+	public function test_unavailable_selected_credential_refuses_current_read_operations_before_transport(): void {
+		$credentials = new WorkflowCredentialStore();
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 		$credentials->eligibleMaterial = null;
 		$records                       = new SetupRecordStore();
 		$transport                     = new D23ApplicationTransport();
@@ -148,12 +156,13 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 
 		self::assertSame( 'workflow_unauthorised', $workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), 'eligible' )->workflowCode() );
 		self::assertSame( 'workflow_unauthorised', $workflow->outcome( $status, 'eligible' )->workflowCode() );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 		self::assertSame( array( 'eligible', 'eligible' ), $credentials->materialReads );
 		self::assertSame( array(), $transport->requests );
 	}
 
 
-	public function testCredentialChoiceLabelIsUtf8SafeAndBoundedToStatusContract(): void {
+	public function test_credential_choice_label_is_utf8_safe_and_bounded_to_status_contract(): void {
 		$credentials           = new WorkflowCredentialStore();
 		$credentials->profiles = array(
 			'eligible' => array(
@@ -174,20 +183,22 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		self::assertStringEndsWith( ' (classic)', $choice['label'] );
 	}
 
-	public function testPreflightAndIneligibleSavedCredentialAreRejectedBeforeMaterialRead(): void {
+	public function test_preflight_and_ineligible_saved_credential_are_rejected_before_material_read(): void {
 		$credentials = new WorkflowCredentialStore();
 		$workflow    = $this->workflow( $credentials );
 		$status      = WorkflowProviderFixtures::target();
 		$blocked     = WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::PREFLIGHT_UNAVAILABLE, 'provider_unavailable' );
 
-		$preflightResult = $workflow->inspect( $status, 'stable', $blocked, 'eligible' );
-		self::assertSame( 'workflow_preflight_unavailable', $preflightResult->workflowCode() );
-		self::assertSame( '', $preflightResult->correlationReference() );
+		$preflight_result = $workflow->inspect( $status, 'stable', $blocked, 'eligible' );
+		self::assertSame( 'workflow_preflight_unavailable', $preflight_result->workflowCode() );
+		self::assertSame( '', $preflight_result->correlationReference() );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 		self::assertSame( array(), $credentials->materialReads );
 
 		$preview = $workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), null );
 		self::assertTrue( $preview->successful() );
 		self::assertSame( 'workflow_unauthorised', $workflow->setup( $status, $preview->previewKey(), 'owner/example-plugin', WorkflowProviderFixtures::preflight(), 'constant' )->workflowCode() );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 		self::assertSame( array(), $credentials->materialReads );
 	}
 
