@@ -16,14 +16,6 @@ permissions:
   pull-requests: read
 
 jobs:
-  baseline:
-    uses: RocketsAreNostalgic/.github/.github/workflows/quality-php-library-v2.yml@788f783d2998994f7aab9691710911ed1bd762c9 # reviewed PHP quality v2 provider
-    with:
-      php-floor: '8.2'
-      php-current: '8.5'
-      php-extensions: zip
-      node-version: '24.11.0'
-
   release-classification:
     name: Release classification
     runs-on: blacksmith-2vcpu-ubuntu-2404
@@ -142,54 +134,19 @@ jobs:
       fail-fast: false
       matrix:
         php: ['8.2', '8.5']
+    permissions:
+      contents: read
     steps:
-      - name: Check out exact package revision
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-          path: provider
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-
-      - name: Check out candidate Booster host
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: RocketsAreNostalgic/ran-booster
-          ref: 18b0ec619174000a9a9dbc27b9d68b44b0265449
-          persist-credentials: false
-          path: booster
-
-      - name: Verify exact source and host revisions
-        env:
-          RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: 18b0ec619174000a9a9dbc27b9d68b44b0265449
-        run: |
-          set -euo pipefail
-          test -n "$RAN_EXPECTED_SHA"
-          test "$(git -C provider rev-parse HEAD)" = "$RAN_EXPECTED_SHA"
-          test "$(git -C booster rev-parse HEAD)" = "$RAN_BOOSTER_HOST_SHA"
-
-      - name: Set up PHP ${{ matrix.php }}
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+      - name: Run shared baseline and candidate-host recipe
+        uses: RocketsAreNostalgic/.github/.github/actions/booster-library-quality@6e81370238e33c5b77641355a772557912f7fee7
         with:
           php-version: ${{ matrix.php }}
-          extensions: zip
-          coverage: none
-
-      - name: Install provider dependencies
-        working-directory: provider
-        run: composer install --no-interaction --prefer-dist
-
-      - name: Run candidate-host quality aggregate
-        env:
-          RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
-        working-directory: provider
-        run: composer check:host
+          booster-sha: 18b0ec619174000a9a9dbc27b9d68b44b0265449
 
   quality:
     name: quality
     if: ${{ always() }}
     needs:
-      - baseline
       - release-classification
       - host-contract
       - implementation
@@ -197,13 +154,11 @@ jobs:
     steps:
       - name: Require all quality lanes
         env:
-          BASELINE_RESULT: ${{ needs.baseline.result }}
           CLASSIFICATION_RESULT: ${{ needs.release-classification.result }}
           HOST_CONTRACT_RESULT: ${{ needs.host-contract.result }}
           IMPLEMENTATION_RESULT: ${{ needs.implementation.result }}
         run: |
-          printf 'baseline=%s\nclassification=%s\nhost-contract=%s\nimplementation=%s\n' "$BASELINE_RESULT" "$CLASSIFICATION_RESULT" "$HOST_CONTRACT_RESULT" "$IMPLEMENTATION_RESULT"
-          test "$BASELINE_RESULT" = success
+          printf 'classification=%s\nhost-contract=%s\nimplementation=%s\n' "$CLASSIFICATION_RESULT" "$HOST_CONTRACT_RESULT" "$IMPLEMENTATION_RESULT"
           test "$CLASSIFICATION_RESULT" = success
           test "$HOST_CONTRACT_RESULT" = success
           test "$IMPLEMENTATION_RESULT" = success
