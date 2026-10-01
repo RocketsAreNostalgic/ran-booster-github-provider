@@ -82,7 +82,7 @@ final class NeutralReleaseUpdaterFixtures {
 	}
 
 	/** @return array<string, mixed> */
-	public static function listedRelease( string $locator = 'owner/example', string $tag = 'v1.2.3', bool $prerelease = false, int $id = 42 ): array {
+	public static function listed_release( string $locator = 'owner/example', string $tag = 'v1.2.3', bool $prerelease = false, int $id = 42 ): array {
 		return array(
 			'assets'       => array( array( 'name' => 'example.zip' ) ),
 			'draft'        => false,
@@ -133,7 +133,7 @@ final class NeutralReleaseUpdaterFixtures {
 
 	/** @return array<string, mixed> */
 	private static function release( string $locator, string $tag, string $version, string $archive ): array {
-		$release           = self::listedRelease( $locator, $tag, str_contains( $version, '-' ) );
+		$release           = self::listed_release( $locator, $tag, str_contains( $version, '-' ) );
 		$release['assets'] = array(
 			array(
 				'digest' => 'sha256:' . hash( 'sha256', $archive ),

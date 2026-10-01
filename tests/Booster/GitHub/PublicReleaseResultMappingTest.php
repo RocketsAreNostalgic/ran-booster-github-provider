@@ -227,8 +227,8 @@ final class PublicReleaseRegistrarFixture {
 final class PublicReleaseSourceFixture {
 	public int $inspect_calls = 0;
 	public int $acquire_calls = 0;
-	public function __construct( private array $list, private array $inspect, private array $acquire ) {} public function list(): array {
-		return $this->list;
+	public function __construct( private array $release_list, private array $inspect, private array $acquire ) {} public function list(): array {
+		return $this->release_list;
 	} public function inspect( string $id, string $tag ): array {
 		++$this->inspect_calls;
 		return $this->inspect;

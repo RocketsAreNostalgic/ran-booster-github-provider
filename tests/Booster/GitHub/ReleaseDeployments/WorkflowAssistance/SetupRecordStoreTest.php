@@ -136,9 +136,8 @@ final class SetupRecordStoreTest extends TestCase {
 
 		self::assertTrue( $store->recordFailure( $failure ) );
 		self::assertSame( array( $failure ), $store->failureHistory( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
-		self::assertTrue( $connection->isLockHeld() );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
-		self::assertSame( 1, $connection->lockAcquisitions );
+		self::assertTrue( $connection->is_lock_held() );
+		self::assertSame( 1, $connection->lock_acquisitions );
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_release_result'] );
 		self::assertTrue( $store->releaseClaim( '123456789', $claim ) );
 	}
@@ -168,7 +167,7 @@ final class SetupRecordStoreTest extends TestCase {
 		);
 
 		self::assertTrue( $store->recordFailure( $failure ) );
-		self::assertSame( 1, $GLOBALS['wpdb']->lockAcquisitions );
+		self::assertSame( 1, $GLOBALS['wpdb']->lock_acquisitions );
 		self::assertSame( array( $failure ), $store->failureHistory( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 	}
 	public function test_one_global_claim_serializes_distinct_repository_records(): void {
@@ -212,7 +211,7 @@ final class SetupRecordStoreTest extends TestCase {
 	public function test_connection_close_recovers_an_abandoned_claim_without_persistent_state(): void {
 		$first = new SetupRecordStore();
 		self::assertNotNull( $first->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
-		self::assertTrue( $GLOBALS['wpdb']->isLockHeld() );
+		self::assertTrue( $GLOBALS['wpdb']->is_lock_held() );
 		$GLOBALS['wpdb']->disconnect();
 
 		$second = new SetupRecordStore();

@@ -298,7 +298,7 @@ final class TemplatePackRepositoryClient {
 			&& 'uploaded' === ( $expected['asset_state'] ?? null ) && in_array( $expected['asset_content_type'] ?? null, array( 'application/zip', 'application/octet-stream' ), true )
 			&& is_int( $expected['asset_size'] ?? null ) && $expected['asset_size'] > 0 && $expected['asset_size'] <= self::ASSET_BODY_LIMIT
 			&& is_string( $expected['asset_sha256'] ?? null ) && 1 === preg_match( '/\A[a-f0-9]{64}\z/D', $expected['asset_sha256'] )
-			&& 'sha256:' . $expected['asset_sha256'] === ( $expected['asset_digest'] ?? null );
+			&& ( $expected['asset_digest'] ?? null ) === 'sha256:' . $expected['asset_sha256'];
 	}
 
 	/** @param array<string, int|string> $candidate @param array<string, mixed> $expected */

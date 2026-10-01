@@ -38,8 +38,8 @@ final class ReleaseCandidateListingTest extends TestCase {
 			array(
 				NeutralReleaseUpdaterFixtures::listing(
 					array(
-						NeutralReleaseUpdaterFixtures::listedRelease( tag: 'v2.0.0-beta.2', prerelease: true, id: 52 ),
-						NeutralReleaseUpdaterFixtures::listedRelease(),
+						NeutralReleaseUpdaterFixtures::listed_release( tag: 'v2.0.0-beta.2', prerelease: true, id: 52 ),
+						NeutralReleaseUpdaterFixtures::listed_release(),
 					)
 				),
 			)

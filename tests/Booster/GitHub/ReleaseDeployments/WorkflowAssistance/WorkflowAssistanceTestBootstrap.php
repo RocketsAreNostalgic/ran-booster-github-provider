@@ -7,20 +7,20 @@ namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 // phpcs:disable Universal.Files.SeparateFunctionsFromOO -- This small bootstrap deliberately combines the WordPress function shims and their option-table double.
 
 final class SetupClaimDatabase {
-	public string $options       = 'wp_options';
-	public string $last_error    = '';
-	public int $lockAcquisitions = 0;
-	private string $connectionId;
+	public string $options        = 'wp_options';
+	public string $last_error     = '';
+	public int $lock_acquisitions = 0;
+	private string $connection_id;
 
 	public function __construct() {
-		$this->connectionId = spl_object_hash( $this );
+		$this->connection_id = spl_object_hash( $this );
 	}
 
 	public function prepare( string $query, mixed ...$arguments ): string {
 		foreach ( $arguments as $argument ) {
 			$query = (string) preg_replace_callback(
 				'/%[is]/',
-				static fn ( array $match ): string => '%i' === $match[0] ? '`' . (string) $argument . '`' : "'" . addslashes( (string) $argument ) . "'",
+				static fn ( array $matches ): string => '%i' === $matches[0] ? '`' . (string) $argument . '`' : "'" . addslashes( (string) $argument ) . "'",
 				$query,
 				1
 			);
@@ -31,12 +31,12 @@ final class SetupClaimDatabase {
 	public function get_var( string $query ): string|null {
 		$this->last_error = '';
 		if ( str_starts_with( $query, 'SELECT GET_LOCK(' ) ) {
-			++$this->lockAcquisitions;
+			++$this->lock_acquisitions;
 			$owner = $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null;
-			if ( null !== $owner && $owner !== $this->connectionId ) {
+			if ( null !== $owner && $owner !== $this->connection_id ) {
 				return '0';
 			}
-			$GLOBALS['ran_booster_release_deployments_test_lock_owner'] = $this->connectionId;
+			$GLOBALS['ran_booster_release_deployments_test_lock_owner'] = $this->connection_id;
 			$callback = $GLOBALS['ran_booster_release_deployments_test_lock_acquired_callback'] ?? null;
 			if ( is_callable( $callback ) ) {
 				$callback();
@@ -48,7 +48,7 @@ final class SetupClaimDatabase {
 				$this->last_error = 'release failed';
 				return null;
 			}
-			if ( ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null ) !== $this->connectionId ) {
+			if ( ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null ) !== $this->connection_id ) {
 				return '0';
 			}
 			unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
@@ -58,13 +58,13 @@ final class SetupClaimDatabase {
 	}
 
 	public function disconnect(): void {
-		if ( ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null ) === $this->connectionId ) {
+		if ( ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null ) === $this->connection_id ) {
 			unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
 		}
 	}
 
-	public function isLockHeld(): bool {
-		return ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null ) === $this->connectionId;
+	public function is_lock_held(): bool {
+		return ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null ) === $this->connection_id;
 	}
 }
 
@@ -72,19 +72,19 @@ if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
 	define( 'MINUTE_IN_SECONDS', 60 );
 }
 
-$ranBoosterRoot = getenv( 'RAN_BOOSTER_CORE_PATH' );
-if ( ! is_string( $ranBoosterRoot ) || '' === trim( $ranBoosterRoot ) ) {
+$ran_booster_root = getenv( 'RAN_BOOSTER_CORE_PATH' );
+if ( ! is_string( $ran_booster_root ) || '' === trim( $ran_booster_root ) ) {
 	throw new \LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for workflow-assistance tests.' );
 }
-$ranBoosterRoot = rtrim( $ranBoosterRoot, '/\\' );
+$ran_booster_root = rtrim( $ran_booster_root, '/\\' );
 foreach ( array(
 	'ReleaseTrackingEligibility.php',
 	'ReleaseTrackingPreflight.php',
 	'ReleaseTrackingResult.php',
 	'ReleaseTrackingStatus.php',
 	'ReleaseTrackingFacade.php',
-) as $releaseTrackingFile ) {
-	require_once $ranBoosterRoot . '/RAN/AddOn/ReleaseTracking/' . $releaseTrackingFile;
+) as $release_tracking_file ) {
+	require_once $ran_booster_root . '/RAN/AddOn/ReleaseTracking/' . $release_tracking_file;
 }
 
 if ( ! function_exists( __NAMESPACE__ . '\\wp_json_encode' ) ) {
@@ -109,12 +109,12 @@ function template_pack_repository_actions( string $hook ): array {
 }
 
 if ( ! function_exists( __NAMESPACE__ . '\\add_action' ) ) {
-	function add_action( string $hook, callable $callback, int $priority = 10, int $acceptedArgs = 1 ): bool {
+	function add_action( string $hook, callable $callback, int $priority = 10, int $accepted_args = 1 ): bool {
 		$GLOBALS['ran_booster_template_pack_repository_actions'][] = array(
 			'hook'          => $hook,
 			'callback'      => $callback,
 			'priority'      => $priority,
-			'accepted_args' => $acceptedArgs,
+			'accepted_args' => $accepted_args,
 		);
 
 		return true;

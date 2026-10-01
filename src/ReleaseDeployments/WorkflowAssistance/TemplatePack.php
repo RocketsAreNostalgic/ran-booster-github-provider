@@ -305,7 +305,7 @@ final readonly class TemplatePack {
 					|| ! is_string( $entry['path'] ?? null ) || self::ENTRY_PATHS[ $logical_id ] !== $entry['path']
 					|| ! is_int( $entry['size'] ?? null ) || $entry['size'] < 1 || $entry['size'] > self::MAX_MEMBER_BYTES
 					|| ! is_string( $entry['sha256'] ?? null ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $entry['sha256'] )
-					|| ! is_array( $entry['placeholders'] ?? null ) || $entry['placeholders'] !== self::ENTRY_PLACEHOLDERS[ $logical_id ]
+					|| ! is_array( $entry['placeholders'] ?? null ) || self::ENTRY_PLACEHOLDERS[ $logical_id ] !== $entry['placeholders']
 					|| ! isset( $members[ $entry['path'] ] ) || strlen( $members[ $entry['path'] ] ) !== $entry['size']
 					|| ! hash_equals( $entry['sha256'], hash( 'sha256', $members[ $entry['path'] ] ) )
 					|| ! self::template_placeholders_match( $members[ $entry['path'] ], array_keys( $entry['placeholders'] ) ) ) {
@@ -369,7 +369,7 @@ final readonly class TemplatePack {
 			&& 1 === $identity['asset_count'] && is_int( $identity['asset_id'] ) && $identity['asset_id'] > 0
 			&& 'ran-booster-release-bootstrap-templates.zip' === $identity['asset_name']
 			&& 'uploaded' === $identity['asset_state'] && in_array( $identity['asset_content_type'], array( 'application/zip', 'application/octet-stream' ), true )
-			&& is_int( $identity['asset_size'] ) && $identity['asset_size'] === strlen( $archive )
+			&& is_int( $identity['asset_size'] ) && strlen( $archive ) === $identity['asset_size']
 			&& $identity['asset_size'] > 0 && $identity['asset_size'] <= self::MAX_ARCHIVE_BYTES
 			&& is_string( $identity['asset_sha256'] ) && 1 === preg_match( '/\A[a-f0-9]{64}\z/D', $identity['asset_sha256'] )
 			&& 'sha256:' . $identity['asset_sha256'] === $identity['asset_digest']

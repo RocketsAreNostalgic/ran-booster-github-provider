@@ -27,9 +27,9 @@ final class TemplatePackApi3Fixture {
 	}
 
 	/** @return array<string, mixed> */
-	public static function manifest( int $consumerApi = 3, string $version = '1.2.3' ): array {
-		$templates     = self::templates();
-		$sharedEntries = array(
+	public static function manifest( int $consumer_api = 3, string $version = '1.2.3' ): array {
+		$templates      = self::templates();
+		$shared_entries = array(
 			'quality-workflow'      => self::entry(
 				'templates/shared/quality.yml.tmpl',
 				$templates['templates/shared/quality.yml.tmpl'],
@@ -68,21 +68,21 @@ final class TemplatePackApi3Fixture {
 		);
 		$profiles = array();
 		foreach ( array( 'plugin', 'theme' ) as $type ) {
-			$configPath = 'templates/shared/release-please-config.json.tmpl';
-			$entries    = array(
-				'quality-workflow'      => $sharedEntries['quality-workflow'],
-				'release-workflow'      => $sharedEntries['release-workflow'],
+			$config_path = 'templates/shared/release-please-config.json.tmpl';
+			$entries     = array(
+				'quality-workflow'      => $shared_entries['quality-workflow'],
+				'release-workflow'      => $shared_entries['release-workflow'],
 				'release-please-config' => self::entry(
-					$configPath,
-					$templates[ $configPath ],
+					$config_path,
+					$templates[ $config_path ],
 					array(
 						'BASE_SHA'         => 'sha',
 						'EXTRA_FILES_JSON' => 'json_fragment',
 						'PACKAGE_SLUG'     => 'slug',
 					)
 				),
-				'build-release-script'  => $sharedEntries['build-release-script'],
-				'verify-release-script' => $sharedEntries['verify-release-script'],
+				'build-release-script'  => $shared_entries['build-release-script'],
+				'verify-release-script' => $shared_entries['verify-release-script'],
 			);
 			$profiles[ 'source-ready-wordpress-' . $type . '/3' ] = array(
 				'profile_version' => 1,
@@ -92,7 +92,7 @@ final class TemplatePackApi3Fixture {
 
 		return array(
 			'schema_version' => 1,
-			'consumer_api'   => $consumerApi,
+			'consumer_api'   => $consumer_api,
 			'pack_version'   => $version,
 			'repository'     => array(
 				'name' => self::REPOSITORY,
@@ -108,14 +108,14 @@ final class TemplatePackApi3Fixture {
 
 	/**
 	 * @param array<string, mixed>|null $manifest
-	 * @param array<string, string>     $memberOverrides
+	 * @param array<string, string>     $member_overrides
 	 * @param array<string, string>     $extra
 	 */
 	public static function archive(
 		?array $manifest = null,
-		array $memberOverrides = array(),
+		array $member_overrides = array(),
 		array $extra = array(),
-		string $modeMember = '',
+		string $mode_member = '',
 		int $mode = 0100644,
 		array $omit = array()
 	): string {
@@ -129,11 +129,11 @@ final class TemplatePackApi3Fixture {
 			throw new \RuntimeException( 'Unable to open template-pack fixture.' );
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test fixture requires throwing deterministic JSON encoding.
-		$manifestBytes = (string) json_encode( $manifest, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR );
-		$members       = array_merge(
-			array( 'template-pack.json' => $manifestBytes ),
+		$manifest_bytes = (string) json_encode( $manifest, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR );
+		$members        = array_merge(
+			array( 'template-pack.json' => $manifest_bytes ),
 			self::templates(),
-			$memberOverrides,
+			$member_overrides,
 			$extra
 		);
 		foreach ( $omit as $name ) {
@@ -144,7 +144,7 @@ final class TemplatePackApi3Fixture {
 			$zip->setExternalAttributesName(
 				$name,
 				ZipArchive::OPSYS_UNIX,
-				( $name === $modeMember ? $mode : 0100644 ) << 16
+				( $name === $mode_member ? $mode : 0100644 ) << 16
 			);
 		}
 		$zip->close();

@@ -14,7 +14,7 @@ require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 
 // phpcs:disable WordPress.WP.AlternativeFunctions -- Exact local producer evidence and isolated disposable build fixtures; no network or target writes.
 final class ProducerExchangeTest extends TestCase {
-	public function testActualQualifiedProducerZipAndAllTenRenderedDigests(): void {
+	public function test_actual_qualified_producer_zip_and_all_ten_rendered_digests(): void {
 		$dir   = dirname( __DIR__, 4 ) . '/fixtures/api3-producer';
 		$bytes = file_get_contents( $dir . '/ran-booster-release-bootstrap-templates.zip' );
 		$e     = json_decode( file_get_contents( $dir . '/producer-exchange.json' ), true, 512, JSON_THROW_ON_ERROR );
@@ -45,7 +45,7 @@ final class ProducerExchangeTest extends TestCase {
 			'asset_sha256'       => hash( 'sha256', $bytes ),
 		);
 		$result = TemplatePack::fromArchive( $bytes, $i );
-		if ( $result['code'] !== 'ok' ) {
+		if ( 'ok' !== $result['code'] ) {
 			self::fail( $result['code'] );
 		}
 		$p = $result['pack'];
@@ -54,9 +54,9 @@ final class ProducerExchangeTest extends TestCase {
 		}
 
 		foreach ( array( 'plugin', 'theme' ) as $type ) {
-			$this->verifyBundleExecution( $p, $type );
+			$this->verify_bundle_execution( $p, $type );
 			$profile = 'source-ready-wordpress-' . $type . '/3';
-			$header  = $type === 'plugin' ? 'example-package.php' : 'style.css';
+			$header  = 'plugin' === $type ? 'example-package.php' : 'style.css';
 			$values  = array(
 				'quality-workflow'      => array(
 					'PACKAGE_SLUG' => 'example-package',
@@ -90,12 +90,12 @@ final class ProducerExchangeTest extends TestCase {
 			);
 			foreach ( $values as $logical => $v ) {
 				$rendered = $p->render( $profile, $logical, $v );
-				if ( $rendered['code'] !== 'ok' || hash( 'sha256', $rendered['content'] ) !== $e['profiles'][ $profile ][ $logical ]['rendered_sha256'] ) {
+				if ( 'ok' !== $rendered['code'] || hash( 'sha256', $rendered['content'] ) !== $e['profiles'][ $profile ][ $logical ]['rendered_sha256'] ) {
 					self::fail( 'Render mismatch: ' . $profile . '/' . $logical );
 				}self::assertSame( $e['profiles'][ $profile ][ $logical ]['rendered_sha256'], hash( 'sha256', $rendered['content'] ) );}
 		}
 	}
-	private function verifyBundleExecution( TemplatePack $pack, string $type ): void {
+	private function verify_bundle_execution( TemplatePack $pack, string $type ): void {
 		$header    = 'plugin' === $type ? 'example-package.php' : 'style.css';
 		$content   = 'plugin' === $type
 			? "<?php\n/**\n * Plugin Name: Example\n * Requires PHP: 8.0\n * Requires at least: 7.0\n * Version: 1.2.3\n * Update URI: https://github.com/example/example-package\n */\n"

@@ -51,9 +51,9 @@ final class StarterSecurityCheck {
 		$matches = array();
 		foreach ( $index['advisories'] as $entry ) {
 			$advisory = $this->read( '/repos/' . $entry['repository'] . '/security-advisories/' . $entry['ghsa_id'], $token );
-			if ( null === $advisory || $entry['ghsa_id'] !== ( $advisory['ghsa_id'] ?? null )
-				|| 'https://api.github.com/repos/' . $entry['repository'] . '/security-advisories/' . $entry['ghsa_id'] !== ( $advisory['url'] ?? null )
-				|| 'https://github.com/' . $entry['repository'] . '/security/advisories/' . $entry['ghsa_id'] !== ( $advisory['html_url'] ?? null )
+			if ( null === $advisory || ( $advisory['ghsa_id'] ?? null ) !== $entry['ghsa_id']
+				|| ( $advisory['url'] ?? null ) !== 'https://api.github.com/repos/' . $entry['repository'] . '/security-advisories/' . $entry['ghsa_id']
+				|| ( $advisory['html_url'] ?? null ) !== 'https://github.com/' . $entry['repository'] . '/security/advisories/' . $entry['ghsa_id']
 				|| 'published' !== ( $advisory['state'] ?? null ) || ! is_string( $advisory['published_at'] ?? null ) || '' === $advisory['published_at']
 				|| ! array_key_exists( 'withdrawn_at', $advisory ) || null !== $advisory['withdrawn_at'] ) {
 				return $unknown;

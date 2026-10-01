@@ -9,13 +9,13 @@ use RAN\RepositoryProvider\RepositoryReleaseWorkflowTarget;
 
 /** Provider-contract fixtures for the bounded GitHub workflow suite. */
 final class WorkflowProviderFixtures {
-	public static function target( string $type = 'plugin', string $identifier = 'example-plugin/example-plugin.php', int $sourceRevision = 3 ): RepositoryReleaseWorkflowTarget {
+	public static function target( string $type = 'plugin', string $identifier = 'example-plugin/example-plugin.php', int $source_revision = 3 ): RepositoryReleaseWorkflowTarget {
 		$root = 'theme' === $type ? 'example-theme' : 'example-plugin';
 
 		return new RepositoryReleaseWorkflowTarget(
 			$type,
 			$identifier,
-			$sourceRevision,
+			$source_revision,
 			'101',
 			$root,
 			'1.2.3',
@@ -23,7 +23,7 @@ final class WorkflowProviderFixtures {
 		);
 	}
 
-	public static function preflight( string $code = RepositoryReleaseWorkflowPreflight::RELEASE_UNAVAILABLE, string $reasonCode = '' ): RepositoryReleaseWorkflowPreflight {
-		return new RepositoryReleaseWorkflowPreflight( $code, $reasonCode );
+	public static function preflight( string $code = RepositoryReleaseWorkflowPreflight::RELEASE_UNAVAILABLE, string $reason_code = '' ): RepositoryReleaseWorkflowPreflight {
+		return new RepositoryReleaseWorkflowPreflight( $code, $reason_code );
 	}
 }

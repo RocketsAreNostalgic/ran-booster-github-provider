@@ -31,9 +31,8 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$coordinator = $this->coordinator( $facade, new D23ApplicationTransport(), new SetupRecordStore() );
 		$status      = WorkflowProviderFixtures::target();
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		$facade->preflightContractUnavailable = true;
-		$result                               = $coordinator->inspect( $status, 'stable', WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::PREFLIGHT_UNAVAILABLE ), 'token' );
+		$facade->preflight_contract_unavailable = true;
+		$result                                 = $coordinator->inspect( $status, 'stable', WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::PREFLIGHT_UNAVAILABLE ), 'token' );
 		self::assertSame( 'workflow_preflight_unavailable', $result['code'] );
 		self::assertSame( 'provider_unavailable', $result['diagnostic_code'] );
 	}
@@ -156,18 +155,13 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertSame( 28, count( $record ) );
 		self::assertNull( $coordinator->preview( $inspect['preview_key'], $status ) );
 		self::assertSame( 'workflow_pr_open', $coordinator->outcome( $status, 'secret-token' )['code'] );
-		$transport->mergePull();
+		$transport->merge_pull();
 		self::assertSame( 'workflow_pr_merged', $coordinator->outcome( $status, 'secret-token' )['code'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertGreaterThanOrEqual( 5, $transport->writeCounts['blob'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( 1, $transport->writeCounts['tree'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( 1, $transport->writeCounts['commit'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( 1, $transport->writeCounts['ref'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( 1, $transport->writeCounts['pull'] );
+		self::assertGreaterThanOrEqual( 5, $transport->write_counts['blob'] );
+		self::assertSame( 1, $transport->write_counts['tree'] );
+		self::assertSame( 1, $transport->write_counts['commit'] );
+		self::assertSame( 1, $transport->write_counts['ref'] );
+		self::assertSame( 1, $transport->write_counts['pull'] );
 		self::assertNotContains( 'PATCH', array_column( $transport->requests, 'method' ) );
 		self::assertNotContains( 'DELETE', array_column( $transport->requests, 'method' ) );
 		self::assertStringNotContainsString( 'secret-token', (string) wp_json_encode( $GLOBALS['ran_booster_release_deployments_test_options'] ) );
@@ -180,7 +174,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 	}
 
 	public function test_octet_stream_pack_survives_preview_exact_refetch_and_setup(): void {
-		$transport   = new D23ApplicationTransport( assetContentType: 'application/octet-stream' );
+		$transport   = new D23ApplicationTransport( asset_content_type: 'application/octet-stream' );
 		$coordinator = $this->coordinator( new D23ReleaseFacade(), $transport, new SetupRecordStore() );
 		$status      = WorkflowProviderFixtures::target();
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
@@ -197,9 +191,8 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$established = $this->coordinator( $facade, $transport, new SetupRecordStore() );
 		$preview     = $established->inspect( $status, 'stable', $this->ready_preflight(), 'selected-token' );
 		self::assertSame( 'workflow_setup_open', $established->setup( $status, $preview['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'selected-token' )['code'] );
-		$transport->mergePull();
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		$writes = $transport->writeCounts;
+		$transport->merge_pull();
+		$writes = $transport->write_counts;
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
 
 		$result = $this->coordinator( $facade, $transport, new SetupRecordStore() )->inspect( $status, 'stable', $this->ready_preflight(), 'selected-token' );
@@ -207,8 +200,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertSame( 'workflow_release_automation_conflict', $result['code'] );
 		self::assertFalse( $result['successful'] );
 		self::assertSame( '', $result['preview_key'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( $writes, $transport->writeCounts );
+		self::assertSame( $writes, $transport->write_counts );
 		self::assertSame( array(), $GLOBALS['ran_booster_release_deployments_test_options'] );
 	}
 
@@ -222,18 +214,16 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			$established = $this->coordinator( $facade, $transport, new SetupRecordStore() );
 			$preview     = $established->inspect( $status, 'stable', $this->ready_preflight(), 'selected-token' );
 			self::assertSame( 'workflow_setup_open', $established->setup( $status, $preview['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'selected-token' )['code'], $missing_path );
-			$transport->mergePull();
-			$transport->removeDefaultDocument( $missing_path );
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-			$writes = $transport->writeCounts;
+			$transport->merge_pull();
+			$transport->remove_default_document( $missing_path );
+			$writes = $transport->write_counts;
 			$GLOBALS['ran_booster_release_deployments_test_options'] = array();
 
 			$result = $this->coordinator( $facade, $transport, new SetupRecordStore() )->inspect( $status, 'stable', $this->ready_preflight(), 'selected-token' );
 
 			self::assertSame( 'workflow_release_automation_conflict', $result['code'], $missing_path );
 			self::assertFalse( $result['successful'], $missing_path );
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-			self::assertSame( $writes, $transport->writeCounts, $missing_path );
+			self::assertSame( $writes, $transport->write_counts, $missing_path );
 			self::assertSame( array(), $GLOBALS['ran_booster_release_deployments_test_options'], $missing_path );
 		}
 	}
@@ -246,10 +236,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$established = $this->coordinator( $facade, $transport, new SetupRecordStore() );
 		$preview     = $established->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 		self::assertSame( 'workflow_setup_open', $established->setup( $status, $preview['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code'] );
-		$transport->mergePull();
-		$transport->removeDefaultDocument( 'example-plugin.php' );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		$writes = $transport->writeCounts;
+		$transport->merge_pull();
+		$transport->remove_default_document( 'example-plugin.php' );
+		$writes = $transport->write_counts;
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
 
 		$result = $this->coordinator( $facade, $transport, new SetupRecordStore() )->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
@@ -257,8 +246,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertSame( 'workflow_release_automation_conflict', $result['code'] );
 		self::assertFalse( $result['successful'] );
 		self::assertSame( '', $result['preview_key'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( $writes, $transport->writeCounts );
+		self::assertSame( $writes, $transport->write_counts );
 	}
 
 	public function test_inspect_rejects_additional_release_automation_beside_an_exact_canonical_setup(): void {
@@ -268,10 +256,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$established = $this->coordinator( $facade, $transport, new SetupRecordStore() );
 		$preview     = $established->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 		self::assertSame( 'workflow_setup_open', $established->setup( $status, $preview['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code'] );
-		$transport->mergePull();
-		$transport->mutateDefaultDocument( '.github/workflows/publish-release.yml', "steps:\n  - uses: softprops/action-gh-release@v2\n" );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		$writes = $transport->writeCounts;
+		$transport->merge_pull();
+		$transport->mutate_default_document( '.github/workflows/publish-release.yml', "steps:\n  - uses: softprops/action-gh-release@v2\n" );
+		$writes = $transport->write_counts;
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
 
 		$result = $this->coordinator( $facade, $transport, new SetupRecordStore() )->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
@@ -281,19 +268,17 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertSame( 'repository_snapshot', $result['failure_stage'] );
 		self::assertSame( 'release_automation_detected', $result['diagnostic_code'] );
 		self::assertSame( '', $result['preview_key'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( $writes, $transport->writeCounts );
+		self::assertSame( $writes, $transport->write_counts );
 		self::assertSame( array(), $GLOBALS['ran_booster_release_deployments_test_options'] );
 	}
 
 	public function test_healthy_published_release_can_inspect_preview_and_open_an_exact_setup_draft(): void {
-		$transport = new D23ApplicationTransport();
-		$facade    = new D23ReleaseFacade( 'release_asset' );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		$facade->preflightCode = RepositoryReleaseWorkflowPreflight::READY;
-		$records               = new SetupRecordStore();
-		$coordinator           = $this->coordinator( $facade, $transport, $records );
-		$status                = WorkflowProviderFixtures::target();
+		$transport              = new D23ApplicationTransport();
+		$facade                 = new D23ReleaseFacade( 'release_asset' );
+		$facade->preflight_code = RepositoryReleaseWorkflowPreflight::READY;
+		$records                = new SetupRecordStore();
+		$coordinator            = $this->coordinator( $facade, $transport, $records );
+		$status                 = WorkflowProviderFixtures::target();
 
 		$inspect = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 		self::assertSame( 'workflow_inspected', $inspect['code'] );
@@ -315,7 +300,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 
 		$inspect = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'operation-token' );
 		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'operation-token' )['code'] );
-		$transport->mergePull();
+		$transport->merge_pull();
 
 		$template_requests = array_filter(
 			$transport->requests,
@@ -335,7 +320,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$status      = WorkflowProviderFixtures::target();
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code'] );
-		$transport->mergePull();
+		$transport->merge_pull();
 
 		$published = $this->status_at_revision( $status, 4 );
 		self::assertSame( 'workflow_pr_merged', $coordinator->outcome( $published, 'token' )['code'] );
@@ -360,13 +345,12 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertSame( 'source-ready-wordpress-theme/3', $preview['profile_id'] );
 		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'theme-token' )['code'] );
 		self::assertSame( 'theme', $records->find( '101' )['package_type'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertGreaterThanOrEqual( 5, $transport->writeCounts['blob'] );
+		self::assertGreaterThanOrEqual( 5, $transport->write_counts['blob'] );
 	}
 
 	public function test_competing_release_automation_refuses_inspection_before_any_remote_mutation(): void {
 		$transport = new D23ApplicationTransport();
-		$transport->mutateDefaultDocument(
+		$transport->mutate_default_document(
 			'.github/workflows/publish.yml',
 			"name: Publish\njobs:\n  release:\n    steps:\n      - uses: softprops/action-gh-release@v2\n"
 		);
@@ -388,8 +372,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 				'ref'    => 0,
 				'pull'   => 0,
 			),
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-			$transport->writeCounts
+			$transport->write_counts
 		);
 		self::assertSame( array(), array_values( array_intersect( array( 'POST', 'PATCH', 'DELETE' ), array_column( $transport->requests, 'method' ) ) ) );
 	}
@@ -403,10 +386,10 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code'] );
 
-		$transport->closePull();
+		$transport->close_pull();
 		self::assertSame( 'workflow_pr_closed', $coordinator->outcome( $status, 'token' )['code'] );
-		$transport->reopenPull();
-		$transport->driftPullBase();
+		$transport->reopen_pull();
+		$transport->drift_pull_base();
 		self::assertSame( 'workflow_target_changed', $coordinator->outcome( $status, 'token' )['code'] );
 	}
 
@@ -418,8 +401,8 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$status      = WorkflowProviderFixtures::target();
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code'] );
-		$transport->mergePull();
-		$transport->mutateDefaultDocument( 'scripts/verify-release.sh', "#!/bin/sh\nprintf hostile\n" );
+		$transport->merge_pull();
+		$transport->mutate_default_document( 'scripts/verify-release.sh', "#!/bin/sh\nprintf hostile\n" );
 
 		self::assertSame( 'workflow_pr_merged', $coordinator->outcome( $status, 'token' )['code'] );
 	}
@@ -431,16 +414,12 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$coordinator = $this->coordinator( $facade, $transport, new SetupRecordStore() );
 		$status      = WorkflowProviderFixtures::target();
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		$writes = $transport->writeCounts;
+		$writes      = $transport->write_counts;
 		self::assertSame( 'workflow_invalid_request', $coordinator->setup( $status, $inspect['preview_key'], 'owner/wrong', $this->ready_preflight(), 'token' )['code'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( $writes, $transport->writeCounts );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		$facade->preflightCode = RepositoryReleaseWorkflowPreflight::READY;
+		self::assertSame( $writes, $transport->write_counts );
+		$facade->preflight_code = RepositoryReleaseWorkflowPreflight::READY;
 		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertGreaterThan( $writes['pull'], $transport->writeCounts['pull'] );
+		self::assertGreaterThan( $writes['pull'], $transport->write_counts['pull'] );
 	}
 
 	public function test_preview_rejects_every_scalar_identity_kind_and_change_drift_without_writes(): void {
@@ -506,8 +485,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 				'ref'    => 0,
 				'pull'   => 0,
 			),
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-			$transport->writeCounts
+			$transport->write_counts
 		);
 	}
 
@@ -520,10 +498,8 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'lost-ack-token' );
 		$result      = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'lost-ack-token' );
 		self::assertSame( 'workflow_setup_recovered', $result['code'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( 1, $transport->writeCounts['ref'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( 1, $transport->writeCounts['pull'] );
+		self::assertSame( 1, $transport->write_counts['ref'] );
+		self::assertSame( 1, $transport->write_counts['pull'] );
 		self::assertNotNull( $records->find( '101' ) );
 	}
 
@@ -542,8 +518,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertFalse( $result['successful'] );
 		self::assertSame( 'local_persistence', $result['failure_stage'] );
 		self::assertNotNull( $records->find( '101' ) );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( 1, $transport->writeCounts['pull'] );
+		self::assertSame( 1, $transport->write_counts['pull'] );
 	}
 
 	public function test_recovered_draft_setup_reports_partial_when_its_claim_release_fails(): void {
@@ -561,8 +536,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertFalse( $result['successful'] );
 		self::assertSame( 'local_persistence', $result['failure_stage'] );
 		self::assertNotNull( $records->find( '101' ) );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-		self::assertSame( 1, $transport->writeCounts['pull'] );
+		self::assertSame( 1, $transport->write_counts['pull'] );
 	}
 
 	public function test_closed_wrong_base_and_duplicate_deterministic_pulls_stop_before_object_writes(): void {
@@ -570,7 +544,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			$GLOBALS['ran_booster_release_deployments_test_options']    = array();
 			$GLOBALS['ran_booster_release_deployments_test_transients'] = array();
 			$transport = new D23ApplicationTransport();
-			$transport->seedPullScenario( $scenario );
+			$transport->seed_pull_scenario( $scenario );
 			$facade      = new D23ReleaseFacade();
 			$coordinator = $this->coordinator( $facade, $transport, new SetupRecordStore() );
 			$status      = WorkflowProviderFixtures::target();
@@ -585,8 +559,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 					'ref'    => 0,
 					'pull'   => 0,
 				),
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-				$transport->writeCounts,
+				$transport->write_counts,
 				$scenario
 			);
 			self::assertNull( $coordinator->preview( $inspect['preview_key'], $status ), $scenario );
@@ -598,7 +571,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			$GLOBALS['ran_booster_release_deployments_test_options']    = array();
 			$GLOBALS['ran_booster_release_deployments_test_transients'] = array();
 			$transport = new D23ApplicationTransport();
-			$transport->failWriteAcknowledgement( $operation );
+			$transport->fail_write_acknowledgement( $operation );
 			$facade      = new D23ReleaseFacade();
 			$records     = new SetupRecordStore();
 			$coordinator = $this->coordinator( $facade, $transport, $records );
@@ -607,12 +580,10 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			$first       = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
 			self::assertSame( 'workflow_partial', $first['code'], $operation );
 			self::assertNull( $coordinator->preview( $inspect['preview_key'], $status ), $operation );
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-			$counts = $transport->writeCounts;
+			$counts = $transport->write_counts;
 			$retry  = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
 			self::assertSame( 'workflow_invalid_request', $retry['code'], $operation );
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-			self::assertSame( $counts, $transport->writeCounts, $operation );
+			self::assertSame( $counts, $transport->write_counts, $operation );
 			$claim = $records->claim( '101', 'plugin', 'example-plugin/example-plugin.php', 3 );
 			self::assertNotNull( $claim, $operation );
 			self::assertTrue( $records->releaseClaim( '101', $claim ), $operation );
@@ -700,8 +671,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 					'ref'    => 0,
 					'pull'   => 0,
 				),
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Shared transport fixture public property retains its existing contract spelling.
-				$transport->writeCounts
+				$transport->write_counts
 			);
 		};
 

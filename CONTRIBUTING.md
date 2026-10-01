@@ -58,20 +58,19 @@ Release-significant changes under `src/` or to production Composer requirements 
 
 ## Naming migration
 
-The nine audited top-level Provider classes use the shared `RANOwnedMethods`
-check, including classes implementing Core interfaces, and WPCS variable naming.
-`ran/coding-standards` is pinned to released 1.0.0; check and fix use the same scope.
-Declaration/use-local deferrals retain public named arguments, promoted properties
-and Core DTO members until their coordinated caller cohort. They are migration
-debt, not external-signature exemptions. Do not extend them to new private code.
-The 17 direct `tests/Booster/GitHub/*Test.php` files also enforce owned method
-and variable naming. PHPUnit lifecycle methods and unchanged production/Core
-test doubles have precise declaration/use-local exceptions. All 14 production
-WorkflowAssistance classes and their 10 same-basename test files now use the same
-scoped checks. Private workflow methods/state and owned locals are migrated;
-public methods/parameters, public constructor promotions and shared fixture/Core
-members retain precise deferrals pending their connected cohorts. Shared test
-support, bootstrap and the three template archive/API/producer test classes remain
-separate naming cohorts. Template/data keys and runtime protocols are unchanged. See
-[the migration ledger](docs/naming-migration.md) and
+All first-party PHP under `src/` and `tests/` uses the shared `RANOwnedMethods`
+check and WPCS variable naming, including inherited/interface classes and newly
+added files. `ran/coding-standards` remains pinned to released 1.0.0; check and
+fix use the same scope. Upstream method-name diagnostics are replaced by the
+owned-method check so explicit public-contract deferrals work consistently.
+
+Yoda conditions and reserved-parameter naming are now enforced without broad
+migration suppressions. Precise line-local deferrals preserve public named
+arguments and genuine Core/WordPress/updater signatures. These public-contract
+migration deferrals must not spread to new private code. Fixture-owned identifiers
+and their connected callers now use snake_case, including named arguments.
+
+Public production methods/parameters/promotions remain a coordinated consumer
+migration. This cleanup changes neither persisted/template keys nor runtime
+protocols. See [the migration ledger](docs/naming-migration.md) and
 [the proposed Core contract manifest](docs/naming-core-contract-manifest.md).

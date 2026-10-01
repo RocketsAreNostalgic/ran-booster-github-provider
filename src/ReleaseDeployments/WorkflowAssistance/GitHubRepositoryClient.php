@@ -158,7 +158,7 @@ final class GitHubRepositoryClient {
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- GitHub Git Data encoding.
 		$content = base64_decode( preg_replace( '/\s+/', '', $encoded ) ?? '', true );
 		$size    = $data['size'] ?? null;
-		if ( ! is_string( $content ) || ! is_int( $size ) || $size !== strlen( $content )
+		if ( ! is_string( $content ) || ! is_int( $size ) || strlen( $content ) !== $size
 			|| $size > self::MAX_BODY || str_contains( $content, "\0" ) || 1 !== preg_match( '//u', $content ) ) {
 			return $this->error( 'invalid_response' );
 		}

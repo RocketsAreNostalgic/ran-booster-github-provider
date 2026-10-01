@@ -29,7 +29,7 @@ final class WorkflowAssistanceState {
 			if ( function_exists( 'wp_cache_delete' ) ) {
 				wp_cache_delete( $option, 'options' );
 			}
-			if ( $missing !== get_option( $option, $missing ) ) {
+			if ( get_option( $option, $missing ) !== $missing ) {
 				return false;
 			}
 		}

@@ -13,6 +13,7 @@ final class WebhookProfileReaderStub implements ProviderWebhookProfileReader {
 	public function __construct( private bool $configured = true, private bool $unreadable = false ) {
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve external Core interface method spelling pending coordinated contract migration.
 	public function hasWebhookProfile(): bool {
 		++$this->calls;
 		if ( $this->unreadable ) {

@@ -149,6 +149,7 @@ class RepositoryBrowser {
 		string $expectedRepositoryId,
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		?string $credentialId = null,
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.privateFound -- Preserve public named-parameter compatibility pending the coordinated contract cohort.
 		bool $private = false
 	): string {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
@@ -178,6 +179,7 @@ class RepositoryBrowser {
 		string $expectedRepositoryId,
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		?string $credentialId = null,
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.privateFound -- Preserve public named-parameter compatibility pending the coordinated contract cohort.
 		bool $private = false
 	): string {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
@@ -256,6 +258,7 @@ class RepositoryBrowser {
 		string $branch,
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		?string $credentialId = null,
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.privateFound -- Preserve public named-parameter compatibility pending the coordinated contract cohort.
 		bool $private = false
 	): string {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
@@ -333,7 +336,7 @@ class RepositoryBrowser {
 	}
 
 	/** Check one normalized repository-relative directory at an immutable ref. */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase,Universal.NamingConventions.NoReservedKeywordParameterNames.privateFound -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
 	public function pathExists( string $fullName, string $ref, string $path, ?string $credentialId = null, bool $private = false ): bool {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		$fullName = $this->validate_repository_name( $fullName );
@@ -728,10 +731,10 @@ class RepositoryBrowser {
 	}
 
 	/** @return array<string, string> */
-	private function authenticated_request_headers( ?string $credential_id, bool $private ): array {
+	private function authenticated_request_headers( ?string $credential_id, bool $is_private ): array {
 		$headers = $this->request_headers();
 
-		if ( ! $private && null === $credential_id ) {
+		if ( ! $is_private && null === $credential_id ) {
 			return $headers;
 		}
 

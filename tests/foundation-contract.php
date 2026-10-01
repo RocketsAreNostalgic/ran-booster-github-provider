@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-$root         = dirname( __DIR__ );
-$composerPath = $root . '/composer.json';
-$composerJson = file_get_contents( $composerPath ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local package contract fixture.
-if ( ! is_string( $composerJson ) ) {
+$root          = dirname( __DIR__ );
+$composer_path = $root . '/composer.json';
+$composer_json = file_get_contents( $composer_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local package contract fixture.
+if ( ! is_string( $composer_json ) ) {
 	throw new RuntimeException( 'Unable to read composer.json.' );
 }
 
 /** @var array<string, mixed> $composer */
-$composer = json_decode( $composerJson, true, 512, JSON_THROW_ON_ERROR );
+$composer = json_decode( $composer_json, true, 512, JSON_THROW_ON_ERROR );
 
 $required = array(
 	'name'    => 'ran/booster-github-provider',
@@ -40,7 +40,7 @@ if ( ! is_array( $autoload ) || 'src/' !== ( $autoload['RAN\\BoosterGitHubProvid
 	throw new RuntimeException( 'The package-owned PSR-4 namespace is invalid.' );
 }
 
-$requiredDevDependencies = array(
+$required_dev_dependencies = array(
 	'php-stubs/wordpress-stubs',
 	'phpcompatibility/php-compatibility',
 	'phpcompatibility/phpcompatibility-paragonie',
@@ -49,12 +49,12 @@ $requiredDevDependencies = array(
 	'ran/coding-standards',
 	'szepeviktor/phpstan-wordpress',
 );
-$requireDev              = $composer['require-dev'] ?? null;
-if ( ! is_array( $requireDev ) ) {
+$require_dev               = $composer['require-dev'] ?? null;
+if ( ! is_array( $require_dev ) ) {
 	throw new RuntimeException( 'The development quality dependency set is missing.' );
 }
-foreach ( $requiredDevDependencies as $dependency ) {
-	if ( ! array_key_exists( $dependency, $requireDev ) ) {
+foreach ( $required_dev_dependencies as $dependency ) {
+	if ( ! array_key_exists( $dependency, $require_dev ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
 		throw new RuntimeException( "Required quality dependency is missing: {$dependency}." );
 	}
@@ -71,9 +71,9 @@ foreach ( array( 'check', 'standards', 'standards:fix', 'lint:syntax', 'analyze'
 	}
 }
 
-foreach ( array( '.editorconfig', '.phpcs.xml', 'phpstan.neon', '.github/workflows/ci.yml', 'composer.lock' ) as $requiredPath ) {
-	if ( ! is_file( $root . '/' . $requiredPath ) ) {
+foreach ( array( '.editorconfig', '.phpcs.xml', 'phpstan.neon', '.github/workflows/ci.yml', 'composer.lock' ) as $required_path ) {
+	if ( ! is_file( $root . '/' . $required_path ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
-		throw new RuntimeException( "Required package-foundation file is missing: {$requiredPath}." );
+		throw new RuntimeException( "Required package-foundation file is missing: {$required_path}." );
 	}
 }
