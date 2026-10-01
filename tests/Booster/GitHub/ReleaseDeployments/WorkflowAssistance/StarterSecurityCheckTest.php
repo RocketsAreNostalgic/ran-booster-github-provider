@@ -17,7 +17,7 @@ require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 final class StarterSecurityCheckTest extends TestCase {
 	private function origin(): string {
 		$bytes = TemplatePackApi3Fixture::archive();
-		return StarterOrigin::encode( TemplatePack::fromArchive( $bytes, TemplatePackApi3Fixture::identity( $bytes ) )['pack'], 'source-ready-wordpress-plugin/3' );
+		return StarterOrigin::encode( TemplatePack::from_archive( $bytes, TemplatePackApi3Fixture::identity( $bytes ) )['pack'], 'source-ready-wordpress-plugin/3' );
 	}
 	private function entry( bool $shared = false ): array {
 		return array(

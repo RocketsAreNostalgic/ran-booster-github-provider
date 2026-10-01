@@ -278,7 +278,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
 	public function validateCredential( string $credentialId ): CredentialValidationResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->browser->validateCredential( $credentialId );
+		return $this->browser->validate_credential( $credentialId );
 	}
 
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
@@ -316,7 +316,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				throw new RuntimeException( 'The GitHub deployment event does not contain a valid commit.', 400 );
 			}
 			$ref  = strtolower( $ref );
-			$head = $this->browser->branchHead(
+			$head = $this->browser->branch_head(
 				$repository->locator,
 				$expected_branch,
 				$repository_id,
@@ -329,7 +329,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				throw new StaleDeployment( 'The GitHub deployment event is stale because the configured branch has moved.', 409 );
 			}
 		} else {
-			$ref = $this->browser->immutableRef(
+			$ref = $this->browser->immutable_ref(
 				$repository->locator,
 				$ref,
 				$repository_id,
@@ -347,7 +347,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		$head_verifier = null;
 		if ( null !== $expected_branch ) {
 			$head_verifier = function () use ( $repository, $expected_branch, $ref ): void {
-				$head = $this->browser->currentBranchHead(
+				$head = $this->browser->current_branch_head(
 					$repository->locator,
 					$expected_branch,
 					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
@@ -371,7 +371,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function repositoryPathExists( RepositoryReference $repository, string $ref, string $path ): bool {
-		return $this->browser->pathExists(
+		return $this->browser->path_exists(
 			$repository->locator,
 			$ref,
 			$path,
@@ -685,7 +685,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
 	public function assessSetup( string $repositoryId, string $repository, ?string $credentialProfileId ): RepositoryWebhookFitnessResult {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->webhook_client->assessSetup( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
+		return $this->webhook_client->assess_setup( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
 	}
 
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
@@ -694,7 +694,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		$this->assert_hook_id( $hookId );
 
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->webhook_client->assessCheck( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
+		return $this->webhook_client->assess_check( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
 	}
 
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
@@ -703,7 +703,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		$this->assert_hook_id( $hookId );
 
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->webhook_client->assessReconfigure( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
+		return $this->webhook_client->assess_reconfigure( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
 	}
 
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
@@ -712,7 +712,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		$this->assert_hook_id( $hookId );
 
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->webhook_client->assessRemove( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
+		return $this->webhook_client->assess_remove( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
 	}
 
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
@@ -721,7 +721,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		$this->assert_hook_id( $hookId );
 
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->webhook_client->assessTest( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
+		return $this->webhook_client->assess_test( $repositoryId, $repository, $this->credential( $credentialProfileId ) );
 	}
 
 	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.

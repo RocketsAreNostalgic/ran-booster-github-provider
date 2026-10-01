@@ -15,7 +15,7 @@ require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 final class TemplatePackApi3ContractTest extends TestCase {
 	public function test_only_api3_renders_both_profiles_deterministically(): void {
 		$archive = Fixture::archive();
-		$pack    = TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['pack'];
+		$pack    = TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['pack'];
 		self::assertSame( 3, TemplatePack::CONSUMER_API );
 		foreach ( array( 'plugin', 'theme' ) as $type ) {
 			$values = array(
@@ -34,7 +34,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 			$manifest                  = Fixture::manifest( $api );
 			$manifest['release']['id'] = 41;
 			$archive                   = Fixture::archive( $manifest );
-			self::assertSame( array( 'code' => 'template_pack_incompatible' ), TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) ) );
+			self::assertSame( array( 'code' => 'template_pack_incompatible' ), TemplatePack::from_archive( $archive, Fixture::identity( $archive ) ) );
 		}
 	}
 
@@ -43,7 +43,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		$bytes = json_encode( Fixture::manifest(), JSON_THROW_ON_ERROR );
 		foreach ( array( '"consumer_api":2,"consumer_api":3', '"consumer_\\u0061pi":2,"consumer_api":3' ) as $duplicate ) {
 			$archive = Fixture::archive( null, array( 'template-pack.json' => str_replace( '"consumer_api":3', $duplicate, $bytes ) ) );
-			self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['code'] );
+			self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['code'] );
 		}
 	}
 
@@ -64,7 +64,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		}
 		unset( $profile );
 		$archive = Fixture::archive( $manifest, array(), array( 'templates/shared/other.yml.tmpl' => Fixture::templates()[ $path ] ), '', 0100644, array( $path ) );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['code'] );
 	}
 
 	public function test_transport_accepts_only_reviewed_mime_types_and_immutable_state(): void {
@@ -72,7 +72,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		foreach ( array( 'application/zip', 'application/octet-stream' ) as $mime ) {
 			$identity                       = Fixture::identity( $archive );
 			$identity['asset_content_type'] = $mime;
-			self::assertSame( 'ok', TemplatePack::fromArchive( $archive, $identity )['code'] );
+			self::assertSame( 'ok', TemplatePack::from_archive( $archive, $identity )['code'] );
 		}
 		foreach ( array(
 			'asset_content_type' => 'text/plain',
@@ -83,24 +83,24 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		) as $key => $value ) {
 			$identity         = Fixture::identity( $archive );
 			$identity[ $key ] = $value;
-			self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, $identity )['code'] );
+			self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, $identity )['code'] );
 		}
 	}
 
 	public function test_native_zip_rejects_executable_symlink_extra_and_unsafe_members(): void {
 		foreach ( array( 0100755, 0120644 ) as $mode ) {
 			$archive = Fixture::archive( null, array(), array(), 'templates/shared/quality.yml.tmpl', $mode );
-			self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['code'] );
+			self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['code'] );
 		}
 		foreach ( array( 'other.txt', '../escape', 'templates/shared/quality.yml.tmpl/' ) as $path ) {
 			$archive = Fixture::archive( null, array(), array( $path => 'extra' ) );
-			self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['code'] );
+			self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['code'] );
 		}
 	}
 
 	public function test_closed_placeholder_types_and_bounds(): void {
 		$archive = Fixture::archive();
-		$pack    = TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['pack'];
+		$pack    = TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['pack'];
 		foreach ( array( 'a--b', '-abc', 'abc-', str_repeat( 'a', 101 ), 'a$(id)', 'a/b' ) as $slug ) {
 			self::assertSame(
 				'invalid_render',
@@ -145,7 +145,7 @@ final class TemplatePackApi3ContractTest extends TestCase {
 
 	public function test_extra_files_are_only_header_and_optional_conventional_readme(): void {
 		$archive = Fixture::archive();
-		$pack    = TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['pack'];
+		$pack    = TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['pack'];
 		foreach ( array( '[{"type":"json","path":"package.json","jsonpath":"$.version"}]', '[{"type":"generic","path":"plugin.php"},{"type":"generic","path":"custom.txt"}]', '[{"type":"generic","path":"nested/plugin.php"}]' ) as $fragment ) {
 			self::assertSame(
 				'invalid_render',
@@ -177,6 +177,6 @@ final class TemplatePackApi3ContractTest extends TestCase {
 
 	private function assert_invalid_manifest( array $manifest ): void {
 		$archive = Fixture::archive( $manifest );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['code'] );
 	}
 }

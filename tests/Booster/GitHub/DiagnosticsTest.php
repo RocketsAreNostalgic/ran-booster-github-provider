@@ -261,10 +261,8 @@ final class DiagnosticsTest extends TestCase {
 				$this->credential_result = CredentialValidationResult::valid();
 			}
 
-			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming. Preserve production override or updater named-parameter compatibility.
-			public function validateCredential( string $credentialId, float $timeout = 15.0 ): CredentialValidationResult {
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-				$this->credential_calls[] = array( $credentialId, $timeout );
+			public function validate_credential( string $credential_id, float $timeout = 15.0 ): CredentialValidationResult {
+				$this->credential_calls[] = array( $credential_id, $timeout );
 				if ( null !== $this->credential_exception ) {
 					throw $this->credential_exception;
 				}
@@ -273,32 +271,25 @@ final class DiagnosticsTest extends TestCase {
 			}
 
 			public function repository(
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-				string $fullName,
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-				?string $credentialId = null,
+				string $full_name,
+				?string $credential_id = null,
 				float|int $timeout = 15,
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-				?int $responseSize = null,
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-				bool $authenticateDefault = false
+				?int $response_size = null,
+				bool $authenticate_default = false
 			): RepositoryDescriptor {
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-				$this->repository_calls[] = array( $fullName, $credentialId, $timeout, $responseSize );
+				$this->repository_calls[] = array( $full_name, $credential_id, $timeout, $response_size );
 				if ( null !== $this->repository_exception ) {
 					throw $this->repository_exception;
 				}
 
 				return new RepositoryDescriptor(
 					ProviderCode::parse( 'gh' ),
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-					$fullName,
+					$full_name,
 					'ran-booster',
 					'987654321',
 					false,
 					'main',
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-					$credentialId
+					$credential_id
 				);
 			}
 		};

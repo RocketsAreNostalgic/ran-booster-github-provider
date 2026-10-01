@@ -48,24 +48,17 @@ class RepositoryBrowser {
 	 * exception message.
 	 */
 	public function repository(
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string $fullName,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		?string $credentialId = null,
+		string $full_name,
+		?string $credential_id = null,
 		float|int $timeout = 15,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		?int $responseSize = null,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		bool $authenticateDefault = false
+		?int $response_size = null,
+		bool $authenticate_default = false
 	): RepositoryDescriptor {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$fullName = $this->validate_repository_name( $fullName );
-		$headers  = $this->request_headers();
+		$full_name = $this->validate_repository_name( $full_name );
+		$headers   = $this->request_headers();
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( null !== $credentialId || $authenticateDefault ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			$credential = $this->credentials->credentialMaterial( $credentialId );
+		if ( null !== $credential_id || $authenticate_default ) {
+			$credential = $this->credentials->credentialMaterial( $credential_id );
 			$token      = is_array( $credential ) && isset( $credential['secret'] ) && is_string( $credential['secret'] )
 				? trim( $credential['secret'] )
 				: '';
@@ -83,15 +76,12 @@ class RepositoryBrowser {
 			'reject_unsafe_urls' => true,
 			'headers'            => $headers,
 		);
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( null !== $responseSize ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			$arguments['limit_response_size'] = $responseSize;
+		if ( null !== $response_size ) {
+			$arguments['limit_response_size'] = $response_size;
 		}
 
 		$response = wp_remote_get(
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $fullName ),
+			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ),
 			$arguments
 		);
 
@@ -120,12 +110,10 @@ class RepositoryBrowser {
 			throw new RuntimeException( 'GitHub could not resolve that repository. Please try again.', 502 );
 		}
 
-		$item = json_decode( wp_remote_retrieve_body( $response ), true, 512, JSON_BIGINT_AS_STRING );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$repository = $this->descriptor_from_item( $item, $credentialId );
+		$item       = json_decode( wp_remote_retrieve_body( $response ), true, 512, JSON_BIGINT_AS_STRING );
+		$repository = $this->descriptor_from_item( $item, $credential_id );
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( null === $repository || 0 !== strcasecmp( $fullName, $repository->locator ) ) {
+		if ( null === $repository || 0 !== strcasecmp( $full_name, $repository->locator ) ) {
 			throw new RuntimeException( 'GitHub returned an invalid repository response. Please try again.', 502 );
 		}
 
@@ -140,67 +128,50 @@ class RepositoryBrowser {
 	 * repositories remain anonymous unless a credential was explicitly
 	 * selected; private repositories may use the provider's default credential.
 	 */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function branchHead(
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string $fullName,
+	public function branch_head(
+		string $full_name,
 		string $branch,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string $expectedRepositoryId,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		?string $credentialId = null,
-		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.privateFound -- Preserve public named-parameter compatibility pending the coordinated contract cohort.
-		bool $private = false
+		string $expected_repository_id,
+		?string $credential_id = null,
+		bool $is_private = false
 	): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$fullName = $this->validate_repository_name( $fullName );
-		$branch   = $this->validate_branch( $branch );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$identity = $this->repository( $fullName, $credentialId, 15, 65536, $private );
+		$full_name = $this->validate_repository_name( $full_name );
+		$branch    = $this->validate_branch( $branch );
+		$identity  = $this->repository( $full_name, $credential_id, 15, 65536, $is_private );
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort. Preserve promoted constructor or Core DTO property contracts.
-		if ( ! hash_equals( $expectedRepositoryId, $identity->providerRepositoryId ) ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort. Preserve promoted constructor or Core DTO property contracts.
+		if ( ! hash_equals( $expected_repository_id, $identity->providerRepositoryId ) ) {
 			throw new RuntimeException( 'GitHub returned an invalid repository identity while resolving the branch.', 502 );
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return $this->currentBranchHead( $fullName, $branch, $credentialId, $private );
+		return $this->current_branch_head( $full_name, $branch, $credential_id, $is_private );
 	}
 
 	/**
 	 * Resolve a branch, tag or commit to an immutable repository-bound commit.
 	 */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function immutableRef(
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string $fullName,
+	public function immutable_ref(
+		string $full_name,
 		string $ref,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string $expectedRepositoryId,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		?string $credentialId = null,
-		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.privateFound -- Preserve public named-parameter compatibility pending the coordinated contract cohort.
-		bool $private = false
+		string $expected_repository_id,
+		?string $credential_id = null,
+		bool $is_private = false
 	): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$fullName = $this->validate_repository_name( $fullName );
-		$ref      = $this->validate_ref( $ref );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$identity = $this->repository( $fullName, $credentialId, 15, 65536, $private );
+		$full_name = $this->validate_repository_name( $full_name );
+		$ref       = $this->validate_ref( $ref );
+		$identity  = $this->repository( $full_name, $credential_id, 15, 65536, $is_private );
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort. Preserve promoted constructor or Core DTO property contracts.
-		if ( ! hash_equals( $expectedRepositoryId, $identity->providerRepositoryId ) ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort. Preserve promoted constructor or Core DTO property contracts.
+		if ( ! hash_equals( $expected_repository_id, $identity->providerRepositoryId ) ) {
 			throw new RuntimeException( 'GitHub returned an invalid repository identity while resolving the revision.', 502 );
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$headers           = $this->authenticated_request_headers( $credentialId, $private );
+		$headers           = $this->authenticated_request_headers( $credential_id, $is_private );
 		$headers['Accept'] = 'application/vnd.github.sha';
 		$response          = wp_remote_get(
 			self::PUBLIC_API_BASE
 				. '/repos/'
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				. $this->encode_repository_name( $fullName )
+				. $this->encode_repository_name( $full_name )
 				. '/commits/'
 				. rawurlencode( $ref ),
 			array(
@@ -251,28 +222,21 @@ class RepositoryBrowser {
 	/**
 	 * Re-read a previously identity-bound branch without another repository call.
 	 */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function currentBranchHead(
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string $fullName,
+	public function current_branch_head(
+		string $full_name,
 		string $branch,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		?string $credentialId = null,
-		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.privateFound -- Preserve public named-parameter compatibility pending the coordinated contract cohort.
-		bool $private = false
+		?string $credential_id = null,
+		bool $is_private = false
 	): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$fullName = $this->validate_repository_name( $fullName );
-		$branch   = $this->validate_branch( $branch );
+		$full_name = $this->validate_repository_name( $full_name );
+		$branch    = $this->validate_branch( $branch );
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$headers = $this->authenticated_request_headers( $credentialId, $private );
+		$headers = $this->authenticated_request_headers( $credential_id, $is_private );
 
 		$response = wp_remote_get(
 			self::PUBLIC_API_BASE
 				. '/repos/'
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				. $this->encode_repository_name( $fullName )
+				. $this->encode_repository_name( $full_name )
 				. '/branches/'
 				. rawurlencode( $branch ),
 			array(
@@ -336,10 +300,8 @@ class RepositoryBrowser {
 	}
 
 	/** Check one normalized repository-relative directory at an immutable ref. */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase,Universal.NamingConventions.NoReservedKeywordParameterNames.privateFound -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function pathExists( string $fullName, string $ref, string $path, ?string $credentialId = null, bool $private = false ): bool {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$fullName = $this->validate_repository_name( $fullName );
+	public function path_exists( string $full_name, string $ref, string $path, ?string $credential_id = null, bool $is_private = false ): bool {
+		$full_name = $this->validate_repository_name( $full_name );
 		try {
 			$path = RepositoryRelativePath::normalize( $path );
 		} catch ( InvalidArgumentException $exception ) {
@@ -351,15 +313,13 @@ class RepositoryBrowser {
 		}
 
 		$response = wp_remote_get(
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $fullName ) . '/contents/' . implode( '/', array_map( 'rawurlencode', explode( '/', $path ) ) ) . '?ref=' . rawurlencode( strtolower( $ref ) ),
+			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ) . '/contents/' . implode( '/', array_map( 'rawurlencode', explode( '/', $path ) ) ) . '?ref=' . rawurlencode( strtolower( $ref ) ),
 			array(
 				'timeout'             => 15,
 				'redirection'         => 0,
 				'limit_response_size' => 1024,
 				'reject_unsafe_urls'  => true,
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-				'headers'             => $this->authenticated_request_headers( $credentialId, $private ),
+				'headers'             => $this->authenticated_request_headers( $credential_id, $is_private ),
 			)
 		);
 		if ( is_wp_error( $response ) ) {
@@ -396,10 +356,8 @@ class RepositoryBrowser {
 		throw new RuntimeException( 'GitHub could not check the repository path.', 502 );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
-	public function validateCredential( string $credentialId, float $timeout = 15.0 ): CredentialValidationResult {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$credential = $this->credentials->credentialMaterial( $credentialId );
+	public function validate_credential( string $credential_id, float $timeout = 15.0 ): CredentialValidationResult {
+		$credential = $this->credentials->credentialMaterial( $credential_id );
 		$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
 			: '';

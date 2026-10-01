@@ -62,24 +62,22 @@ final readonly class InitialReleaseBundle {
 		TemplatePack $pack,
 		SourceReadyAssessment $assessment,
 		RepositorySnapshot $snapshot,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-		string $updateUri
+		string $update_uri
 	): array {
-		if ( ! $assessment->readyForBootstrap() || ! in_array( $assessment->profile(), $pack->profiles(), true )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-			|| ! hash_equals( 'https://github.com/' . $snapshot->repository(), rtrim( $updateUri, '/' ) ) ) {
+		if ( ! $assessment->ready_for_bootstrap() || ! in_array( $assessment->profile(), $pack->profiles(), true )
+			|| ! hash_equals( 'https://github.com/' . $snapshot->repository(), rtrim( $update_uri, '/' ) ) ) {
 			return array( 'code' => 'invalid_bundle' );
 		}
 
 		try {
-			$extra_files = self::json( $assessment->extraFiles(), false );
+			$extra_files = self::json( $assessment->extra_files(), false );
 			$rendered    = array(
 				self::WORKFLOW_PATH             => self::render(
 					$pack,
 					$assessment->profile(),
 					'release-workflow',
 					array(
-						'PACKAGE_SLUG' => $assessment->packageSlug(),
+						'PACKAGE_SLUG' => $assessment->package_slug(),
 					)
 				),
 				'release-please-config.json'    => self::render(
@@ -89,7 +87,7 @@ final readonly class InitialReleaseBundle {
 					array(
 						'BASE_SHA'         => $snapshot->sha(),
 						'EXTRA_FILES_JSON' => $extra_files,
-						'PACKAGE_SLUG'     => $assessment->packageSlug(),
+						'PACKAGE_SLUG'     => $assessment->package_slug(),
 					)
 				),
 				'scripts/build-release.sh'      => self::render(
@@ -97,8 +95,8 @@ final readonly class InitialReleaseBundle {
 					$assessment->profile(),
 					'build-release-script',
 					array(
-						'HEADER_PATH'  => $assessment->headerPath(),
-						'PACKAGE_SLUG' => $assessment->packageSlug(),
+						'HEADER_PATH'  => $assessment->header_path(),
+						'PACKAGE_SLUG' => $assessment->package_slug(),
 						'PACKAGE_TYPE' => self::package_type( $assessment->profile() ),
 					)
 				),
@@ -107,11 +105,10 @@ final readonly class InitialReleaseBundle {
 					$assessment->profile(),
 					'verify-release-script',
 					array(
-						'HEADER_PATH'  => $assessment->headerPath(),
-						'PACKAGE_SLUG' => $assessment->packageSlug(),
+						'HEADER_PATH'  => $assessment->header_path(),
+						'PACKAGE_SLUG' => $assessment->package_slug(),
 						'PACKAGE_TYPE' => self::package_type( $assessment->profile() ),
-						// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-						'UPDATE_URI'   => rtrim( $updateUri, '/' ),
+						'UPDATE_URI'   => rtrim( $update_uri, '/' ),
 					)
 				),
 				'.github/workflows/quality.yml' => self::render(
@@ -119,8 +116,8 @@ final readonly class InitialReleaseBundle {
 					$assessment->profile(),
 					'quality-workflow',
 					array(
-						'PACKAGE_SLUG' => $assessment->packageSlug(),
-						'PHP_VERSION'  => $assessment->phpVersion(),
+						'PACKAGE_SLUG' => $assessment->package_slug(),
+						'PHP_VERSION'  => $assessment->php_version(),
 					)
 				),
 			);
@@ -128,7 +125,7 @@ final readonly class InitialReleaseBundle {
 				return array( 'code' => 'invalid_bundle' );
 			}
 
-			$allowlist = implode( "\n", $assessment->releaseFiles() ) . "\n";
+			$allowlist = implode( "\n", $assessment->release_files() ) . "\n";
 			$generated = array_merge(
 				$rendered,
 				array(
@@ -147,7 +144,7 @@ final readonly class InitialReleaseBundle {
 				}
 				$files[ $path ] = self::file( $path, $content, '100644', 'added' );
 			}
-			foreach ( $assessment->modifiedFiles() as $path => $content ) {
+			foreach ( $assessment->modified_files() as $path => $content ) {
 				if ( $snapshot->has( $path ) && $snapshot->document( $path ) === $content ) {
 					continue;
 				}
@@ -156,7 +153,7 @@ final readonly class InitialReleaseBundle {
 
 			return array(
 				'code'   => 'ok',
-				'bundle' => new self( $assessment->profile(), $pack->packVersion(), $pack->identity(), $pack->manifestHash(), $files, $allowlist ),
+				'bundle' => new self( $assessment->profile(), $pack->pack_version(), $pack->identity(), $pack->manifest_hash(), $files, $allowlist ),
 			);
 		} catch ( Throwable ) {
 			return array( 'code' => 'invalid_bundle' );
@@ -167,19 +164,16 @@ final readonly class InitialReleaseBundle {
 		return $this->profile;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function packVersion(): string {
+	public function pack_version(): string {
 		return $this->pack_version;
 	}
 
 	/** @return array<string,mixed> */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function packIdentity(): array {
+	public function pack_identity(): array {
 		return $this->pack_identity;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function manifestHash(): string {
+	public function manifest_hash(): string {
 		return $this->manifest_hash;
 	}
 
@@ -187,13 +181,11 @@ final readonly class InitialReleaseBundle {
 		return $this->hash;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function changedPathHash(): string {
+	public function changed_path_hash(): string {
 		return $this->changed_path_hash;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function allowlistHash(): string {
+	public function allowlist_hash(): string {
 		return $this->allowlist_hash;
 	}
 
@@ -203,8 +195,7 @@ final readonly class InitialReleaseBundle {
 	}
 
 	/** @return list<array{path:string,status:string,sha:string}> */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public API and named-parameter compatibility pending coordinated naming.
-	public function expectedPullFiles(): array {
+	public function expected_pull_files(): array {
 		return array_values(
 			array_map(
 				static fn ( array $file ): array => array(

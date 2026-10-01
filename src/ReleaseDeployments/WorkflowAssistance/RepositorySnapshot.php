@@ -17,29 +17,23 @@ final readonly class RepositorySnapshot {
 	/**
 	 * @param array<string, array{type:string,mode:string,sha:string,size:int}> $entries
 	 * @param array<string, string>                                            $documents
-	 * @param array<string, string>                                            $blobPrefixes
+	 * @param array<string, string>                                            $blob_prefixes
 	 */
 	public function __construct(
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-		private string $repositoryId,
+		private string $repository_id,
 		private string $repository,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-		private string $defaultBranch,
+		private string $default_branch,
 		private string $sha,
 		private array $entries,
 		private array $documents,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-		private array $blobPrefixes = array()
+		private array $blob_prefixes = array()
 	) {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-		if ( 1 !== preg_match( '/\A[1-9][0-9]*\z/D', $repositoryId )
+		if ( 1 !== preg_match( '/\A[1-9][0-9]*\z/D', $repository_id )
 			|| 1 !== preg_match( '#\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z#D', $repository )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-			|| ! self::valid_branch( $defaultBranch )
+			|| ! self::valid_branch( $default_branch )
 			|| 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $sha )
 			|| count( $entries ) > self::MAX_ENTRIES
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-			|| count( $documents ) + count( $blobPrefixes ) > self::MAX_DOCUMENTS ) {
+			|| count( $documents ) + count( $blob_prefixes ) > self::MAX_DOCUMENTS ) {
 			throw new InvalidArgumentException( 'Repository snapshot identity or bounds are invalid.' );
 		}
 
@@ -61,8 +55,7 @@ final readonly class RepositorySnapshot {
 				throw new InvalidArgumentException( 'Repository snapshot contains an invalid document.' );
 			}
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-		foreach ( $blobPrefixes as $path => $prefix ) {
+		foreach ( $blob_prefixes as $path => $prefix ) {
 			if ( ! isset( $entries[ $path ] ) || 'blob' !== $entries[ $path ]['type'] || ! is_string( $prefix )
 				|| strlen( $prefix ) !== min( 43, $entries[ $path ]['size'] ) ) {
 				throw new InvalidArgumentException( 'Repository snapshot contains an invalid blob prefix.' );
@@ -70,23 +63,17 @@ final readonly class RepositorySnapshot {
 		}
 	}
 	/** Binary-safe, bounded prefix from the exact tree blob; not an assessment document. */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function blobPrefix( string $path ): ?string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-		return isset( $this->documents[ $path ] ) ? substr( $this->documents[ $path ], 0, 43 ) : ( $this->blobPrefixes[ $path ] ?? null );
+	public function blob_prefix( string $path ): ?string {
+		return isset( $this->documents[ $path ] ) ? substr( $this->documents[ $path ], 0, 43 ) : ( $this->blob_prefixes[ $path ] ?? null );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function repositoryId(): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-		return $this->repositoryId;
+	public function repository_id(): string {
+		return $this->repository_id;
 	}
 	public function repository(): string {
 		return $this->repository;
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function defaultBranch(): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-		return $this->defaultBranch;
+	public function default_branch(): string {
+		return $this->default_branch;
 	}
 	public function sha(): string {
 		return $this->sha;
@@ -102,17 +89,14 @@ final readonly class RepositorySnapshot {
 		return $this->documents[ $path ] ?? null;
 	}
 	/** @return list<string> */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function documentPaths(): array {
+	public function document_paths(): array {
 		$paths = array_keys( $this->documents );
 		sort( $paths, SORT_STRING );
 		return $paths;
 	}
 	/** Number of inspected blobs consumed by the GitHub client readback budget. */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function inspectedBlobCount(): int {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
-		return count( $this->documents ) + count( $this->blobPrefixes );
+	public function inspected_blob_count(): int {
+		return count( $this->documents ) + count( $this->blob_prefixes );
 	}
 	private static function valid_path( string $path ): bool {
 		return '' !== $path && strlen( $path ) <= 512 && ! str_starts_with( $path, '/' )

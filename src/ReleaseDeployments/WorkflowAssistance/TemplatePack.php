@@ -89,8 +89,7 @@ final readonly class TemplatePack {
 	 * @param array<string, mixed> $identity
 	 * @return array{code:string, pack?:self}
 	 */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public Provider API naming awaits the coordinated caller cohort.
-	public static function fromArchive( string $archive, array $identity ): array {
+	public static function from_archive( string $archive, array $identity ): array {
 		if ( ! self::valid_identity( $identity, $archive ) ) {
 			return array( 'code' => 'template_pack_invalid' );
 		}
@@ -152,13 +151,11 @@ final readonly class TemplatePack {
 		return $this->identity;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public Provider API naming awaits the coordinated caller cohort.
-	public function packVersion(): string {
+	public function pack_version(): string {
 		return $this->pack_version;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public Provider API naming awaits the coordinated caller cohort.
-	public function manifestHash(): string {
+	public function manifest_hash(): string {
 		return $this->manifest_hash;
 	}
 
@@ -173,14 +170,11 @@ final readonly class TemplatePack {
 	 * @param array<string, mixed> $values
 	 * @return array{code:string, content?:string, sha256?:string}
 	 */
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
-	public function render( string $profile, string $logicalId, array $values ): array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
-		if ( ! isset( $this->profiles[ $profile ][ $logicalId ], self::ENTRY_PLACEHOLDERS[ $logicalId ] ) ) {
+	public function render( string $profile, string $logical_id, array $values ): array {
+		if ( ! isset( $this->profiles[ $profile ][ $logical_id ], self::ENTRY_PLACEHOLDERS[ $logical_id ] ) ) {
 			return array( 'code' => 'invalid_render' );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
-		$expected = self::ENTRY_PLACEHOLDERS[ $logicalId ];
+		$expected = self::ENTRY_PLACEHOLDERS[ $logical_id ];
 		if ( array_keys( $values ) !== array_keys( $expected ) ) {
 			return array( 'code' => 'invalid_render' );
 		}
@@ -196,8 +190,7 @@ final readonly class TemplatePack {
 			$replacements[] = $value;
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
-		$content = str_replace( $tokens, $replacements, $this->profiles[ $profile ][ $logicalId ]['content'] );
+		$content = str_replace( $tokens, $replacements, $this->profiles[ $profile ][ $logical_id ]['content'] );
 		if ( 1 === preg_match( '/\{\{RAN_[A-Z][A-Z0-9_]*\}\}/', $content ) ) {
 			return array( 'code' => 'invalid_render' );
 		}

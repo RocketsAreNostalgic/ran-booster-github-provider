@@ -74,13 +74,11 @@ final class TemplatePackRepositoryClient {
 	/**
 	 * Re-fetch one preview-pinned release and reject any identity drift.
 	 *
-	 * @param array<string, mixed> $expectedIdentity
+	 * @param array<string, mixed> $expected_identity
 	 * @return array{code:string, pack?:TemplatePack}
 	 */
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
-	public function exact( array $expectedIdentity, string $token = '' ): array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
-		if ( ! $this->expected_identity_belongs_here( $expectedIdentity ) ) {
+	public function exact( array $expected_identity, string $token = '' ): array {
+		if ( ! $this->expected_identity_belongs_here( $expected_identity ) ) {
 			return $this->error( 'template_pack_changed' );
 		}
 		$repository = $this->repository( $token );
@@ -88,8 +86,7 @@ final class TemplatePackRepositoryClient {
 			return $repository;
 		}
 		$release = $this->json_request(
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
-			'/repos/' . self::REPOSITORY . '/releases/' . $expectedIdentity['release_id'],
+			'/repos/' . self::REPOSITORY . '/releases/' . $expected_identity['release_id'],
 			self::JSON_BODY_LIMIT,
 			$token
 		);
@@ -97,8 +94,7 @@ final class TemplatePackRepositoryClient {
 			return $release;
 		}
 		$candidate = $this->candidate( $release['data'] );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
-		if ( ! is_array( $candidate ) || ! $this->candidate_matches_expected( $candidate, $expectedIdentity ) ) {
+		if ( ! is_array( $candidate ) || ! $this->candidate_matches_expected( $candidate, $expected_identity ) ) {
 			return $this->error( 'template_pack_changed' );
 		}
 		$result = $this->verified_release( $candidate, $token );
@@ -108,8 +104,7 @@ final class TemplatePackRepositoryClient {
 				: $this->error( 'template_pack_changed' );
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
-		return $result['pack']->identity() === $expectedIdentity ? $result : $this->error( 'template_pack_changed' );
+		return $result['pack']->identity() === $expected_identity ? $result : $this->error( 'template_pack_changed' );
 	}
 
 	/** @return array{code:string} */
@@ -201,7 +196,7 @@ final class TemplatePackRepositoryClient {
 			'asset_sha256'       => $candidate['asset_sha256'],
 		);
 
-		return TemplatePack::fromArchive( $asset['body'], $identity );
+		return TemplatePack::from_archive( $asset['body'], $identity );
 	}
 
 	/** @return array<string, int|string>|false|null False means intentionally ineligible. */

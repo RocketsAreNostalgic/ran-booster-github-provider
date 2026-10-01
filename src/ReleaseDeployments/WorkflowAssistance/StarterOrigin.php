@@ -25,7 +25,7 @@ final class StarterOrigin {
 			'pack'             => array(
 				'repository'    => $identity['repository_name'],
 				'repository_id' => $identity['repository_id'],
-				'version'       => $pack->packVersion(),
+				'version'       => $pack->pack_version(),
 				'tag'           => $identity['release_tag'],
 				'commit'        => $identity['release_commit'],
 				'zip_sha256'    => $identity['asset_sha256'],

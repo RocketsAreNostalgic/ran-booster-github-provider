@@ -17,18 +17,18 @@ require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 final class InitialReleaseBundleTest extends TestCase {
 	public function test_builds_one_repeatable_complete_api3_bootstrap_tree(): void {
 		$archive     = TemplatePackApi3Fixture::archive();
-		$pack_result = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+		$pack_result = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
 		self::assertSame( 'ok', $pack_result['code'] );
 		$snapshot   = $this->snapshot();
 		$assessment = $this->assessment( $snapshot );
 		$documents  = array();
-		foreach ( array_reverse( $snapshot->documentPaths() ) as $path ) {
+		foreach ( array_reverse( $snapshot->document_paths() ) as $path ) {
 			$documents[ $path ] = $snapshot->document( $path );
 		}
 		$reordered = new RepositorySnapshot(
-			$snapshot->repositoryId(),
+			$snapshot->repository_id(),
 			$snapshot->repository(),
-			$snapshot->defaultBranch(),
+			$snapshot->default_branch(),
 			$snapshot->sha(),
 			array_reverse( $snapshot->entries(), true ),
 			$documents
@@ -38,8 +38,8 @@ final class InitialReleaseBundleTest extends TestCase {
 
 		self::assertSame( 'ok', $first['code'] );
 		self::assertSame( $first['bundle']->hash(), $second['bundle']->hash() );
-		self::assertSame( $first['bundle']->changedPathHash(), $second['bundle']->changedPathHash() );
-		self::assertSame( $first['bundle']->allowlistHash(), $second['bundle']->allowlistHash() );
+		self::assertSame( $first['bundle']->changed_path_hash(), $second['bundle']->changed_path_hash() );
+		self::assertSame( $first['bundle']->allowlist_hash(), $second['bundle']->allowlist_hash() );
 		self::assertSame( $first['bundle']->files(), $second['bundle']->files() );
 		self::assertSame( 'source-ready-wordpress-plugin/3', $first['bundle']->profile() );
 		$files = $first['bundle']->files();
@@ -59,8 +59,8 @@ final class InitialReleaseBundleTest extends TestCase {
 			),
 			array_keys( $files )
 		);
-		self::assertSame( hash( 'sha256', implode( "\n", array_keys( $files ) ) . "\n" ), $first['bundle']->changedPathHash() );
-		self::assertSame( hash( 'sha256', $files['release-contents.txt']['content'] ), $first['bundle']->allowlistHash() );
+		self::assertSame( hash( 'sha256', implode( "\n", array_keys( $files ) ) . "\n" ), $first['bundle']->changed_path_hash() );
+		self::assertSame( hash( 'sha256', $files['release-contents.txt']['content'] ), $first['bundle']->allowlist_hash() );
 		self::assertSame( '100644', $files['scripts/build-release.sh']['mode'] );
 		self::assertSame( 'modified', $files['example-plugin.php']['operation'] );
 		$origin = \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\StarterOrigin::decode( $files[ InitialReleaseBundle::ORIGIN_PATH ]['content'] );
@@ -71,7 +71,7 @@ final class InitialReleaseBundleTest extends TestCase {
 		foreach ( $files as $file ) {
 			self::assertSame( '100644', $file['mode'] );
 		}
-		self::assertSame( $files['.github/workflows/quality.yml']['git_sha'], $first['bundle']->expectedPullFiles()[0]['sha'] );
+		self::assertSame( $files['.github/workflows/quality.yml']['git_sha'], $first['bundle']->expected_pull_files()[0]['sha'] );
 	}
 
 
@@ -93,7 +93,7 @@ final class InitialReleaseBundleTest extends TestCase {
 			}
 			unset( $profile );
 			$archive = TemplatePackApi3Fixture::archive( $manifest, array( $path => $rendered ) );
-			$result  = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+			$result  = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
 			self::assertSame( 'ok', $result['code'] );
 			$snapshot = $this->snapshot();
 			$bundle   = InitialReleaseBundle::bootstrap( $result['pack'], $this->assessment( $snapshot ), $snapshot, 'https://github.com/owner/example-plugin' );
@@ -119,7 +119,7 @@ final class InitialReleaseBundleTest extends TestCase {
 			}
 			unset( $profile );
 			$archive = TemplatePackApi3Fixture::archive( $manifest, array( $path => $template ) );
-			$pack    = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+			$pack    = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
 			self::assertSame( 'ok', $pack['code'] );
 			$snapshot = $this->snapshot();
 			self::assertSame( 'invalid_bundle', InitialReleaseBundle::bootstrap( $pack['pack'], $this->assessment( $snapshot ), $snapshot, 'https://github.com/owner/example-plugin' )['code'] );
@@ -128,7 +128,7 @@ final class InitialReleaseBundleTest extends TestCase {
 
 	public function test_refuses_non_ready_assessment_and_occupied_generated_path(): void {
 		$archive = TemplatePackApi3Fixture::archive();
-		$pack    = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['pack'];
+		$pack    = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['pack'];
 		$base    = $this->snapshot();
 		self::assertSame( 'invalid_bundle', InitialReleaseBundle::bootstrap( $pack, $this->assessment( $base ), $base, 'https://github.com/owner/other' )['code'] );
 		$entries                = $base->entries();

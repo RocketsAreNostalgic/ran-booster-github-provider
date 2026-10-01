@@ -53,34 +53,26 @@ final class SetupRecordStore {
 	private ?string $claim_token      = null;
 	private ?string $claim_connection = null;
 	/** @return array<string,mixed>|null */
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function find( string $repositoryId ): ?array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		$raw = $this->raw( $repositoryId );
+	public function find( string $repository_id ): ?array {
+		$raw = $this->raw( $repository_id );
 		if ( null === $raw || 3 !== ( $raw['schema_version'] ?? null ) ) {
 			return null;
 		}
 		$record = $this->normalize( $raw );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		return null !== $record && hash_equals( $repositoryId, $record['repo_id'] ) ? $record : null;
+		return null !== $record && hash_equals( $repository_id, $record['repo_id'] ) ? $record : null;
 	}
 	/** Any existing value owns its repository key, including unknown or malformed evidence. */
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function occupied( string $repositoryId ): bool {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		if ( ! $this->text( $repositoryId, 191 ) ) {
+	public function occupied( string $repository_id ): bool {
+		if ( ! $this->text( $repository_id, 191 ) ) {
 			return false;
 		}
 		$all = get_option( self::OPTION, array() );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		return is_array( $all ) && array_key_exists( $repositoryId, $all );
+		return is_array( $all ) && array_key_exists( $repository_id, $all );
 	}
 	/** Serialize setup and the shared record write before any provider mutation. @return string|null Opaque exact-owner claim. */
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function claim( string $repositoryId, string $type, string $identifier, int $revision ): ?string {
+	public function claim( string $repository_id, string $type, string $identifier, int $revision ): ?string {
 		$this->has_active_claim();
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		if ( ! $this->number( $repositoryId ) || ! in_array( $type, array( 'plugin', 'theme' ), true )
+		if ( ! $this->number( $repository_id ) || ! in_array( $type, array( 'plugin', 'theme' ), true )
 			|| ! $this->text( $identifier, 255 ) || $revision < 1 || null !== $this->claim_token ) {
 			return null;
 		}
@@ -93,20 +85,16 @@ final class SetupRecordStore {
 		if ( function_exists( 'wp_cache_delete' ) ) {
 			wp_cache_delete( self::OPTION, 'options' );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		if ( $this->occupied( $repositoryId ) ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-			$this->releaseClaim( $repositoryId, $claim );
+		if ( $this->occupied( $repository_id ) ) {
+			$this->release_claim( $repository_id, $claim );
 			return null;
 		}
 		return $claim;
 	}
 
 	/** Release only the exact connection-local lock held by this store instance. */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function releaseClaim( string $repositoryId, string $claim ): bool {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		if ( ! $this->number( $repositoryId ) || ! $this->has_active_claim() || ! hash_equals( $this->claim_token, $claim ) ) {
+	public function release_claim( string $repository_id, string $claim ): bool {
+		if ( ! $this->number( $repository_id ) || ! $this->has_active_claim() || ! hash_equals( $this->claim_token, $claim ) ) {
 			return false;
 		}
 		$released = $this->release_claim_lock();
@@ -165,11 +153,10 @@ final class SetupRecordStore {
 	}
 
 	private static function claim_lock_name(): string {
-		return WorkflowAssistanceState::claimLockName();
+		return WorkflowAssistanceState::claim_lock_name();
 	}
 	/** Refresh only the monotonic Core source revision for the same exact package record. @return array<string,mixed>|null */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function refreshSourceRevision( string $repositoryId, string $type, string $identifier, int $revision ): ?array {
+	public function refresh_source_revision( string $repository_id, string $type, string $identifier, int $revision ): ?array {
 		$acquired = ! $this->has_active_claim();
 		if ( $acquired && ! $this->acquire_claim_lock() ) {
 			return null;
@@ -178,13 +165,11 @@ final class SetupRecordStore {
 		$released = true;
 		try {
 			$this->refresh_record_cache();
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-			$record = $this->find( $repositoryId );
+			$record = $this->find( $repository_id );
 			if ( null !== $record && $revision > $record['source_revision']
 				&& hash_equals( $type, $record['package_type'] ) && hash_equals( $identifier, $record['package_identifier'] ) ) {
 				$record['source_revision'] = $revision;
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-				$readback = $this->persist_record( $record ) ? $this->find( $repositoryId ) : null;
+				$readback                  = $this->persist_record( $record ) ? $this->find( $repository_id ) : null;
 			}
 		} finally {
 			if ( $acquired ) {
@@ -252,8 +237,7 @@ final class SetupRecordStore {
 		}
 	}
 	/** @param array<string,mixed> $observation */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function saveAssessmentObservation( array $observation ): bool {
+	public function save_assessment_observation( array $observation ): bool {
 		$observation = $this->normalize_observation( $observation );
 		if ( null === $observation ) {
 			return false;
@@ -297,13 +281,11 @@ final class SetupRecordStore {
 		}
 		$all[] = $observation;
 		return update_option( self::ASSESSMENT_OPTION, $all, false )
-			&& $this->assessmentObservation( $observation['repository_id'], $observation['package_type'], $observation['package_identifier'], $observation['source_revision'] ) === $observation;
+			&& $this->assessment_observation( $observation['repository_id'], $observation['package_type'], $observation['package_identifier'], $observation['source_revision'] ) === $observation;
 	}
 	/** @return array<string,mixed>|null */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function assessmentObservation( string $repositoryId, string $type, string $identifier, int $sourceRevision ): ?array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		if ( ! $this->number( $repositoryId ) || ! in_array( $type, array( 'plugin', 'theme' ), true ) || ! $this->text( $identifier, 255 ) || $sourceRevision < 1 ) {
+	public function assessment_observation( string $repository_id, string $type, string $identifier, int $source_revision ): ?array {
+		if ( ! $this->number( $repository_id ) || ! in_array( $type, array( 'plugin', 'theme' ), true ) || ! $this->text( $identifier, 255 ) || $source_revision < 1 ) {
 			return null;
 		}
 		$all = $this->assessment_observations();
@@ -311,18 +293,15 @@ final class SetupRecordStore {
 			return null;
 		}
 		foreach ( $all as $observation ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-			if ( $repositoryId === $observation['repository_id'] && $type === $observation['package_type']
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-				&& $identifier === $observation['package_identifier'] && $sourceRevision === $observation['source_revision'] ) {
+			if ( $repository_id === $observation['repository_id'] && $type === $observation['package_type']
+				&& $identifier === $observation['package_identifier'] && $source_revision === $observation['source_revision'] ) {
 				return $observation;
 			}
 		}
 		return null;
 	}
 	/** @param array<string,mixed> $failure */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function recordFailure( array $failure ): bool {
+	public function record_failure( array $failure ): bool {
 		$failure = $this->normalize_failure( $failure );
 		if ( null === $failure ) {
 			return false;
@@ -361,14 +340,12 @@ final class SetupRecordStore {
 		if ( ! update_option( self::FAILURE_OPTION, $history, false ) ) {
 			return false;
 		}
-		$readback = $this->failureHistory( $failure['repository_id'], $failure['package_type'], $failure['package_identifier'], $failure['source_revision'] );
+		$readback = $this->failure_history( $failure['repository_id'], $failure['package_type'], $failure['package_identifier'], $failure['source_revision'] );
 		return in_array( $failure, $readback, true );
 	}
 	/** @return list<array<string,mixed>> */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function failureHistory( string $repositoryId, string $type, string $identifier, int $sourceRevision ): array {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-		if ( ! $this->number( $repositoryId ) || ! in_array( $type, array( 'plugin', 'theme' ), true ) || ! $this->text( $identifier, 255 ) || $sourceRevision < 1 ) {
+	public function failure_history( string $repository_id, string $type, string $identifier, int $source_revision ): array {
+		if ( ! $this->number( $repository_id ) || ! in_array( $type, array( 'plugin', 'theme' ), true ) || ! $this->text( $identifier, 255 ) || $source_revision < 1 ) {
 			return array();
 		}
 		$history = get_option( self::FAILURE_OPTION, array() );
@@ -381,10 +358,8 @@ final class SetupRecordStore {
 			if ( null === $entry ) {
 				return array();
 			}
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-			if ( hash_equals( $repositoryId, $entry['repository_id'] ) && hash_equals( $type, $entry['package_type'] )
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-				&& hash_equals( $identifier, $entry['package_identifier'] ) && $sourceRevision === $entry['source_revision'] ) {
+			if ( hash_equals( $repository_id, $entry['repository_id'] ) && hash_equals( $type, $entry['package_type'] )
+				&& hash_equals( $identifier, $entry['package_identifier'] ) && $source_revision === $entry['source_revision'] ) {
 				$matched[] = $entry;
 			}
 		}

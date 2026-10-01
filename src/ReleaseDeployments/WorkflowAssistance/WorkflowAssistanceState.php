@@ -11,8 +11,7 @@ final class WorkflowAssistanceState {
 	public const FAILURE_OPTION    = 'ran_booster_github_provider_release_workflow_failure_history';
 	public const PREVIEW_PREFIX    = 'ran_booster_github_provider_release_workflow_preview_';
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public static function claimLockName(): string {
+	public static function claim_lock_name(): string {
 		global $wpdb;
 
 		$options = is_object( $wpdb ) && isset( $wpdb->options ) ? (string) $wpdb->options : 'unavailable';
@@ -21,8 +20,7 @@ final class WorkflowAssistanceState {
 	}
 
 	/** Remove current provider-owned durable workflow-assistance state. */
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
-	public function removeDurableState(): bool {
+	public function remove_durable_state(): bool {
 		$missing = new \stdClass();
 		foreach ( self::current_options() as $option ) {
 			delete_option( $option );

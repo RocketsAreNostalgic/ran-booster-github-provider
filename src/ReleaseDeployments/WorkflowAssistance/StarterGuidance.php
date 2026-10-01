@@ -8,7 +8,7 @@ namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 final class StarterGuidance {
 	public static function render( TemplatePack $pack, string $profile ): string {
 		$origin   = StarterOrigin::decode( StarterOrigin::encode( $pack, $profile ) );
-		$header   = sprintf( "# Release starter\n\nPack: %s / %s\nSource: %s\nZIP SHA-256: %s\nShared Profile B: %s\n\n", $pack->packVersion(), $profile, $pack->identity()['release_commit'], $pack->identity()['asset_sha256'], $origin['shared_profile_b']['commit'] );
+		$header   = sprintf( "# Release starter\n\nPack: %s / %s\nSource: %s\nZIP SHA-256: %s\nShared Profile B: %s\n\n", $pack->pack_version(), $profile, $pack->identity()['release_commit'], $pack->identity()['asset_sha256'], $origin['shared_profile_b']['commit'] );
 		$guidance = <<<'GUIDANCE'
 You own these files after setup. Booster does not update or repair them.
 

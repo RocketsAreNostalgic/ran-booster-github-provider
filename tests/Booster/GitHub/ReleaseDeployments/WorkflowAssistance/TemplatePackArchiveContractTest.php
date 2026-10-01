@@ -19,16 +19,16 @@ final class TemplatePackArchiveContractTest extends TestCase {
 
 	public function test_closed_api3_contract_renders_deterministic_plugin_and_theme_bundles(): void {
 		$archive = TemplatePackApi3Fixture::archive();
-		$result  = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+		$result  = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
 
 		self::assertSame( 'ok', $result['code'] );
 		$pack = $result['pack'];
-		self::assertSame( '1.2.3', $pack->packVersion() );
+		self::assertSame( '1.2.3', $pack->pack_version() );
 		self::assertSame(
 			array( 'source-ready-wordpress-plugin/3', 'source-ready-wordpress-theme/3' ),
 			$pack->profiles()
 		);
-		self::assertMatchesRegularExpression( '/\A[a-f0-9]{64}\z/D', $pack->manifestHash() );
+		self::assertMatchesRegularExpression( '/\A[a-f0-9]{64}\z/D', $pack->manifest_hash() );
 
 		$plugin_first  = self::render_fixture_profile( $pack, 'plugin' );
 		$plugin_second = self::render_fixture_profile( $pack, 'plugin' );
@@ -46,7 +46,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 
 		self::assertSame(
 			'template_pack_incompatible',
-			TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code']
+			TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code']
 		);
 
 		$drifted_manifest                  = TemplatePackApi3Fixture::manifest( 1 );
@@ -54,7 +54,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 		$drifted_archive                   = TemplatePackApi3Fixture::archive( $drifted_manifest );
 		self::assertSame(
 			'template_pack_incompatible',
-			TemplatePack::fromArchive( $drifted_archive, TemplatePackApi3Fixture::identity( $drifted_archive ) )['code']
+			TemplatePack::from_archive( $drifted_archive, TemplatePackApi3Fixture::identity( $drifted_archive ) )['code']
 		);
 	}
 
@@ -62,47 +62,47 @@ final class TemplatePackArchiveContractTest extends TestCase {
 		$archive                  = TemplatePackApi3Fixture::archive();
 		$identity                 = TemplatePackApi3Fixture::identity( $archive );
 		$identity['asset_sha256'] = str_repeat( '0', 64 );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, $identity )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, $identity )['code'] );
 
 		$identity                   = TemplatePackApi3Fixture::identity( $archive );
 		$identity['release_target'] = str_repeat( '1', 40 );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, $identity )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, $identity )['code'] );
 
 		$identity                  = TemplatePackApi3Fixture::identity( $archive );
 		$identity['repository_id'] = '987654321';
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, $identity )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, $identity )['code'] );
 
 		$manifest = TemplatePackApi3Fixture::manifest();
 		$manifest['profiles']['source-ready-wordpress-plugin/3']['entries']['release-workflow']['target_path'] = '.github/workflows/release.yml';
 		$archive = TemplatePackApi3Fixture::archive( $manifest );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$manifest = TemplatePackApi3Fixture::manifest();
 		$manifest['profiles']['source-ready-wordpress-theme/3']['entries']['release-workflow']['sha256'] = str_repeat( '0', 64 );
 		$archive = TemplatePackApi3Fixture::archive( $manifest );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$archive = TemplatePackApi3Fixture::archive( null, array(), array( 'templates/unlisted.txt' => 'not declared' ) );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$archive = TemplatePackApi3Fixture::archive( null, array(), array( '../escape.txt' => 'unsafe' ) );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 	}
 
 	public function test_rejects_executable_unknown_tokens_and_high_compression_ratio(): void {
 		$workflow_path = 'templates/shared/release-please.yml.tmpl';
 		$archive       = TemplatePackApi3Fixture::archive( null, array(), array(), $workflow_path, 0100755 );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$content  = TemplatePackApi3Fixture::templates()[ $workflow_path ] . '{{RAN_REMOTE_COMMAND}}';
 		$manifest = self::manifest_with_workflow_content( $content );
 		$archive  = TemplatePackApi3Fixture::archive( $manifest, array( $workflow_path => $content ) );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$content  = str_repeat( 'A', 200000 );
 		$manifest = self::manifest_with_workflow_content( $content );
 		$archive  = TemplatePackApi3Fixture::archive( $manifest, array( $workflow_path => $content ) );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 	}
 
 	public function test_rejects_nul_and_invalid_utf8_members_with_exact_matching_size_and_digest(): void {
@@ -119,7 +119,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 				self::assertSame( hash( 'sha256', $content ), $entry['sha256'], $case );
 			}
 			$archive = TemplatePackApi3Fixture::archive( $manifest, array( $workflow_path => $content ) );
-			$result  = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+			$result  = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
 
 			self::assertSame( 'template_pack_invalid', $result['code'], $case );
 			self::assertArrayNotHasKey( 'pack', $result, $case );
@@ -131,7 +131,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 		$content       = TemplatePackApi3Fixture::templates()[ $workflow_path ] . "label=Déploiement sûr 🚀\n";
 		$manifest      = self::manifest_with_workflow_content( $content );
 		$archive       = TemplatePackApi3Fixture::archive( $manifest, array( $workflow_path => $content ) );
-		$result        = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+		$result        = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
 
 		self::assertSame( 'ok', $result['code'] );
 		$rendered = $result['pack']->render(
@@ -152,7 +152,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 		$manifest = TemplatePackApi3Fixture::manifest();
 		$manifest['profiles']['source-ready-wordpress-extra/2'] = $manifest['profiles']['source-ready-wordpress-plugin/3'];
 		$archive = TemplatePackApi3Fixture::archive( $manifest );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$manifest = TemplatePackApi3Fixture::manifest();
 		$workflow = $manifest['profiles']['source-ready-wordpress-plugin/3']['entries']['release-workflow'];
@@ -160,7 +160,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 		$manifest['profiles']['source-ready-wordpress-plugin/3']['entries']['release-please-config']['size']   = $workflow['size'];
 		$manifest['profiles']['source-ready-wordpress-plugin/3']['entries']['release-please-config']['sha256'] = $workflow['sha256'];
 		$archive = TemplatePackApi3Fixture::archive( $manifest );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$archive = TemplatePackApi3Fixture::archive(
 			null,
@@ -170,7 +170,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 			0100644,
 			array( 'templates/shared/quality.yml.tmpl' )
 		);
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Exact deterministic oversized-manifest fixture.
 		$manifest_bytes = (string) json_encode( TemplatePackApi3Fixture::manifest(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR );
@@ -178,7 +178,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 			null,
 			array( 'template-pack.json' => $manifest_bytes . str_repeat( ' ', 65537 - strlen( $manifest_bytes ) ) )
 		);
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$content  = self::pseudo_random_ascii( 262145 );
 		$manifest = self::manifest_with_workflow_content( $content );
@@ -186,21 +186,21 @@ final class TemplatePackArchiveContractTest extends TestCase {
 			$manifest,
 			array( 'templates/shared/release-please.yml.tmpl' => $content )
 		);
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$extra = array();
 		for ( $index = 0; $index < 26; ++$index ) {
 			$extra[ 'templates/count-' . $index . '.txt' ] = 'bounded';
 		}
 		$archive = TemplatePackApi3Fixture::archive( null, array(), $extra );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$extra = array();
 		for ( $index = 0; $index < 5; ++$index ) {
 			$extra[ 'templates/total-' . $index . '.txt' ] = self::pseudo_random_ascii( 220000 );
 		}
 		$archive = TemplatePackApi3Fixture::archive( null, array(), $extra );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 
 		$archive = TemplatePackApi3Fixture::archive(
 			null,
@@ -208,12 +208,12 @@ final class TemplatePackArchiveContractTest extends TestCase {
 			array( 'templates/archive-cap.txt' => self::pseudo_random_ascii( 4000000 ) )
 		);
 		self::assertGreaterThan( 2097152, strlen( $archive ) );
-		self::assertSame( 'template_pack_invalid', TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['code'] );
 	}
 
 	public function test_renderer_rejects_unsafe_or_incomplete_consumer_inputs(): void {
 		$archive = TemplatePackApi3Fixture::archive();
-		$pack    = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['pack'];
+		$pack    = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['pack'];
 
 		self::assertSame( 'invalid_render', $pack->render( 'unknown-profile', 'release-workflow', array() )['code'] );
 		self::assertSame(
@@ -254,7 +254,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 		$archive = file_get_contents( $path );
 		self::assertIsString( $archive );
 		$identity = self::live_identity();
-		$result   = TemplatePack::fromArchive( $archive, $identity );
+		$result   = TemplatePack::from_archive( $archive, $identity );
 
 		self::assertContains( $result['code'], array( 'template_pack_incompatible', 'template_pack_invalid' ) );
 		self::assertArrayNotHasKey( 'pack', $result );
@@ -279,7 +279,7 @@ final class TemplatePackArchiveContractTest extends TestCase {
 			self::API1_SHA
 		);
 
-		self::assertSame( 'template_pack_incompatible', TemplatePack::fromArchive( $archive, $identity )['code'] );
+		self::assertSame( 'template_pack_incompatible', TemplatePack::from_archive( $archive, $identity )['code'] );
 	}
 
 	/** @return array{managed_files:array<string, string>,bundle_sha256:string} */

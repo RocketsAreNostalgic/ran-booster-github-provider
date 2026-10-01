@@ -293,3 +293,9 @@ order still require Core #167 agreement. Release Updater beta.9/protocol-5 adopt
 real released Core lock/bundle/archive/installed proof and deferred UI/interactive
 acceptance remain separate. Prepared/integrated/published for review does not
 mean merged, package-published or adopted; new owner merge authorization is required.
+
+## Accepted Provider helper integration preparation
+
+The [public-helper manifest](naming-provider-public-helper-manifest.md) is now implemented: 52 methods, 64 camelCase parameters (including three private constructor promotions), plus four reserved parameters. Core accepted the mapping in #167 comment5935782179. The two connected Core consumers travel in the coordinated receiving change. This is an intentionally breaking beta PHP API migration with no old-name aliases.
+
+Only obsolete line-local naming deferrals are removed. Directory-wide owned-method/variable checks and foreign Core DTO/interface deferrals remain. The 50 Core interface implementation methods and 16 other public parameter occurrences/11 promotions remain follow-on obligations. Provider source integration is not publication or adoption; immutable releases and real Core locks require the separate approved release sequence.
