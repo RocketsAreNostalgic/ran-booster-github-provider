@@ -79,8 +79,7 @@ final class GitHubReleaseArtifact implements RepositoryReleaseArtifact, Reposito
 		}
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function handoffToCore(): RepositoryReleaseArtifactCustody {
+	public function handoff_to_core(): RepositoryReleaseArtifactCustody {
 		if ( $this->handed_off || null !== $this->discard_result ) {
 			throw new RuntimeException( 'The GitHub release artifact is unavailable.' );
 		}
@@ -99,8 +98,7 @@ final class GitHubReleaseArtifact implements RepositoryReleaseArtifact, Reposito
 		return $this->artifact->inspect( $inspection );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function resolvedRef(): string {
+	public function resolved_ref(): string {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 		return $this->providerCommitId;
 	}
@@ -119,14 +117,12 @@ final class GitHubReleaseArtifact implements RepositoryReleaseArtifact, Reposito
 		return $this->version;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function packageRoot(): string {
+	public function package_root(): string {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 		return $this->packageRoot;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function mainFile(): string {
+	public function main_file(): string {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 		return $this->mainFile;
 	}

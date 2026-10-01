@@ -12,7 +12,7 @@ use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 final class GitHubProviderMetadataTest extends TestCase {
 
 	public function test_git_hub_owns_its_credential_vocabulary(): void {
-		$admin = $this->provider()->getMetadata()->admin;
+		$admin = $this->provider()->get_metadata()->admin;
 
 		self::assertNotNull( $admin );
 		$classic      = $admin->getCredentialKind( 'classic' );

@@ -31,7 +31,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 	public function test_valid_push_is_normalized_to_the_exact_provider_neutral_shape(): void {
 		$body     = $this->encode( $this->valid_push_payload() );
-		$envelope = $this->normalizer()->normalizeWebhook( $this->request( $body ) );
+		$envelope = $this->normalizer()->normalize_webhook( $this->request( $body ) );
 
 		self::assertTrue( $envelope->hasEvents() );
 		self::assertSame(
@@ -51,7 +51,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$payload                     = $this->valid_push_payload();
 		$payload['repository']['id'] = 123456;
 		$body                        = $this->encode( $payload );
-		$event                       = $this->normalizer()->normalizeWebhook( $this->request( $body ) )->getEvents()[0];
+		$event                       = $this->normalizer()->normalize_webhook( $this->request( $body ) )->getEvents()[0];
 
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '123456', $event->providerRepositoryId );
@@ -60,7 +60,7 @@ final class WebhookNormalizerTest extends TestCase {
 	public function test_signed_ping_is_returned_as_a_probe(): void {
 		$body     = '{"zen":"Keep it logically awesome."}';
 		$request  = $this->request( $body, 'ping' );
-		$envelope = $this->normalizer()->normalizeWebhook( $request );
+		$envelope = $this->normalizer()->normalize_webhook( $request );
 
 		self::assertTrue( $envelope->isProbe() );
 		self::assertSame( array(), $envelope->getEvents() );
@@ -69,7 +69,7 @@ final class WebhookNormalizerTest extends TestCase {
 	public function test_signed_unrelated_event_is_ignored_without_parsing_its_body(): void {
 		$body     = 'not-json-and-not-needed';
 		$request  = $this->request( $body, 'issues' );
-		$envelope = $this->normalizer()->normalizeWebhook( $request );
+		$envelope = $this->normalizer()->normalize_webhook( $request );
 
 		self::assertTrue( $envelope->isIgnored() );
 	}
@@ -77,7 +77,7 @@ final class WebhookNormalizerTest extends TestCase {
 	public function test_exact_body_and_header_limits_are_accepted(): void {
 		$body = str_repeat( 'a', 262144 );
 
-		$envelope = $this->normalizer()->normalizeWebhook(
+		$envelope = $this->normalizer()->normalize_webhook(
 			$this->request( $body, str_repeat( 'e', 64 ), str_repeat( 'd', 191 ) )
 		);
 
@@ -90,7 +90,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			413,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook( $this->request( $body, 'issues' ) )
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook( $this->request( $body, 'issues' ) )
 		);
 		self::assertSame( 0, $secrets->calls );
 	}
@@ -110,7 +110,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			401,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook( $request )
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook( $request )
 		);
 	}
 
@@ -126,7 +126,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			401,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
 			)
 		);
@@ -157,7 +157,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			401,
-			static fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
+			static fn (): WebhookEnvelope => $normalizer->normalize_webhook(
 				new WebhookRequest(
 					ProviderCode::parse( 'gh' ),
 					'{}',
@@ -188,7 +188,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			400,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
 			)
 		);
@@ -228,7 +228,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			400,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
 			)
 		);
@@ -256,7 +256,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			$status,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
 			)
 		);
@@ -286,7 +286,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			401,
-			fn (): WebhookEnvelope => $this->normalizer()->normalizeWebhook(
+			fn (): WebhookEnvelope => $this->normalizer()->normalize_webhook(
 				new WebhookRequest( ProviderCode::parse( 'gh' ), $body, $headers, self::RETAINED_HEADERS )
 			)
 		);
@@ -307,7 +307,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			400,
-			fn (): WebhookEnvelope => $this->normalizer()->normalizeWebhook(
+			fn (): WebhookEnvelope => $this->normalizer()->normalize_webhook(
 				new WebhookRequest(
 					ProviderCode::parse( 'gh' ),
 					$body,
@@ -326,7 +326,7 @@ final class WebhookNormalizerTest extends TestCase {
 		list( $normalizer, $secrets ) = $this->counting_normalizer();
 
 		try {
-			$normalizer->normalizeWebhook( $this->request( $secret_body ) );
+			$normalizer->normalize_webhook( $this->request( $secret_body ) );
 			self::fail( 'Malformed JSON should be rejected.' );
 		} catch ( WebhookRejected $exception ) {
 			self::assertSame( 400, $exception->getStatusCode() );
@@ -353,7 +353,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			401,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook( $request )
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook( $request )
 		);
 		self::assertSame( 0, $secrets->calls );
 	}
@@ -364,7 +364,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			400,
-			fn (): WebhookEnvelope => $this->normalizer()->normalizeWebhook( $this->request( $body ) )
+			fn (): WebhookEnvelope => $this->normalizer()->normalize_webhook( $this->request( $body ) )
 		);
 	}
 
@@ -410,7 +410,7 @@ final class WebhookNormalizerTest extends TestCase {
 	#[DataProvider( 'ignored_push_provider' )]
 	public function test_non_deployable_pushes_are_ignored( array $payload ): void {
 		$body     = $this->encode( $payload );
-		$envelope = $this->normalizer()->normalizeWebhook( $this->request( $body ) );
+		$envelope = $this->normalizer()->normalize_webhook( $this->request( $body ) );
 
 		self::assertTrue( $envelope->isIgnored() );
 		self::assertSame( array(), $envelope->getEvents() );
@@ -444,7 +444,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$body       = $this->encode( $this->valid_push_payload() );
 		$normalizer = $this->normalizer( array( $this->profile( self::OWNER_SECRET, $scope, $target ) ) );
 
-		self::assertTrue( $normalizer->normalizeWebhook( $this->verified_request( $body, $scope, $target ) )->hasEvents() );
+		self::assertTrue( $normalizer->normalize_webhook( $this->verified_request( $body, $scope, $target ) )->hasEvents() );
 	}
 
 	/**
@@ -462,7 +462,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			401,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook( $this->verified_request( $body, $scope, $target ) )
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook( $this->verified_request( $body, $scope, $target ) )
 		);
 	}
 
@@ -484,11 +484,11 @@ final class WebhookNormalizerTest extends TestCase {
 		$normalizer = $this->normalizer( $profiles );
 		$body       = $this->encode( $this->valid_push_payload() );
 
-		self::assertTrue( $normalizer->normalizeWebhook( $this->request( $body ) )->hasEvents() );
+		self::assertTrue( $normalizer->normalize_webhook( $this->request( $body ) )->hasEvents() );
 
 		$this->assert_rejected(
 			401,
-			fn (): WebhookEnvelope => $normalizer->normalizeWebhook(
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook(
 				$this->verified_request( $body, 'owner', 'ProtestsAndSuffergettes', self::OTHER_SECRET )
 			)
 		);
@@ -505,7 +505,7 @@ final class WebhookNormalizerTest extends TestCase {
 				return null;
 			}
 		};
-		$result     = $this->normalizer( array(), $deliveries )->diagnoseWebhookReadiness();
+		$result     = $this->normalizer( array(), $deliveries )->diagnose_webhook_readiness();
 
 		self::assertSame( ProviderDiagnosticResult::NOT_CONFIGURED, $result->status );
 		self::assertSame( 'gh.webhook.not_configured', $result->code );
@@ -513,7 +513,7 @@ final class WebhookNormalizerTest extends TestCase {
 	}
 
 	public function test_webhook_readiness_reports_configured_but_no_retained_delivery_evidence(): void {
-		$result = $this->normalizer()->diagnoseWebhookReadiness();
+		$result = $this->normalizer()->diagnose_webhook_readiness();
 		$output = implode( ' ', $result->toArray() );
 
 		self::assertSame( ProviderDiagnosticResult::WARNING, $result->status );
@@ -529,7 +529,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$result = $this->normalizer(
 			null,
 			$this->delivery_reader( new AuthenticatedWebhookDeliveryEvidence( ProviderCode::parse( 'gh' ), '2026-07-26 18:30:00', true ) )
-		)->diagnoseWebhookReadiness();
+		)->diagnose_webhook_readiness();
 
 		self::assertSame( ProviderDiagnosticResult::PASSED, $result->status );
 		self::assertSame( 'gh.webhook.delivery_authenticated', $result->code );
@@ -543,7 +543,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$result = $this->normalizer(
 			null,
 			$this->delivery_reader( new AuthenticatedWebhookDeliveryEvidence( ProviderCode::parse( 'gh' ), '2026-07-26 18:31:00', false ) )
-		)->diagnoseWebhookReadiness();
+		)->diagnose_webhook_readiness();
 
 		self::assertSame( ProviderDiagnosticResult::WARNING, $result->status );
 		self::assertSame( 'gh.webhook.delivery_authenticated_unmatched', $result->code );
@@ -559,7 +559,7 @@ final class WebhookNormalizerTest extends TestCase {
 				throw new \RuntimeException( 'delivery-evidence-canary' );
 			}
 		};
-		$result     = $this->normalizer( null, $deliveries )->diagnoseWebhookReadiness();
+		$result     = $this->normalizer( null, $deliveries )->diagnose_webhook_readiness();
 		$output     = implode( ' ', $result->toArray() );
 
 		self::assertSame( ProviderDiagnosticResult::FAILED, $result->status );
@@ -571,7 +571,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$result = ( new WebhookNormalizer(
 			new WebhookProfileReaderStub( unreadable: true ),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader()
-		) )->diagnoseWebhookReadiness();
+		) )->diagnose_webhook_readiness();
 		$output = implode( ' ', $result->toArray() );
 
 		self::assertSame( ProviderDiagnosticResult::FAILED, $result->status );
@@ -594,7 +594,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			400,
-			fn (): WebhookEnvelope => $this->normalizer()->normalizeWebhook( $request )
+			fn (): WebhookEnvelope => $this->normalizer()->normalize_webhook( $request )
 		);
 	}
 

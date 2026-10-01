@@ -58,7 +58,7 @@ final class RepositoryResolverTest extends TestCase {
 	}
 
 	public function test_documents_organisation_scoped_fine_grained_token_profiles(): void {
-		$setup = $this->provider( new RepositoryResolverSecretsStub() )->getMetadata()->admin?->setup;
+		$setup = $this->provider( new RepositoryResolverSecretsStub() )->get_metadata()->admin?->setup;
 
 		self::assertNotNull( $setup );
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.

@@ -76,7 +76,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		self::assertSame( 0, $limit_reads );
 		self::assertSame(
 			'v2:' . str_repeat( 'b', 64 ),
-			$provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint
+			$provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint
 		);
 		self::assertSame( 2, $limit_reads );
 		self::assertCount( 7, $registrar->arguments );
@@ -121,7 +121,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 		);
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
 
-		$provider->listReleaseCandidates( 'plugin', $repository, 'stable' );
+		$provider->list_release_candidates( 'plugin', $repository, 'stable' );
 		self::assertCount( 7, $registrar->arguments );
 		self::assertSame( 52_428_800, $registrar->arguments[6] );
 	}
@@ -139,11 +139,11 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 			}
 		);
 
-		self::assertSame( 'gh', $provider->getMetadata()->code->value );
+		self::assertSame( 'gh', $provider->get_metadata()->code->value );
 
 		$this->expectException( RuntimeException::class );
 		$this->expectExceptionCode( 503 );
-		$provider->listReleaseCandidates(
+		$provider->list_release_candidates(
 			'plugin',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
 			'stable'
@@ -233,7 +233,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 			$runtime,
 			static fn (): int => 52_428_800
 		);
-		$target   = $provider->createNativeTarget(
+		$target   = $provider->create_native_target(
 			'plugin',
 			new RepositoryReference( 'owner/example', '42', false, null ),
 			'/wordpress/wp-content/plugins/example/example.php',

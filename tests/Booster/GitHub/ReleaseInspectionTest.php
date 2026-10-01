@@ -38,7 +38,7 @@ final class ReleaseInspectionTest extends TestCase {
 		$provider   = $this->provider();
 		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
 
-		$result = $provider->inspectRelease( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
+		$result = $provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
 
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( '42', $result->providerReleaseId );
@@ -51,7 +51,7 @@ final class ReleaseInspectionTest extends TestCase {
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
 		self::assertSame( 'example.php', $result->mainFile );
 		self::assertMatchesRegularExpression( '/\Av2:[a-f0-9]{64}\z/D', $result->fingerprint );
-		self::assertSame( 'https://github.com/owner/example/releases/tag/v1.2.3', $provider->releaseDetailsUrl( $repository, $result->tag ) );
+		self::assertSame( 'https://github.com/owner/example/releases/tag/v1.2.3', $provider->release_details_url( $repository, $result->tag ) );
 		foreach ( NeutralReleaseUpdaterFixtures::requests() as $request ) {
 			self::assertStringNotContainsString( sys_get_temp_dir(), $request[0] );
 		}
@@ -60,7 +60,7 @@ final class ReleaseInspectionTest extends TestCase {
 	public function test_inspects_theme_identity_through_the_same_service(): void {
 		NeutralReleaseUpdaterFixtures::queue( NeutralReleaseUpdaterFixtures::proof( 'theme' ) );
 
-		$result = $this->provider()->inspectRelease(
+		$result = $this->provider()->inspect_release(
 			'theme',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
 			'42',
@@ -76,7 +76,7 @@ final class ReleaseInspectionTest extends TestCase {
 
 	public function test_opaque_core_identity_is_rejected_by_the_git_hub_service_without_http(): void {
 		try {
-			$this->provider()->inspectRelease(
+			$this->provider()->inspect_release(
 				'plugin',
 				new RepositoryReference( 'owner/example', '123456789', false, null ),
 				'release:opaque/42',
@@ -96,7 +96,7 @@ final class ReleaseInspectionTest extends TestCase {
 
 		$this->expectException( RuntimeException::class );
 		$this->expectExceptionMessage( 'GitHub could not inspect the selected release.' );
-		$this->provider()->inspectRelease(
+		$this->provider()->inspect_release(
 			'plugin',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
 			'42',
@@ -110,7 +110,7 @@ final class ReleaseInspectionTest extends TestCase {
 
 		$this->expectException( RepositoryReleaseReadUnavailable::class );
 		$this->expectExceptionMessage( 'GitHub release inspection access is unavailable.' );
-		$this->provider()->inspectRelease(
+		$this->provider()->inspect_release(
 			'plugin',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
 			'42',

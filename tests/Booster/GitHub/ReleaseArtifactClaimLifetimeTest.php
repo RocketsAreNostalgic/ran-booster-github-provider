@@ -26,7 +26,7 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 			$this->reset_filesystem_hooks();
 			[ $artifact, $path ] = $this->artifact();
 
-			$prepared = ReleaseArtifactCustodian::claim( $artifact->handoffToCore() );
+			$prepared = ReleaseArtifactCustodian::claim( $artifact->handoff_to_core() );
 			self::assertFileDoesNotExist( $path );
 			$prepared->assertUnchanged();
 			$owned_path = $prepared->getPath();
@@ -367,7 +367,7 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 
 	private function expect_handoff_failure( GitHubReleaseArtifact $artifact, bool $cleanup_failure = false ): void {
 		try {
-			ReleaseArtifactCustodian::claim( $artifact->handoffToCore() );
+			ReleaseArtifactCustodian::claim( $artifact->handoff_to_core() );
 			self::fail( 'Unsafe custody handoff must fail closed.' );
 		} catch ( RuntimeException $exception ) {
 			self::assertSame(

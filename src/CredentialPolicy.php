@@ -16,13 +16,11 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 	private const MIN_TOKEN_BYTES = 40;
 	private const MAX_TOKEN_BYTES = 255;
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getProvider(): ProviderCode {
+	public function get_provider(): ProviderCode {
 		return ProviderCode::parse( 'gh' );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function normalizeCredential( array $metadata, #[\SensitiveParameter] mixed $secret ): array {
+	public function normalize_credential( array $metadata, #[\SensitiveParameter] mixed $secret ): array {
 		$label         = $this->required_string( $metadata['label'] ?? null, 'Credential label' );
 		$kind          = $this->required_string( $metadata['kind'] ?? null, 'Credential kind' );
 		$configuration = $metadata['configuration'] ?? array();
@@ -57,8 +55,7 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 		);
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function validateSubmittedCredential(
+	public function validate_submitted_credential(
 		array $metadata,
 		#[\SensitiveParameter] string $secret
 	): void {
@@ -93,13 +90,11 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 		}
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function getConstantNames(): array {
+	public function get_constant_names(): array {
 		return array( self::TOKEN_CONSTANT );
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
-	public function credentialFromConstants( array $constants ): ?array {
+	public function credential_from_constants( array $constants ): ?array {
 		$token = $constants[ self::TOKEN_CONSTANT ] ?? '';
 		if ( ! is_string( $token ) || '' === trim( $token ) ) {
 			return null;
