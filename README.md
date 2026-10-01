@@ -1,170 +1,167 @@
 # RAN Booster GitHub Provider
 
-First-party GitHub provider implementation for [RAN Booster](https://github.com/RocketsAreNostalgic/ran-booster).
+`ran/booster-github-provider` is the first-party GitHub implementation for
+[RAN Booster](https://github.com/RocketsAreNostalgic/ran-booster). It is a
+**Composer library**, not an installable WordPress plugin. Ordinary Booster
+users install Booster, which pins and bundles an immutable Provider release in
+its runtime archive; they do not install or activate this package separately.
 
-This repository is a **Composer library**, not a WordPress plugin. RAN Booster
-pins and bundles an immutable released version, so ordinary Booster users do
-not install this package separately.
+## What it provides
 
-## What this package provides
+The Provider resolves and browses GitHub repositories, prepares archives,
+validates credentials, normalizes and manages webhooks, and supplies diagnostics.
+It also lists, inspects and acquires GitHub releases, composes native update
+targets, and offers initial release-workflow setup through the V3 capability.
 
-The package owns GitHub-specific provider behavior, including:
+Booster supplies the public provider contracts and owns registration, credential
+custody, policy, deployment orchestration and administrator screens. This package
+implements those contracts under `RAN\BoosterGitHubProvider\V1`; it has no
+production dependency on the whole `ran/booster` Composer package. Bundling does
+not grant it a private host API or extra mutation authority.
 
-- repository resolution, public browsing and archive preparation;
-- GitHub credential interpretation and validation;
-- provider diagnostics and webhook normalization/management;
-- GitHub release metadata, candidate listing, inspection and acquisition;
-- native release-target composition; and
-- release-workflow assistance and its provider-owned workflow state.
+## Versions and compatibility
 
-Booster remains the host. It owns the provider registry and sealing lifecycle,
-credential custody, provider-neutral policy, deployment coordination,
-administrator surfaces and final Core mutation authority.
+The current published package is
+[`v1.0.0-beta.8`](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/releases/tag/v1.0.0-beta.8).
+Its [Composer metadata](composer.json) requires:
 
-## Provider boundary
+| Requirement | Contract |
+| --- | --- |
+| PHP | `^8.2` |
+| WordPress host | WordPress 7.0+ through a compatible Booster host |
+| Outer Provider API | Exactly `12`; not compatible with API 11 |
+| Release-workflow capability | Initial-only `RepositoryReleaseWorkflowManagementV3` |
+| Shared repository paths | `ran/updater-support ^1.0.0-beta.4` |
+| Release updater | `ran/wp-release-updater 0.1.0-beta.7` |
 
-Bundled versus external is a distribution choice, not a privileged provider
-architecture. The `gh` aggregate implements Booster's public provider
-contracts and is registered through the same bounded Provider API semantics
-available to external providers.
+The package version, `V1` PHP namespace, outer Provider API, workflow V3,
+template-pack API 3 and updater runtime protocol are separate contracts.
+Do not infer host compatibility from matching version numbers.
 
-The package has no production Composer dependency on the whole
-`ran/booster` plugin and must not import Booster private
-Admin/Internal/Logging/Secrets/Storage/WordPress implementation namespaces.
-Where host policy is needed, it arrives through bounded public registration
-inputs. The package owns its legitimate shared dependencies, including the
-provider-neutral release updater.
+**Published Provider compatibility is not released-Core certification.** As of
+1 October 2026, Core main has adopted Provider beta.8, but Core beta.31 remains a
+release proposal; the latest published Core beta.30 is not an API-12 host.
+Provider CI qualifies an exact candidate host, identified in
+[the contribution guide](CONTRIBUTING.md), rather than certifying whichever Core
+revision is newest. Use the Provider version bundled with your chosen Booster
+release. A package release alone does not qualify a different host/dependency
+composition.
 
-The candidate host contract is Provider API 12. Credential-bearing registration
-requires `ProviderCredentialStore`, `AuthenticatedWebhookDeliveryEvidenceReader`
-and the bounded `ProviderRegistrationContext`. The bundled registration wrapper
-and external-provider fixture live in Core and check the outer API version
-before loading the provider. The context's host-resolved artifact-size policy still reaches this
-package through its host-neutral callable composition boundary.
+This is prerelease software. Pin an immutable release and retain the consuming
+application's lockfile. Public contracts and prerelease persistence formats can
+change between betas; earlier workflow records are not promised migration
+contracts. Review [release notes](CHANGELOG.md) and the host's compatibility
+contract before adopting a different version.
 
-Provider API 12 replaces the V2 release-workflow capability with the initial-only
-V3 capability. This package implements V3 and is not qualified for an API-11 host.
-The outer Provider API, workflow capability V3, template-pack API 3 and Release
-Updater runtime protocol are distinct contracts; this change does not upgrade
-Updater dependencies or introduce an old-interface fallback.
+## Deliberate development use
 
-Workflow-assistance persistence has a single current pre-1.0 baseline: setup
-records use schema 3 under the provider-owned option namespace, and failure
-history uses the current diagnostic-bearing record shape. Earlier prerelease
-option names and record shapes are not migration contracts.
-
-## Requirements
-
-The supported host baseline is:
-
-- PHP 8.2 or newer;
-- WordPress 7.0 or newer when used through Booster; and
-- a compatible RAN Booster installation providing the public provider
-  contracts.
-
-The package is pre-release software and should be consumed through an immutable
-tagged release, not a moving development branch.
-
-The shared repository-path dependency requires `ran/updater-support ^1.0.0-beta.4`.
-This repository locks an immutable release for qualification; consuming hosts own
-their dependency locks and must qualify their complete package composition.
-
-## Development
-
-The canonical local gate requires PHP 8.2+ with Composer and Node **24.11.0**.
-Node is used for the maintained release-control scripts/tests; the package has
-no frontend toolchain.
-
-Install the locked development dependencies and run:
+For package development or a controlled host-integration experiment, clone this
+repository and select the release or development revision you intend to test.
+For example, to inspect and validate the published package:
 
 ```bash
+git clone https://github.com/RocketsAreNostalgic/ran-booster-github-provider.git
+cd ran-booster-github-provider
+git checkout v1.0.0-beta.8
 composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-Use `composer standards:fix` to apply PHPCBF.
+The local gate requires PHP 8.2+, Composer and Node 24.11.0. Node serves the
+release-control tests, not a browser frontend. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for the additional required host-backed checks and exact candidate checkout.
+Composer installation alone does not provide WordPress, Booster's interfaces,
+registration or an operational standalone application.
 
-The implementation tests and static analysis also verify compatibility with an
-exact candidate Booster checkout because the public provider contracts remain
-Booster-owned. For an equivalent local pass:
+A custom Composer root must declare the required VCS repositories and explicit
+prerelease allowances itself: Composer does not inherit dependency repository
+configuration. Use the package's metadata and the selected host's locked
+composition as references, then qualify that complete composition. Do not replace
+files inside an installed Booster bundle or register a second bundled Provider.
 
-```bash
-export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
-# Match the candidate host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 18b0ec619174000a9a9dbc27b9d68b44b0265449 &&
-  composer check:host
+## Construction and registration
+
+The public factory is
+[`GitHubProvider::create()`](src/GitHubProvider.php); its constructor is private.
+It returns the host's `RepositoryProvider` contract. The factory accepts a
+provider-scoped credential store, authenticated webhook-delivery evidence,
+a compatible release-updater registrar, and an optional artifact-limit callable.
+
+The following is the factory portion of a host composition, with `$registrar`
+already supplied by that composition. It is not a standalone plugin bootstrap:
+
+```php
+use RAN\BoosterGitHubProvider\V1\GitHubProvider;
+use RAN\RepositoryProvider\AuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\RepositoryProvider\ProviderCredentialStore;
+use RAN\RepositoryProvider\ProviderRegistrationContext;
+use RAN\RepositoryProvider\RepositoryProvider;
+
+$factory = static function (
+    ProviderCredentialStore $credentials,
+    AuthenticatedWebhookDeliveryEvidenceReader $deliveryEvidence,
+    ProviderRegistrationContext $registrationContext
+) use ( $registrar ): RepositoryProvider {
+    return GitHubProvider::create(
+        $credentials,
+        $deliveryEvidence,
+        $registrar,
+        static fn (): int => $registrationContext->maximumArtifactBytes()
+    );
+};
 ```
 
-`composer check:host` runs the host contract, blocking level-1 production
-analysis and the implementation PHPUnit suite. It supplements `composer check`.
-CI pins and verifies that host revision before running the host-backed gates.
+The host supplies these capabilities deliberately:
 
-## Issues and ownership
+- `ProviderCredentialStore` and `AuthenticatedWebhookDeliveryEvidenceReader`
+  are bound to the registered provider code; neither offers an arbitrary
+  provider selector.
+- `ProviderRegistrationContext` supplies the host-resolved artifact-size policy.
+  Forward its callable lazily as above so operations use host policy; the
+  context is not a service locator.
+- `$registrar` is the compatible object obtained through the package-owned
+  release updater's `bootstrap.php`, exposing `plugin()`, `theme()` and
+  `releases()`. It is not the Provider registry or the whole Booster container.
 
-Report GitHub-provider implementation defects in this repository. Issues about
-Booster's provider-neutral API, registry, credential custody, deployment
-orchestration, administrator UI, or host integration belong in
-[RAN Booster](https://github.com/RocketsAreNostalgic/ran-booster/issues).
+Booster registers the returned aggregate as `gh` with
+`ProviderRegistry::registerWithCredentialStore( 'gh', $factory )` before firing
+`ran_booster_register_providers`, then seals the registry. An external
+composition must check the exact API-12 marker and supported runtime mode before
+loading the implementation. Ordinary Booster already owns `gh`: trying to
+register it again is rejected before the second factory receives credentials.
+The Core [external composition fixture](https://github.com/RocketsAreNostalgic/ran-booster/tree/main/tests/fixtures/ran-booster-github-provider-extension)
+is a controlled integration example, not a supported second GitHub installation.
 
-Security reports should use this repository's private GitHub security-advisory
-flow rather than a public issue.
+For the complete contract and lifecycle, use Core's
+[Provider extension contract](https://github.com/RocketsAreNostalgic/ran-booster/blob/main/docs/provider-extension-contract.md),
+[registration and coexistence guide](https://github.com/RocketsAreNostalgic/ran-booster/blob/main/docs/provider-registration-and-coexistence.md)
+and [release-workflow API](https://github.com/RocketsAreNostalgic/ran-booster/blob/main/docs/provider-release-workflow-api.md).
+Read the revision matching your host; these main-branch links describe current
+development contracts.
 
-## Releases
+## Passive construction and later operations
 
-This package is versioned and released independently from Booster. Booster
-consumes a specific immutable provider release and verifies that dependency in
-its runtime archive. Release and trust details for maintainers are documented
-in [RELEASING.md](RELEASING.md).
+`GitHubProvider::create()` constructs collaborators and metadata. It does not
+register WordPress hooks, activate a plugin, bootstrap the updater, fetch GitHub
+data or write workflow state. The host supplies an already composed registrar;
+construction merely stores it and the lazy policy callable.
 
-## API 3 initial starter candidate
+Registration and later capability calls are separate lifecycle steps. Explicit
+operations may read credentials, make network requests, persist workflow state
+or register native update handling. Passive construction is not a promise that
+all provider methods are side-effect free. Core retains orchestration and final
+mutation authority; initial workflow assistance is not an automatic update or
+repair engine.
 
-The provider implements the five-method initial-only V3 contract against Core
-#177 `18b0ec619174000a9a9dbc27b9d68b44b0265449`, as approved in programme #81.
-This test tuple is candidate qualification, not certification against a released
-host. Core source, production dependency locks and the runtime updater protocol
-are separate ownership boundaries. UI and owner-run interactive acceptance remain
-deferred.
+## Support and contributing
 
-The fixed plugin/theme starter renders five logical templates into ten generated
-files, plus bounded header/readme version annotations. Every file is mode 100644.
-The passive origin record and operator guide grant no destination paths,
-permissions, ownership or future writes. Existing automation or generated-file
-conflicts require manual integration. No update engine, managed receipt, API 2
-fallback, formatter modification or repair is provided.
+Report provider-specific defects in [this repository's issues](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues).
+Host API, registry, custody, deployment and UI issues belong in
+[Booster's tracker](https://github.com/RocketsAreNostalgic/ran-booster/issues).
+Follow [SECURITY.md](SECURITY.md) for private vulnerability reporting and its
+fallback contact procedure; keep sensitive details out of public issues.
 
-`StarterSecurityCheck::check()` is an on-demand read-only package service. Its
-caller must obtain origin bytes from an identity-verified exact repository
-revision. Core adoption wiring remains outstanding: this service introduces no
-new host-interface method or UI. Results are `matching_advisory`,
-`no_matching_known_advisory` or `unknown`; none grants execution readiness or
-blocks ordinary adoption. Canonical GitHub advisory endpoint/response URLs bind
-repository identity; every indexed advisory must be published and not withdrawn.
-Indexes above 58 entries require an authenticated read to verify every advisory;
-an anonymous check returns `unknown` without claiming a clean result.
-No prose matching, background scanning, cache or write occurs.
-
-`tests/fixtures/api3-producer` contains exact bytes from producer B Quality run
-36559291561 attempt 1, artifact 11028442531, commit
-`b511fae06eba4092034d0ddb4ff475279ebd2898`; two local builds match that CI ZIP byte for byte.
-`ProducerExchangeTest` verifies the 10132-byte ZIP, SHA-256
-`2da459b63715660226b43914d3466f8b176bf645961dc0009fb51168c21ae7cf`, manifest and
-all ten plugin/theme render digests against the producer envelope. Numeric
-release/asset identities are explicitly simulated transport fixtures: this is
-actual producer-byte/consumer convergence, not published transport or installed
-end-to-end acceptance. Shared Profile B is pinned at
-`63c4a4b192bbb4cf203dab281b75a0907e85c3a9`.
-
-The actual producer exchange regression also executes the generated build and
-verification scripts in disposable local Git repositories for both package types,
-then compares two generated ZIPs byte-for-byte. Host-backed tests therefore need
-Bash, Git, jq, zip, unzip and shasum alongside PHP/ZipArchive. No remote repository
-or installed site is modified by these tests. The runtime allowlist contains only
-sorted explicit paths; human guidance lives in RELEASE-STARTER.md.
-
-Source readiness uses a conservative 46 MiB aggregate runtime-file budget,
-leaving 4 MiB below the generated verifier's 50 MiB ZIP ceiling for archive
-records, deflate overhead and version annotations. Case-folding file/directory
-collisions are refused. Prospective runtime, non-document Git blobs large enough to contain an LFS
-marker receive a binary-safe 43-byte prefix read at their exact tree blob SHA;
-missing/truncated evidence fails closed. Full document and prefix reads share
-the existing 256-blob snapshot bound. No LFS payload is fetched or executed.
+Maintainers should use [CONTRIBUTING.md](CONTRIBUTING.md) for quality commands,
+[RELEASING.md](RELEASING.md) for publication and trust requirements, and
+[AGENTS.md](AGENTS.md) for the repository engineering contract. The package is
+licensed under [GPL-2.0-or-later](LICENSE).

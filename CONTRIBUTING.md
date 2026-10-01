@@ -22,14 +22,19 @@ Use these focused commands:
 | `composer check:host` | Host contract, blocking level-1 analysis and implementation PHPUnit |
 
 After `composer check`, run the required host-backed aggregate using the exact
-certified Booster checkout:
+candidate Booster checkout pinned in [CI](.github/workflows/ci.yml):
 
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
-# Match the certified host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ffc11fc8e40618624a785b7fca5193029c6d492e &&
+# Match the candidate host pinned in .github/workflows/ci.yml.
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 18b0ec619174000a9a9dbc27b9d68b44b0265449 &&
   composer check:host
 ```
+
+This is candidate-only Provider API 12 / workflow V3 qualification, not
+certification against a released Core host. The SHA above mirrors the existing
+CI configuration; update the example when that authoritative tuple changes,
+not the certification pin to match prose.
 
 `composer analyze`, `composer test:host-contract` and
 `composer test:implementation` remain available for focused host-backed checks.
@@ -37,7 +42,7 @@ The old `lint:php` command is now `standards`; `format` / `format:php` are now
 `standards:fix`. Rerun `composer check` after formatting.
 
 CI retains its separate host-contract and implementation lanes, verifies the
-exact certified host revision, and requires both through terminal `quality`.
+exact candidate host revision, and requires both through terminal `quality`.
 The implementation matrix invokes the same `composer check:host` as local
 contributors; PR release classification remains separately required.
 
