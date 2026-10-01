@@ -22,6 +22,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 		yield 'check' => array( 'assess_check' );
 		yield 'reconfigure' => array( 'assess_reconfigure' );
 		yield 'remove' => array( 'assess_remove' );
+		yield 'test' => array( 'assess_test' );
 	}
 
 	#[DataProvider( 'fitness_actions' )]
