@@ -594,7 +594,7 @@ No other exact quoted proposed method names were found in tracked PHP. Existing 
 
 ## Named-argument inventory
 
-No literal named-argument labels matching the 64 camelCase parameters or `$private` found in tracked PHP at this revision. Positional calls still require full regression qualification. External named-argument users remain a compatibility gate.
+No literal named-argument labels matching the 64 camelCase parameters or `$private` were found in tracked PHP at this revision. Positional calls still require full regression qualification. External named-argument users remain a compatibility gate.
 
 ## Connected external consumers and remaining gates
 
