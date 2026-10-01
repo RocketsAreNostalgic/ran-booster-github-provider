@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.11](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.10...v1.0.0-beta.11) (2026-10-01)
+
+
+### Bug Fixes
+
+* adopt Release Updater beta.9 and runtime protocol 5 ([#51](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/51)) ([d7899c6](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/d7899c6276499325757849b79c68a0545b68bc45))
+
 ## [1.0.0-beta.10](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.9...v1.0.0-beta.10) (2026-10-01)
 
 
