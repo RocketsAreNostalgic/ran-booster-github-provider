@@ -96,7 +96,7 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Check out candidate Booster host
-        # Candidate-only connected helper qualification under Core #167; not released-host certification.
+        # Candidate-only connected API13 method qualification under Core #167; not released-host certification.
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
@@ -194,7 +194,7 @@ jobs:
         run: bash scripts/ci-quality-phase.sh baseline
 
       - name: Check out candidate Booster host
-        # Retain the exact candidate-only API12/V3 tuple; not installed/released certification.
+        # Retain the exact candidate-only API13/V3 tuple; not installed/released certification.
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
