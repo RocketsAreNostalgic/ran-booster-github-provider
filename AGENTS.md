@@ -14,7 +14,13 @@ The package may depend on explicit shared libraries where the dependency is genu
 
 ## RAN quality profile
 
-The repository profile is `php-library`, using the current organisation `quality-php-library-v2.yml` provider at an immutable reviewed SHA.
+The repository profile is `php-library`. The Provider-only provisioning pilot
+locally mirrors `quality-php-library-v2.yml` at reviewed immutable revision
+`788f783d2998994f7aab9691710911ed1bd762c9`, running its complete baseline before
+introducing the exact candidate Core in each PHP job. See
+[`docs/ci-provisioning-pilot.md`](docs/ci-provisioning-pilot.md) for the retained
+checks, shared-runner limits, measurements and rollback. Reconcile later shared
+provider changes explicitly; this local pilot does not inherit them automatically.
 
 For package conventions, prefer the closest maintained Booster support libraries as references: `ran/updater-support`, `ran/wp-branch-updater`, and `ran/wp-release-updater`. Use Booster and `ran-starter-plugin` for stronger transferable guarantees and repository ergonomics, but do not copy plugin-only runtime, archive or frontend machinery into this library without an applicable source/product requirement.
 

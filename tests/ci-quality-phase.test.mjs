@@ -3,7 +3,12 @@ import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import nodeTest from "node:test";
+
+// The helper is specific to the Linux CI runner, not a new portable local gate.
+const test = (name, fn) => nodeTest(name, {
+  skip: process.platform !== "linux" && "CI phase fixtures require the Linux runner's Bash/GNU utilities",
+}, fn);
 
 function fixture(t) {
   const dir = mkdtempSync(join(tmpdir(), "provider-ci-phase-"));
@@ -34,6 +39,7 @@ if test "$*" = "check"; then
   test "\${BASELINE_FAIL:-0}" = 0
   if test "\${MUTATE_BASELINE:-0}" = 1; then printf 'changed' >> composer.lock; fi
   if test "\${MUTATE_VENDOR:-0}" = 1; then printf 'changed' >> vendor/dependency.php; fi
+  if test "\${MUTATE_COMMAND_FILE:-}" != ''; then printf 'changed' >> "\${!MUTATE_COMMAND_FILE}"; fi
 else
   test "$*" = "check:host"
   test "\${HOST_FAIL:-0}" = 0
@@ -56,7 +62,7 @@ test "\${LINT_FAIL:-0}" = 0
     }
     return { RAN_BOOSTER_CORE_PATH: path, RAN_BOOSTER_HOST_SHA: spawnSync("git", ["rev-parse", "HEAD"], { cwd: path, encoding: "utf8" }).stdout.trim() };
   };
-  return { dir, provider, git, env, run, host, trace: () => readFileSync(env.TRACE, "utf8") };
+  return { dir, provider, bin, git, env, run, host, trace: () => readFileSync(env.TRACE, "utf8") };
 }
 
 test("baseline is host-independent, lints PHP outside src/tests, then host runs once", (t) => {
@@ -68,6 +74,15 @@ test("baseline is host-independent, lints PHP outside src/tests, then host runs 
   const host = f.run("host", f.host());
   assert.equal(host.status, 0, host.stderr);
   assert.equal(f.trace().match(/composer check:host/g)?.length, 1);
+});
+
+test("failed Git source enumeration cannot silently admit checks", (t) => {
+  const f = fixture(t);
+  writeFileSync(join(f.bin, "git"), '#!/usr/bin/env bash\nif test "$1" = ls-tree; then exit 23; fi\nexec /usr/bin/git "$@"\n', { mode: 0o755 });
+  const r = f.run("baseline");
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /Unable to enumerate tracked source/);
+  assert.throws(f.trace);
 });
 
 for (const [name, setup, extra, message] of [
@@ -95,6 +110,19 @@ for (const failure of ["BASELINE_FAIL", "LINT_FAIL", "MUTATE_BASELINE", "MUTATE_
     assert.notEqual(f.run("baseline", { [failure]: "1" }).status, 0);
     const r = f.run("host", f.host());
     assert.notEqual(r.status, 0);
+    assert.doesNotMatch(f.trace(), /composer check:host/);
+  });
+}
+
+for (const commandFile of ["GITHUB_ENV", "GITHUB_PATH"]) {
+  test(`baseline cannot accidentally alter ${commandFile} for the host step`, (t) => {
+    const f = fixture(t);
+    const path = join(f.dir, commandFile);
+    writeFileSync(path, "");
+    const r = f.run("baseline", { [commandFile]: path, MUTATE_COMMAND_FILE: commandFile });
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, new RegExp(`Baseline altered ${commandFile}`));
+    assert.notEqual(f.run("host", f.host()).status, 0);
     assert.doesNotMatch(f.trace(), /composer check:host/);
   });
 }

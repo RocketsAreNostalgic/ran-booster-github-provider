@@ -13,7 +13,9 @@ state=$(realpath -m "$RAN_CI_PHASE_STATE")
 verify_source() {
   test "$(git rev-parse HEAD)" = "$RAN_EXPECTED_SHA" || fail 'Wrong source revision.'
   # Compare actual tracked bytes rather than relying on stat/index flags.
-  local entry metadata path mode type expected actual
+  local entry metadata path mode type expected actual tree_fd tree_pid untracked
+  exec {tree_fd}< <(git ls-tree -rz HEAD)
+  tree_pid=$!
   while IFS= read -r -d '' entry; do
     metadata=${entry%%$'\t'*}
     path=${entry#*$'\t'}
@@ -27,8 +29,11 @@ verify_source() {
       actual=$(git hash-object --no-filters -- "$path")
     fi
     test "$actual" = "$expected" || fail "Changed tracked source: $path"
-  done < <(git ls-tree -rz HEAD)
-  test -z "$(git ls-files --others --exclude-standard)" || fail 'Unexpected untracked source.'
+  done <&"$tree_fd"
+  exec {tree_fd}<&-
+  wait "$tree_pid" || fail 'Unable to enumerate tracked source.'
+  untracked=$(git ls-files --others --exclude-standard) || fail 'Unable to enumerate untracked source.'
+  test -z "$untracked" || fail 'Unexpected untracked source.'
   test -f composer.json && test -f composer.lock
 }
 
@@ -48,6 +53,13 @@ case ${1:-} in
     mkdir -p "$state"
     trap 'rm -rf -- "$state"' EXIT
     snapshot_dependencies > "$state/dependencies"
+    # Detect accidental cross-step environment changes. These files and the
+    # snapshots share the runner UID; this is not hostile-code authentication.
+    for command_file in GITHUB_ENV GITHUB_PATH; do
+      if test -n "${!command_file:-}"; then
+        cp -- "${!command_file}" "$state/$command_file"
+      fi
+    done
     composer check
     # Retain the shared provider sweep beyond composer lint:syntax's src/tests.
     find . \( -path './vendor' -o -path './node_modules' \) -prune -o -type f -name '*.php' -print0 > "$state/php-files"
@@ -55,6 +67,11 @@ case ${1:-} in
     verify_source
     snapshot_dependencies > "$state/dependencies-after"
     cmp "$state/dependencies" "$state/dependencies-after" || fail 'Baseline altered locked dependencies.'
+    for command_file in GITHUB_ENV GITHUB_PATH; do
+      if test -n "${!command_file:-}"; then
+        cmp "$state/$command_file" "${!command_file}" || fail "Baseline altered $command_file."
+      fi
+    done
     printf '%s\n' "$RAN_EXPECTED_SHA" > "$state/baseline-passed"
     trap - EXIT
     ;;
