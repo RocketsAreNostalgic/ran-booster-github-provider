@@ -16,21 +16,23 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 	private const MIN_TOKEN_BYTES = 40;
 	private const MAX_TOKEN_BYTES = 255;
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function getProvider(): ProviderCode {
 		return ProviderCode::parse( 'gh' );
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function normalizeCredential( array $metadata, #[\SensitiveParameter] mixed $secret ): array {
-		$label         = $this->requiredString( $metadata['label'] ?? null, 'Credential label' );
-		$kind          = $this->requiredString( $metadata['kind'] ?? null, 'Credential kind' );
+		$label         = $this->required_string( $metadata['label'] ?? null, 'Credential label' );
+		$kind          = $this->required_string( $metadata['kind'] ?? null, 'Credential kind' );
 		$configuration = $metadata['configuration'] ?? array();
-		$secret        = $this->requiredString( $secret, 'Credential secret' );
+		$secret        = $this->required_string( $secret, 'Credential secret' );
 
 		if ( ! is_array( $configuration ) ) {
 			throw new RuntimeException( 'Credential configuration must be a record.' );
 		}
 
-		$this->assertOnlyKeys( $configuration, array( 'owner' ) );
+		$this->assert_only_keys( $configuration, array( 'owner' ) );
 		if ( ! in_array( $kind, array( 'classic', 'fine-grained' ), true ) ) {
 			throw new RuntimeException( 'GitHub credential kind must be classic or fine-grained.' );
 		}
@@ -39,7 +41,7 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 			? trim( $configuration['owner'] )
 			: '';
 
-		if ( 'fine-grained' === $kind && ! $this->isOwner( $owner ) ) {
+		if ( 'fine-grained' === $kind && ! $this->is_owner( $owner ) ) {
 			// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Core revalidates the closed reason and safe fixed copy.
 			throw new InvalidCredentialInput(
 				InvalidCredentialInput::INVALID_CONFIGURATION,
@@ -55,6 +57,7 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 		);
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function validateSubmittedCredential(
 		array $metadata,
 		#[\SensitiveParameter] string $secret
@@ -90,10 +93,12 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 		}
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function getConstantNames(): array {
 		return array( self::TOKEN_CONSTANT );
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function credentialFromConstants( array $constants ): ?array {
 		$token = $constants[ self::TOKEN_CONSTANT ] ?? '';
 		if ( ! is_string( $token ) || '' === trim( $token ) ) {
@@ -108,7 +113,7 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 		);
 	}
 
-	private function requiredString( mixed $value, string $name ): string {
+	private function required_string( mixed $value, string $name ): string {
 		if ( ! is_string( $value ) || '' === trim( $value ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Provider policy errors are mapped at the admin boundary.
 			throw new RuntimeException( $name . ' must be a non-empty string.' );
@@ -118,13 +123,13 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 	}
 
 	/** @param array<string, mixed> $configuration */
-	private function assertOnlyKeys( array $configuration, array $allowed ): void {
+	private function assert_only_keys( array $configuration, array $allowed ): void {
 		if ( array() !== array_diff( array_keys( $configuration ), $allowed ) ) {
 			throw new RuntimeException( 'GitHub credential configuration contains unsupported fields.' );
 		}
 	}
 
-	private function isOwner( string $owner ): bool {
+	private function is_owner( string $owner ): bool {
 		return 1 === preg_match( '/^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?$/', $owner );
 	}
 }

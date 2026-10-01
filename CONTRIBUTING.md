@@ -55,3 +55,15 @@ unrelated GitHub feature rewrite merely because the package is bundled by
 Booster.
 
 Release-significant changes under `src/` or to production Composer requirements must use a visible release-driving Conventional Commit PR title (`feat`, `fix`, `perf`, `revert`) or an explicit breaking `!`. See `RELEASING.md` for the shared Profile A beta publication flow. Generated Release Please version PRs follow the repository's approved merge policy; publication no longer depends on a special normal-merge geometry.
+
+## Naming migration
+
+The nine audited top-level Provider classes use the shared `RANOwnedMethods`
+check, including classes implementing Core interfaces, and WPCS variable naming.
+`ran/coding-standards` is pinned to released 1.0.0; check and fix use the same scope.
+Declaration/use-local deferrals retain public named arguments, promoted properties
+and Core DTO members until their coordinated caller cohort. They are migration
+debt, not external-signature exemptions. Do not extend them to new private code.
+WorkflowAssistance and test naming remain separate cohorts. See
+[the migration ledger](docs/naming-migration.md) and
+[the proposed Core contract manifest](docs/naming-core-contract-manifest.md).

@@ -27,7 +27,7 @@ final class NativeTargetsTest extends TestCase {
 
 	public function testCallableLookingAccessTokenRemainsCredentialMaterial(): void {
 		$target      = $this->target( 'strlen' );
-		$accessToken = ( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'accessToken' ) )->getValue( $target );
+		$accessToken = ( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'access_token' ) )->getValue( $target );
 
 		self::assertInstanceOf( \Closure::class, $accessToken );
 	}

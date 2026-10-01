@@ -23,18 +23,23 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 	private WebhookPolicy $policy;
 
 	public function __construct(
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		private ProviderWebhookProfileReader $webhookProfiles,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		private AuthenticatedWebhookDeliveryEvidenceReader $deliveryEvidence
 	) {
 		$this->policy = new WebhookPolicy();
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function getWebhookPolicy(): ProviderWebhookPolicy {
 		return $this->policy;
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function diagnoseWebhookReadiness(): ProviderDiagnosticResult {
 		try {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 			if ( ! $this->webhookProfiles->hasWebhookProfile() ) {
 				return new ProviderDiagnosticResult(
 					ProviderDiagnosticResult::NOT_CONFIGURED,
@@ -53,6 +58,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		}
 
 		try {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 			$evidence = $this->deliveryEvidence->latestAuthenticatedDelivery();
 		} catch ( \Throwable $exception ) {
 			return new ProviderDiagnosticResult(
@@ -73,12 +79,14 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			);
 		}
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 		if ( ! $evidence->matchedManagedPackage ) {
 			return new ProviderDiagnosticResult(
 				ProviderDiagnosticResult::WARNING,
 				'gh.webhook.delivery_authenticated_unmatched',
 				sprintf(
 					'Site-wide Push-to-Deploy check: Booster authenticated a GitHub push delivery at %s site time, but it matched no managed package. This result is not scoped to the repository selected above.',
+					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 					$evidence->receivedAt
 				),
 				'Check repository identity, configured branch, and package deployment policy across managed GitHub repositories, then send a fresh push.'
@@ -90,12 +98,14 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			'gh.webhook.delivery_authenticated',
 			sprintf(
 				'Site-wide Push-to-Deploy check: Booster authenticated a GitHub push delivery at %s site time and matched at least one managed package. This result is not scoped to the repository selected above.',
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 				$evidence->receivedAt
 			),
 			'Review Deployment activity for the package outcome. If the webhook secret or provider hook changed after this time, send a fresh push.'
 		);
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function normalizeWebhook( WebhookRequest $request ): WebhookEnvelope {
 		if ( ! $request->getProvider()->equals( ProviderCode::parse( 'gh' ) ) ) {
 			throw new WebhookRejected( 400, 'Webhook provider does not match GitHub.' );
@@ -114,8 +124,8 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			return WebhookEnvelope::ignored();
 		}
 
-		$payload = $this->decodePushPayload( $body );
-		$push    = $this->validatePushPayload( $payload );
+		$payload = $this->decode_push_payload( $body );
+		$push    = $this->validate_push_payload( $payload );
 
 		if ( ! $this->policy->authorizeWebhook( $verification, $push['repository_id'], $push['repository'] ) ) {
 			throw new WebhookRejected( 401, 'Webhook authentication failed.' );
@@ -130,7 +140,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			throw new WebhookRejected( 400, 'GitHub push payload is invalid.' );
 		}
 
-		if ( ! $this->isDeployableCommit( $push['commit'] ) ) {
+		if ( ! $this->is_deployable_commit( $push['commit'] ) ) {
 			return WebhookEnvelope::ignored();
 		}
 
@@ -147,7 +157,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 	}
 
 	private function event( WebhookRequest $request ): string {
-		$event = $this->boundedHeader(
+		$event = $this->bounded_header(
 			$request->getRawHeaderValues( 'x-github-event' ),
 			self::MAX_EVENT_BYTES
 		);
@@ -160,7 +170,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 	}
 
 	private function delivery( WebhookRequest $request ): string {
-		$delivery = $this->boundedHeader(
+		$delivery = $this->bounded_header(
 			$request->getRawHeaderValues( 'x-github-delivery' ),
 			self::MAX_DELIVERY_BYTES
 		);
@@ -175,9 +185,9 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 	/**
 	 * @param list<string> $values Untouched header values.
 	 */
-	private function boundedHeader( array $values, int $maxBytes ): ?string {
+	private function bounded_header( array $values, int $max_bytes ): ?string {
 		if ( 1 !== count( $values )
-			|| 1 !== preg_match( '/\A[\x21-\x7E]{1,' . $maxBytes . '}\z/D', $values[0] )
+			|| 1 !== preg_match( '/\A[\x21-\x7E]{1,' . $max_bytes . '}\z/D', $values[0] )
 		) {
 			return null;
 		}
@@ -188,7 +198,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 	/**
 	 * @return array<string, mixed>
 	 */
-	private function decodePushPayload( string $body ): array {
+	private function decode_push_payload( string $body ): array {
 		try {
 			$payload = json_decode( $body, true, 512, JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR );
 		} catch ( JsonException ) {
@@ -206,7 +216,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 	 * @param array<string, mixed> $payload Decoded GitHub push payload.
 	 * @return array{repository: string, repository_id: string, ref: string, commit: string, deleted: bool}
 	 */
-	private function validatePushPayload( array $payload ): array {
+	private function validate_push_payload( array $payload ): array {
 		if ( ! isset( $payload['repository'] ) || ! is_array( $payload['repository'] )
 			|| ! array_key_exists( 'id', $payload['repository'] )
 			|| ! isset( $payload['repository']['full_name'], $payload['ref'], $payload['after'] )
@@ -218,9 +228,9 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			throw new WebhookRejected( 400, 'GitHub push payload is invalid.' );
 		}
 
-		$repository   = trim( $payload['repository']['full_name'], " \t\n\r\0\x0B/" );
-		$repositoryId = $this->normalizeRepositoryId( $payload['repository']['id'] );
-		$parts        = explode( '/', $repository );
+		$repository    = trim( $payload['repository']['full_name'], " \t\n\r\0\x0B/" );
+		$repository_id = $this->normalize_repository_id( $payload['repository']['id'] );
+		$parts         = explode( '/', $repository );
 
 		if ( 2 !== count( $parts ) || '' === trim( $parts[0] ) || '' === trim( $parts[1] )
 			|| '' === trim( $payload['ref'] ) || '' === trim( $payload['after'] )
@@ -230,26 +240,26 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 
 		return array(
 			'repository'    => $repository,
-			'repository_id' => $repositoryId,
+			'repository_id' => $repository_id,
 			'ref'           => $payload['ref'],
 			'commit'        => $payload['after'],
 			'deleted'       => $payload['deleted'] ?? false,
 		);
 	}
 
-	private function normalizeRepositoryId( mixed $repositoryId ): string {
-		if ( is_int( $repositoryId ) && $repositoryId >= 0 ) {
-			return (string) $repositoryId;
+	private function normalize_repository_id( mixed $repository_id ): string {
+		if ( is_int( $repository_id ) && $repository_id >= 0 ) {
+			return (string) $repository_id;
 		}
 
-		if ( is_string( $repositoryId ) && '' !== trim( $repositoryId ) ) {
-			return $repositoryId;
+		if ( is_string( $repository_id ) && '' !== trim( $repository_id ) ) {
+			return $repository_id;
 		}
 
 		throw new WebhookRejected( 400, 'GitHub push payload is invalid.' );
 	}
 
-	private function isDeployableCommit( string $commit ): bool {
+	private function is_deployable_commit( string $commit ): bool {
 		return 1 === preg_match( '/\A[a-f0-9]{40,64}\z/i', $commit )
 			&& 1 !== preg_match( '/\A0{40,64}\z/', $commit );
 	}

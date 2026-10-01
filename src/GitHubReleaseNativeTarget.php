@@ -15,49 +15,65 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 	private ?object $updater = null;
 
 	/** @var string|callable|null */
-	private string|Closure|null $accessToken;
+	private string|Closure|null $access_token;
 
 	/** @var (Closure(): int)|null */
-	private ?Closure $maximumArtifactBytes;
+	private ?Closure $maximum_artifact_bytes;
 
 	/** @param string|callable|null $accessToken */
 	public function __construct(
 		private object $registrar,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		private string $packageType,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		private string $metadataFile,
 		private string $repository,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		private string $providerRepositoryId,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string|callable|null $accessToken,
 		private string $channel,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		private string $deploymentPolicy,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		?callable $maximumArtifactBytes = null
 	) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		if ( ! in_array( $packageType, array( 'plugin', 'theme' ), true )
 			|| ! in_array( $channel, array( 'stable', 'prerelease' ), true )
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 			|| ! in_array( $deploymentPolicy, array( 'disabled', 'forced-off', 'manual', 'automatic' ), true ) ) {
 			throw new LogicException( 'The GitHub release native target is incompatible.' );
 		}
-		$this->accessToken          = is_string( $accessToken )
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$this->access_token = is_string( $accessToken )
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 			? static fn (): string => $accessToken
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 			: ( null === $accessToken ? null : Closure::fromCallable( $accessToken ) );
-		$this->maximumArtifactBytes = null === $maximumArtifactBytes ? null : Closure::fromCallable( $maximumArtifactBytes );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$this->maximum_artifact_bytes = null === $maximumArtifactBytes ? null : Closure::fromCallable( $maximumArtifactBytes );
 	}
 
 	public function register(): bool {
 		try {
 			if ( null === $this->updater ) {
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 				$method    = 'plugin' === $this->packageType ? 'plugin' : 'theme';
 				$arguments = array(
 					'github',
+					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 					$this->metadataFile,
 					$this->repository,
+					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 					$this->providerRepositoryId,
 					$this->channel,
+					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
 					$this->deploymentPolicy,
-					$this->accessToken,
+					$this->access_token,
 				);
-				if ( null !== $this->maximumArtifactBytes ) {
-					$arguments[] = ( $this->maximumArtifactBytes )();
+				if ( null !== $this->maximum_artifact_bytes ) {
+					$arguments[] = ( $this->maximum_artifact_bytes )();
 				}
 				$this->updater = $this->registrar->{$method}( ...$arguments );
 			}
@@ -86,7 +102,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 				|| true !== $outer['hooks_registered']
 				|| 'target_active' !== $outer['code'] ) {
 				if ( 'inactive' === $outer['state'] ) {
-					$code = $this->statusCode( $outer['code'] );
+					$code = $this->status_code( $outer['code'] );
 
 					return new RepositoryReleaseNativeTargetStatus(
 						false,
@@ -116,33 +132,33 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 				) !== array() ) {
 				throw new LogicException( 'The neutral updater status is incompatible.' );
 			}
-			if ( ! $this->validUpdaterStatus( $status ) ) {
+			if ( ! $this->valid_updater_status( $status ) ) {
 				throw new LogicException( 'The neutral updater status is incompatible.' );
 			}
 
-			$candidateCode          = $this->candidateCode( $status['candidate_validation_code'] );
-			$candidateTag           = $this->statusText( $status['candidate_tag'], 100 );
-			$candidateVersion       = $this->statusVersion( $status['candidate_version'] );
-			$candidateHeaderVersion = $this->statusVersion( $status['candidate_header_version'] );
-			if ( '' === $candidateCode || '' === $candidateTag || '' === $candidateVersion ) {
-				$candidateCode          = '';
-				$candidateTag           = '';
-				$candidateVersion       = '';
-				$candidateHeaderVersion = '';
+			$candidate_code           = $this->candidate_code( $status['candidate_validation_code'] );
+			$candidate_tag            = $this->status_text( $status['candidate_tag'], 100 );
+			$candidate_version        = $this->status_version( $status['candidate_version'] );
+			$candidate_header_version = $this->status_version( $status['candidate_header_version'] );
+			if ( '' === $candidate_code || '' === $candidate_tag || '' === $candidate_version ) {
+				$candidate_code           = '';
+				$candidate_tag            = '';
+				$candidate_version        = '';
+				$candidate_header_version = '';
 			}
 
 			return new RepositoryReleaseNativeTargetStatus(
 				true,
-				$this->statusVersion( $status['offered_version'] ),
-				$this->statusRelationship( $status['relationship'] ),
+				$this->status_version( $status['offered_version'] ),
+				$this->status_relationship( $status['relationship'] ),
 				is_int( $status['last_check'] ) && 0 < $status['last_check'] ? $status['last_check'] : null,
 				null,
-				$this->statusCode( $status['failure_code'] ),
-				$candidateCode,
-				$candidateTag,
-				$candidateVersion,
-				$candidateHeaderVersion,
-				$this->statusText( $status['offered_release_identity'], 191 )
+				$this->status_code( $status['failure_code'] ),
+				$candidate_code,
+				$candidate_tag,
+				$candidate_version,
+				$candidate_header_version,
+				$this->status_text( $status['offered_release_identity'], 191 )
 			);
 		} catch ( \Throwable ) {
 			return new RepositoryReleaseNativeTargetStatus( false, failureCode: 'github_updater_status_unavailable' );
@@ -161,7 +177,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 		}
 	}
 
-	private function candidateCode( mixed $value ): string {
+	private function candidate_code( mixed $value ): string {
 		if ( ! is_string( $value ) ) {
 			return '';
 		}
@@ -186,33 +202,33 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 	}
 
 	/** @param array<string, mixed> $status */
-	private function validUpdaterStatus( array $status ): bool {
-		return ( null === $status['candidate_tag'] || '' !== $this->statusText( $status['candidate_tag'], 100 ) )
-			&& ( null === $status['candidate_validation_code'] || '' !== $this->statusCode( $status['candidate_validation_code'] ) )
-			&& ( null === $status['candidate_version'] || '' !== $this->statusVersion( $status['candidate_version'] ) )
-			&& ( null === $status['candidate_header_version'] || '' !== $this->statusVersion( $status['candidate_header_version'] ) )
-			&& ( null === $status['failure_code'] || '' !== $this->statusCode( $status['failure_code'] ) )
-			&& ( null === $status['installed_version'] || '' !== $this->statusVersion( $status['installed_version'] ) )
+	private function valid_updater_status( array $status ): bool {
+		return ( null === $status['candidate_tag'] || '' !== $this->status_text( $status['candidate_tag'], 100 ) )
+			&& ( null === $status['candidate_validation_code'] || '' !== $this->status_code( $status['candidate_validation_code'] ) )
+			&& ( null === $status['candidate_version'] || '' !== $this->status_version( $status['candidate_version'] ) )
+			&& ( null === $status['candidate_header_version'] || '' !== $this->status_version( $status['candidate_header_version'] ) )
+			&& ( null === $status['failure_code'] || '' !== $this->status_code( $status['failure_code'] ) )
+			&& ( null === $status['installed_version'] || '' !== $this->status_version( $status['installed_version'] ) )
 			&& ( null === $status['last_check'] || ( is_int( $status['last_check'] ) && 0 < $status['last_check'] ) )
-			&& ( null === $status['offered_version'] || '' !== $this->statusVersion( $status['offered_version'] ) )
-			&& ( null === $status['offered_release_identity'] || '' !== $this->statusText( $status['offered_release_identity'], 191 ) )
+			&& ( null === $status['offered_version'] || '' !== $this->status_version( $status['offered_version'] ) )
+			&& ( null === $status['offered_release_identity'] || '' !== $this->status_text( $status['offered_release_identity'], 191 ) )
 			&& ( ( null === $status['offered_version'] ) === ( null === $status['offered_release_identity'] ) )
-			&& ( null === $status['relationship'] || '' !== $this->statusRelationship( $status['relationship'] ) );
+			&& ( null === $status['relationship'] || '' !== $this->status_relationship( $status['relationship'] ) );
 	}
 
-	private function statusCode( mixed $value ): string {
+	private function status_code( mixed $value ): string {
 		return is_string( $value ) && 1 === preg_match( '/\A[a-z][a-z0-9_]{0,63}\z/D', $value ) ? $value : '';
 	}
 
-	private function statusRelationship( mixed $value ): string {
+	private function status_relationship( mixed $value ): string {
 		return is_string( $value ) && in_array( $value, array( 'newer', 'same', 'older', 'invalid' ), true ) ? $value : '';
 	}
 
-	private function statusText( mixed $value, int $maximumLength ): string {
-		return is_string( $value ) && strlen( $value ) <= $maximumLength && 0 === preg_match( '/[\x00-\x1F\x7F]/', $value ) ? $value : '';
+	private function status_text( mixed $value, int $maximum_length ): string {
+		return is_string( $value ) && strlen( $value ) <= $maximum_length && 0 === preg_match( '/[\x00-\x1F\x7F]/', $value ) ? $value : '';
 	}
 
-	private function statusVersion( mixed $value ): string {
+	private function status_version( mixed $value ): string {
 		return is_string( $value ) && 1 === preg_match( '/\A[A-Za-z0-9][A-Za-z0-9._+-]{0,63}\z/D', $value ) ? $value : '';
 	}
 }
