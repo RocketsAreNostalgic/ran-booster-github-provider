@@ -138,3 +138,79 @@ The earlier production residual inventory is unchanged. Workflow tests, shared
 Support/bootstrap naming and public contracts remain separate; Release Please
 #43, updater adoption and UI acceptance are outside this test cohort. No merge
 or publication authority follows from implementation approval.
+
+## Follow-on: private workflow internals
+
+Base `b4d1cedaf3e2ba6802d12839d4ae15378e5b77eb` contains merged #42 and
+#44. After the fresh #28 ownership check, Ben authorized the bounded claim
+[5931229045](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/25#issuecomment-5931229045).
+No competing implementation PR or newer file reservation was found. This is
+private naming work, not template-owner interactive acceptance.
+
+| Cohort | Private methods | Worker source commit | Local integration commit |
+| --- | ---: | --- | --- |
+| Persistence/workflow facade | 29 | f5399073153a4a0dd9e474ab4d7f795898ffedbf | 9e86da828d60b836da342044922cb588e2a7cbd6 |
+| Application/repository transport | 25 | 915611275e4911a06fe9219c243d23b999207764 | 14843195d5cd26d00c5944c6dc17c1ad1c7a9783 |
+| Template verification/acquisition | 22 | d54d21ed075848085ff5f82ffc65b5c3918595ab | 0e34f4e7d182a146219f3f225aa2a7de3a29a267 |
+| Assessment/starter assembly | 10 | f1bb3042616d25b0b6f106d462796665483326f1 | 44cac26441926dd69cf036a6d27bed277856744b |
+
+All four source cohorts are integrated into `fix/25-workflow-private`; the PR
+records its exact published head/tree and reconciles these source commits. No
+worker draft is abandoned or closed without a receiving destination.
+
+This cut completes all 86 remaining private production-method renames, plus 15
+private properties and safe private parameters/locals. The promoted properties
+changed here belong to private constructors. RepositorySnapshot's public
+constructor parameters/properties remain unchanged. All 91 public declaration
+signatures in the changed production files are token-identical to the base.
+
+The 10 same-basename tests migrate 127 owned methods: 116 test methods, eight
+private helpers and three data providers. Their three DataProvider attribute
+strings follow the declarations. Complete ordered discovery, dataset labels and
+groups remain identical for all 427 instances after applying the method map.
+Nine inherited PHPUnit lifecycle declarations retain exact local exceptions.
+
+Both naming checks now explicitly cover all 14 production WorkflowAssistance
+classes and those 10 tests; StarterGuidance already conformed and requires no
+source change. Inherited/interface implementations receive owned-method checks.
+Line-local deferrals preserve public method/named-parameter contracts, public
+constructor promotions and external/shared fixture members. No class-wide
+inheritance exclusion is introduced. Remaining unscoped test support/bootstrap
+and the three template archive/API/producer test classes remain separate naming
+cohorts; the global upstream method suppression is not evidence of their
+convergence. Shared fixtures are unchanged.
+
+Independent token review confirms every changed identifier is its exact
+snake_case mapping; all 877 changed identifier tokens preserve executable
+structure. Changed member accesses target only `$this`/`self`. Production literals,
+persisted/JSON keys, generated template bytes, credentials, redirect callback
+references/captures, webhook handling and error/status/protocol semantics are
+unchanged. The only three changed string tokens are test DataProvider references.
+Receiver-sensitive public names such as SetupRecordStore::releaseClaim and
+WorkflowAssistanceState::claimLockName retain their existing spelling.
+
+Local PHP 8.3.6 / Node 24.11.0 qualification passes:
+
+- Full `composer check`, including all 33 Node release-control tests.
+- Full `composer check:host` on certified Core
+  `18b0ec619174000a9a9dbc27b9d68b44b0265449`: host contract, clear level-1
+  PHPStan and 427 tests / 3,170 assertions.
+- Separate full host aggregate on Core #215 candidate
+  `2b0c556bf62321cb40f7537024b8bfab0356f716`: the same 427 / 3,170 and clear
+  PHPStan. This proves source compatibility with that exact combined candidate;
+  it does not modify Core's bundled Provider or certify release/installed adoption.
+
+The existing host suites execute plugin/theme generated archive build/verification
+and byte-reproducibility proofs. PR comments record final-head native PHP 8.2/8.5,
+negative controls, repeat formatter stability, clean no-dev distribution and
+independent published-head review separately; local passes do not replace them.
+
+After this cut, no camelCase private production methods remain. The 102 public
+method declaration occurrences (50 Core-interface implementations and 52
+Provider-owned public APIs), public parameters/promotions and residual shared test
+naming remain coordinated work. The proposed Core manifest still requires exact
+mapping/ownership/API/integration-order agreement in Core #167. Runtime dependencies,
+host pins and release identity are unchanged; Release Updater beta.9/protocol-5
+adoption remains the explicitly separate integration cohort. UI and owner-verified
+interactive acceptance remain deferred. Prepared/integrated is not merged,
+package-published or adopted; a new owner merge authorization remains required.

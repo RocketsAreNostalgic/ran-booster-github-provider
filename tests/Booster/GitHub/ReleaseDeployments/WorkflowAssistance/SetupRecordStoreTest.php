@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupRecordStore;
 
 final class SetupRecordStoreTest extends TestCase {
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function setUp(): void {
 		$GLOBALS['ran_booster_release_deployments_test_options']        = array();
 		$GLOBALS['ran_booster_release_deployments_test_option_updates'] = array();
@@ -21,11 +22,12 @@ final class SetupRecordStoreTest extends TestCase {
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The focused database double exercises connection-local advisory-lock ownership.
 		$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function tearDown(): void {
 		$GLOBALS['wpdb']->disconnect();
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
 	}
-	public function testSchemaThreeIsExactBoundedAndNonAutoloaded(): void {
+	public function test_schema_three_is_exact_bounded_and_non_autoloaded(): void {
 		$store  = new SetupRecordStore();
 		$record = $this->record();
 		self::assertTrue( $store->save( $record ) );
@@ -42,16 +44,16 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertFalse( $store->save( array_replace( $record, array( 'template_asset_name' => 'other.zip' ) ) ) );
 		self::assertFalse( $store->save( array_replace( $record, array( 'template_asset_size' => 2097153 ) ) ) );
 	}
-	public function testObsoleteOptionNamespaceIsNotReadAsCurrentState(): void {
-		$legacyOption = 'ran_booster_release_deployments_setup_records';
-		$legacyValue  = array(
+	public function test_obsolete_option_namespace_is_not_read_as_current_state(): void {
+		$legacy_option = 'ran_booster_release_deployments_setup_records';
+		$legacy_value  = array(
 			'123456789' => array(
 				'legacy_sentinel' => 'opaque',
 			),
 		);
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact obsolete bytes must remain untouched.
-		$before = serialize( $legacyValue );
-		$GLOBALS['ran_booster_release_deployments_test_options'][ $legacyOption ] = $legacyValue;
+		$before = serialize( $legacy_value );
+		$GLOBALS['ran_booster_release_deployments_test_options'][ $legacy_option ] = $legacy_value;
 		$store  = new SetupRecordStore();
 		$record = $this->record();
 
@@ -60,10 +62,10 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertTrue( $store->save( $record ) );
 		self::assertSame( $record, $store->find( '123456789' ) );
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- The obsolete option must not be adopted or rewritten.
-		self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options'][ $legacyOption ] ) );
+		self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options'][ $legacy_option ] ) );
 	}
 
-	public function testSourceRevisionRefreshIsMonotonicAndBoundToTheExactPackage(): void {
+	public function test_source_revision_refresh_is_monotonic_and_bound_to_the_exact_package(): void {
 		$store  = new SetupRecordStore();
 		$record = $this->record();
 		self::assertTrue( $store->save( $record ) );
@@ -76,7 +78,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertNull( $store->refreshSourceRevision( '123456789', 'plugin', 'other/example.php', 5 ) );
 		self::assertSame( 4, $store->find( '123456789' )['source_revision'] );
 	}
-	public function testExistingUnknownRowsOccupyTheirKeyWithoutByteChanges(): void {
+	public function test_existing_unknown_rows_occupy_their_key_without_byte_changes(): void {
 		foreach ( array(
 			'legacy'    => array(
 				'repo_id'        => '123456789',
@@ -102,7 +104,7 @@ final class SetupRecordStoreTest extends TestCase {
 			self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] ), $name );
 		}
 	}
-	public function testClaimIsAtomicAndReleaseRequiresTheExactOwner(): void {
+	public function test_claim_is_atomic_and_release_requires_the_exact_owner(): void {
 		$store = new SetupRecordStore();
 		$claim = $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
 		self::assertNotNull( $claim );
@@ -111,7 +113,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertTrue( $store->releaseClaim( '123456789', $claim ) );
 		self::assertNotNull( $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 ) );
 	}
-	public function testFailedClaimReleaseKeepsTheCurrentConnectionClaimForFailureHistory(): void {
+	public function test_failed_claim_release_keeps_the_current_connection_claim_for_failure_history(): void {
 		$store      = new SetupRecordStore();
 		$connection = $GLOBALS['wpdb'];
 		$claim      = $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
@@ -135,11 +137,12 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertTrue( $store->recordFailure( $failure ) );
 		self::assertSame( array( $failure ), $store->failureHistory( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 		self::assertTrue( $connection->isLockHeld() );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve shared test fixture properties outside this cohort.
 		self::assertSame( 1, $connection->lockAcquisitions );
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_release_result'] );
 		self::assertTrue( $store->releaseClaim( '123456789', $claim ) );
 	}
-	public function testConnectionReplacementDropsAStaleClaimBeforeFailureHistorySerialization(): void {
+	public function test_connection_replacement_drops_a_stale_claim_before_failure_history_serialization(): void {
 		$store      = new SetupRecordStore();
 		$connection = $GLOBALS['wpdb'];
 		$claim      = $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
@@ -168,25 +171,25 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertSame( 1, $GLOBALS['wpdb']->lockAcquisitions );
 		self::assertSame( array( $failure ), $store->failureHistory( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 	}
-	public function testOneGlobalClaimSerializesDistinctRepositoryRecords(): void {
-		$first           = new SetupRecordStore();
-		$second          = new SetupRecordStore();
-		$firstConnection = $GLOBALS['wpdb'];
-		$claim           = $first->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
+	public function test_one_global_claim_serializes_distinct_repository_records(): void {
+		$first            = new SetupRecordStore();
+		$second           = new SetupRecordStore();
+		$first_connection = $GLOBALS['wpdb'];
+		$claim            = $first->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
 		self::assertNotNull( $claim );
-		$secondConnection = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
+		$second_connection = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The focused database double switches to a distinct connection.
-		$GLOBALS['wpdb'] = $secondConnection;
+		$GLOBALS['wpdb'] = $second_connection;
 		self::assertNull( $second->claim( '987654321', 'theme', 'example-theme', 2 ) );
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the original connection after the cross-connection assertion.
-		$GLOBALS['wpdb'] = $firstConnection;
+		$GLOBALS['wpdb'] = $first_connection;
 		self::assertTrue( $first->save( $this->record() ) );
 		self::assertTrue( $first->releaseClaim( '123456789', $claim ) );
 
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The focused database double switches to a distinct connection.
-		$GLOBALS['wpdb'] = $secondConnection;
-		$otherClaim      = $second->claim( '987654321', 'theme', 'example-theme', 2 );
-		self::assertNotNull( $otherClaim );
+		$GLOBALS['wpdb'] = $second_connection;
+		$other_claim     = $second->claim( '987654321', 'theme', 'example-theme', 2 );
+		self::assertNotNull( $other_claim );
 		self::assertTrue(
 			$second->save(
 				array_replace(
@@ -201,12 +204,12 @@ final class SetupRecordStoreTest extends TestCase {
 				)
 			)
 		);
-		self::assertTrue( $second->releaseClaim( '987654321', $otherClaim ) );
+		self::assertTrue( $second->releaseClaim( '987654321', $other_claim ) );
 		self::assertNotNull( $second->find( '123456789' ) );
 		self::assertNotNull( $second->find( '987654321' ) );
 		self::assertCount( 2, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
 	}
-	public function testConnectionCloseRecoversAnAbandonedClaimWithoutPersistentState(): void {
+	public function test_connection_close_recovers_an_abandoned_claim_without_persistent_state(): void {
 		$first = new SetupRecordStore();
 		self::assertNotNull( $first->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 		self::assertTrue( $GLOBALS['wpdb']->isLockHeld() );
@@ -224,7 +227,7 @@ final class SetupRecordStoreTest extends TestCase {
 			)
 		);
 	}
-	public function testSourceRevisionRefreshUsesTheSameCrossConnectionLock(): void {
+	public function test_source_revision_refresh_uses_the_same_cross_connection_lock(): void {
 		$store = new SetupRecordStore();
 		self::assertTrue( $store->save( $this->record() ) );
 		self::assertTrue(
@@ -242,8 +245,8 @@ final class SetupRecordStoreTest extends TestCase {
 			)
 		);
 
-		$firstConnection = $GLOBALS['wpdb'];
-		$claim           = $store->claim( '555555555', 'plugin', 'lock-holder/lock-holder.php', 1 );
+		$first_connection = $GLOBALS['wpdb'];
+		$claim            = $store->claim( '555555555', 'plugin', 'lock-holder/lock-holder.php', 1 );
 		self::assertNotNull( $claim );
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The focused database double switches to a distinct connection.
 		$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
@@ -252,7 +255,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertSame( 3, $other->find( '123456789' )['source_revision'] );
 
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the original connection to release its lock.
-		$GLOBALS['wpdb'] = $firstConnection;
+		$GLOBALS['wpdb'] = $first_connection;
 		self::assertTrue( $store->releaseClaim( '555555555', $claim ) );
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The focused database double switches to a distinct connection.
 		$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
@@ -261,7 +264,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertNotNull( $other->find( '987654321' ) );
 		self::assertCount( 2, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
 	}
-	public function testExistingRecordCannotBeClaimedAgainEvenByTheSamePackage(): void {
+	public function test_existing_record_cannot_be_claimed_again_even_by_the_same_package(): void {
 		$store = new SetupRecordStore();
 		self::assertTrue( $store->save( $this->record() ) );
 		self::assertNull( $store->claim( '123456789', 'theme', 'example-plugin/example-plugin.php', 3 ) );
@@ -269,13 +272,13 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertNull( $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 ) );
 		self::assertNull( $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 	}
-	public function testSaveNeverTransfersARepositoryRecordToAnotherPackage(): void {
+	public function test_save_never_transfers_a_repository_record_to_another_package(): void {
 		$store = new SetupRecordStore();
 		self::assertTrue( $store->save( $this->record() ) );
 		self::assertFalse( $store->save( array_replace( $this->record(), array( 'package_identifier' => 'other/other.php' ) ) ) );
 		self::assertSame( 'example-plugin/example-plugin.php', $store->find( '123456789' )['package_identifier'] );
 	}
-	public function testSchemaOneRecordIsOccupiedButNeverInterpretedAsCurrentState(): void {
+	public function test_schema_one_record_is_occupied_but_never_interpreted_as_current_state(): void {
 		$legacy                 = array_intersect_key( $this->record(), array_flip( array( 'repo_id', 'repository', 'package_type', 'package_identifier', 'source_revision', 'default_branch', 'setup_branch', 'head_sha', 'pr_number' ) ) );
 		$legacy['setup_branch'] = 'ran-booster/release-setup-v1-aaaaaaaaaaaa-deadbeef';
 		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['123456789'] = $legacy;
@@ -297,7 +300,7 @@ final class SetupRecordStoreTest extends TestCase {
 		);
 	}
 
-	public function testReadbackAndRecordCapFailClosed(): void {
+	public function test_readback_and_record_cap_fail_closed(): void {
 		$GLOBALS['ran_booster_release_deployments_test_option_override'] = array();
 		self::assertFalse( ( new SetupRecordStore() )->save( $this->record() ) );
 		unset( $GLOBALS['ran_booster_release_deployments_test_option_override'] );
@@ -311,7 +314,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertFalse( ( new SetupRecordStore() )->save( array_replace( $this->record(), array( 'repo_id' => '101' ) ) ) );
 		self::assertTrue( ( new SetupRecordStore() )->save( array_replace( $this->record(), array( 'repo_id' => '100' ) ) ) );
 	}
-	public function testAssessmentObservationIsExactBoundedAndReplacesOnlyItsLatestTuple(): void {
+	public function test_assessment_observation_is_exact_bounded_and_replaces_only_its_latest_tuple(): void {
 		$store       = new SetupRecordStore();
 		$observation = $this->observation();
 		self::assertTrue( $store->saveAssessmentObservation( $observation ) );
@@ -333,28 +336,28 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertCount( 1, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_assessment_observations'] );
 		self::assertFalse( $GLOBALS['ran_booster_release_deployments_test_option_updates'][0][2] );
 	}
-	public function testAssessmentObservationUsesTheSameCrossConnectionLock(): void {
-		$first           = new SetupRecordStore();
-		$firstConnection = $GLOBALS['wpdb'];
-		$claim           = $first->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
+	public function test_assessment_observation_uses_the_same_cross_connection_lock(): void {
+		$first            = new SetupRecordStore();
+		$first_connection = $GLOBALS['wpdb'];
+		$claim            = $first->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
 		self::assertNotNull( $claim );
-		$observation      = $this->observation();
-		$secondConnection = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
+		$observation       = $this->observation();
+		$second_connection = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The focused database double switches to a distinct connection.
-		$GLOBALS['wpdb'] = $secondConnection;
+		$GLOBALS['wpdb'] = $second_connection;
 		$second          = new SetupRecordStore();
 		self::assertFalse( $second->saveAssessmentObservation( $observation ) );
 		self::assertNull( $second->assessmentObservation( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the original connection to release its claim.
-		$GLOBALS['wpdb'] = $firstConnection;
+		$GLOBALS['wpdb'] = $first_connection;
 		self::assertTrue( $first->releaseClaim( '123456789', $claim ) );
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the second connection to prove it can save after release.
-		$GLOBALS['wpdb'] = $secondConnection;
+		$GLOBALS['wpdb'] = $second_connection;
 		self::assertTrue( $second->saveAssessmentObservation( $observation ) );
 		self::assertSame( $observation, $second->assessmentObservation( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 	}
-	public function testMalformedAssessmentObservationOptionFailsClosed(): void {
+	public function test_malformed_assessment_observation_option_fails_closed(): void {
 		$observation = $this->observation();
 		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_assessment_observations'] = array( $observation, $observation );
 		$store = new SetupRecordStore();
@@ -362,7 +365,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertFalse( $store->saveAssessmentObservation( $observation ) );
 		self::assertSame( array(), $GLOBALS['ran_booster_release_deployments_test_option_updates'] );
 	}
-	public function testAssessmentObservationPrunesSupersededSourceRevisionsBeforeTheCap(): void {
+	public function test_assessment_observation_prunes_superseded_source_revisions_before_the_cap(): void {
 		$store = new SetupRecordStore();
 		self::assertTrue( $store->saveAssessmentObservation( $this->observation() ) );
 		$current = array_replace(
@@ -378,7 +381,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertSame( $current, $store->assessmentObservation( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 ) );
 		self::assertCount( 1, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_assessment_observations'] );
 	}
-	public function testAssessmentObservationDeterministicallyEvictsTheOldestValidEntryAtCapacity(): void {
+	public function test_assessment_observation_deterministically_evicts_the_oldest_valid_entry_at_capacity(): void {
 		$store = new SetupRecordStore();
 		for ( $index = 1; $index <= 100; ++$index ) {
 			self::assertTrue(
@@ -407,7 +410,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertSame( $new, $store->assessmentObservation( '101', 'plugin', 'example-101/example.php', 3 ) );
 		self::assertCount( 100, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_assessment_observations'] );
 	}
-	public function testFailureHistoryIsBoundedToSafeValidatedFailureEvidence(): void {
+	public function test_failure_history_is_bounded_to_safe_validated_failure_evidence(): void {
 		$store   = new SetupRecordStore();
 		$failure = array(
 			'operation'             => 'inspect',
@@ -448,12 +451,12 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertFalse( $store->recordFailure( array_replace( $failure, array( 'correlation_reference' => str_repeat( 'b', 32 ) ) ) ) );
 		unset( $GLOBALS['ran_booster_release_deployments_test_option_update_result'] );
 	}
-	public function testFailureHistoryAppendUsesTheSameCrossConnectionLock(): void {
-		$first           = new SetupRecordStore();
-		$firstConnection = $GLOBALS['wpdb'];
-		$claim           = $first->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
+	public function test_failure_history_append_uses_the_same_cross_connection_lock(): void {
+		$first            = new SetupRecordStore();
+		$first_connection = $GLOBALS['wpdb'];
+		$claim            = $first->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
 		self::assertNotNull( $claim );
-		$failure          = array(
+		$failure           = array(
 			'operation'             => 'inspect',
 			'outcome_code'          => 'workflow_remote_unavailable',
 			'failure_stage'         => 'repository_snapshot',
@@ -466,22 +469,22 @@ final class SetupRecordStoreTest extends TestCase {
 			'correlation_reference' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
 			'recorded_at'           => '2026-08-27T12:34:56Z',
 		);
-		$secondConnection = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
+		$second_connection = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The focused database double switches to a distinct connection.
-		$GLOBALS['wpdb'] = $secondConnection;
+		$GLOBALS['wpdb'] = $second_connection;
 		$second          = new SetupRecordStore();
 		self::assertFalse( $second->recordFailure( $failure ) );
 		self::assertSame( array(), $second->failureHistory( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the original connection to release its claim.
-		$GLOBALS['wpdb'] = $firstConnection;
+		$GLOBALS['wpdb'] = $first_connection;
 		self::assertTrue( $first->releaseClaim( '123456789', $claim ) );
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the second connection to prove it can append after release.
-		$GLOBALS['wpdb'] = $secondConnection;
+		$GLOBALS['wpdb'] = $second_connection;
 		self::assertTrue( $second->recordFailure( $failure ) );
 		self::assertSame( array( $failure ), $second->failureHistory( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 	}
-	public function testLegacyFailureHistoryFailsClosedAndIsNotUpgradedOnAppend(): void {
+	public function test_legacy_failure_history_fails_closed_and_is_not_upgraded_on_append(): void {
 		$legacy = array(
 			'operation'             => 'inspect',
 			'outcome_code'          => 'workflow_remote_unavailable',

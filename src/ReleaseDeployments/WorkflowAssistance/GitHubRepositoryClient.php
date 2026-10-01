@@ -27,25 +27,26 @@ final class GitHubRepositoryClient {
 	}
 
 	public function repository( string $repository, string $token = '' ): array {
-		if ( ! $this->validRepository( $repository ) ) {
+		if ( ! $this->valid_repository( $repository ) ) {
 			return $this->error( 'invalid_request' );
 		}
-		$response      = $this->request( 'GET', '/repos/' . $repository, $token );
-		$data          = $response['data'] ?? array();
-		$repositoryId  = $this->numericString( $data['id'] ?? null );
-		$fullName      = $data['full_name'] ?? null;
-		$defaultBranch = $data['default_branch'] ?? null;
+		$response       = $this->request( 'GET', '/repos/' . $repository, $token );
+		$data           = $response['data'] ?? array();
+		$repository_id  = $this->numeric_string( $data['id'] ?? null );
+		$full_name      = $data['full_name'] ?? null;
+		$default_branch = $data['default_branch'] ?? null;
 		if ( 'ok' !== $response['code'] ) {
 			return $response;
 		}
-		if ( null === $repositoryId || ! $this->validRepository( $fullName ) || ! $this->validBranch( $defaultBranch ) ) {
+		if ( null === $repository_id || ! $this->valid_repository( $full_name ) || ! $this->valid_branch( $default_branch ) ) {
 			return $this->error( 'invalid_response' );
 		}
 		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Compact bounded transport shape.
-		return $this->ok( array( 'repository_id' => $repositoryId, 'full_name' => $fullName, 'default_branch' => $defaultBranch ) );
+		return $this->ok( array( 'repository_id' => $repository_id, 'full_name' => $full_name, 'default_branch' => $default_branch ) );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function branchRef( string $repository, string $branch, string $token = '' ): array {
-		if ( ! $this->validRepository( $repository ) || ! $this->validBranch( $branch ) ) {
+		if ( ! $this->valid_repository( $repository ) || ! $this->valid_branch( $branch ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		$response = $this->request( 'GET', '/repos/' . $repository . '/git/ref/heads/' . rawurlencode( $branch ), $token, null, array( 404 => 'missing' ) );
@@ -54,19 +55,23 @@ final class GitHubRepositoryClient {
 		}
 		$sha = $response['data']['object']['sha'] ?? null;
 		$ref = $response['data']['ref'] ?? null;
-		return $this->validSha( $sha ) && is_string( $ref ) && hash_equals( 'refs/heads/' . $branch, $ref )
+		return $this->valid_sha( $sha ) && is_string( $ref ) && hash_equals( 'refs/heads/' . $branch, $ref )
 			? $this->ok( array( 'sha' => $sha ) )
 			: $this->error( 'invalid_response' );
 	}
 	public function snapshot(
 		string $repository,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $repositoryId,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $defaultBranch,
 		string $sha,
 		string $token = ''
 	): array {
-		if ( ! $this->validRepository( $repository ) || null === $this->numericString( $repositoryId )
-			|| ! $this->validBranch( $defaultBranch ) || ! $this->validSha( $sha ) ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		if ( ! $this->valid_repository( $repository ) || null === $this->numeric_string( $repositoryId )
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+			|| ! $this->valid_branch( $defaultBranch ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		$response = $this->request( 'GET', '/repos/' . $repository . '/git/trees/' . $sha . '?recursive=1', $token );
@@ -78,15 +83,15 @@ final class GitHubRepositoryClient {
 			|| count( $data['tree'] ) > self::MAX_TREE ) {
 			return $this->error( 'invalid_response' );
 		}
-		$entries          = array();
-		$candidates       = array();
-		$prefixCandidates = array();
+		$entries           = array();
+		$candidates        = array();
+		$prefix_candidates = array();
 		foreach ( $data['tree'] as $item ) {
-			if ( ! is_array( $item ) || ! $this->validPath( $item['path'] ?? null )
+			if ( ! is_array( $item ) || ! $this->valid_path( $item['path'] ?? null )
 				|| isset( $entries[ $item['path'] ] )
 				|| ! in_array( $item['type'] ?? null, array( 'blob', 'tree' ), true )
 				|| ! in_array( $item['mode'] ?? null, array( '100644', '100755', '040000' ), true )
-				|| ! $this->validSha( $item['sha'] ?? null ) ) {
+				|| ! $this->valid_sha( $item['sha'] ?? null ) ) {
 				return $this->error( 'invalid_response' );
 			}
 			$size = $item['size'] ?? ( 'tree' === $item['type'] ? 0 : null );
@@ -100,21 +105,21 @@ final class GitHubRepositoryClient {
 				'sha'  => $item['sha'],
 				'size' => $size,
 			);
-			if ( 'blob' === $item['type'] && $this->assessmentDocument( $path ) ) {
+			if ( 'blob' === $item['type'] && $this->assessment_document( $path ) ) {
 				$candidates[ $path ] = $item['sha'];
 			} elseif ( 'blob' === $item['type'] && $size >= 42 && SourceReadyAssessor::potentialRuntimeBlob( $path ) ) {
-				$prefixCandidates[ $path ] = $item['sha'];
+				$prefix_candidates[ $path ] = $item['sha'];
 			}
 		}
-		if ( count( $candidates ) + count( $prefixCandidates ) > self::MAX_DOCUMENTS ) {
+		if ( count( $candidates ) + count( $prefix_candidates ) > self::MAX_DOCUMENTS ) {
 			return $this->error( 'invalid_response' );
 		}
-		if ( '' === $token && count( $candidates ) + count( $prefixCandidates ) > self::MAX_ANONYMOUS_DOCUMENTS ) {
+		if ( '' === $token && count( $candidates ) + count( $prefix_candidates ) > self::MAX_ANONYMOUS_DOCUMENTS ) {
 			return $this->error( 'unauthorised' );
 		}
 		$documents = array();
-		foreach ( $candidates as $path => $blobSha ) {
-			$blob = $this->blob( $repository, $blobSha, $token );
+		foreach ( $candidates as $path => $blob_sha ) {
+			$blob = $this->blob( $repository, $blob_sha, $token );
 			if ( 'ok' !== $blob['code'] ) {
 				return $blob;
 			}
@@ -122,14 +127,15 @@ final class GitHubRepositoryClient {
 		}
 
 		$prefixes = array();
-		foreach ( $prefixCandidates as $path => $blobSha ) {
-			$prefix = $this->request( 'GET', '/repos/' . $repository . '/git/blobs/' . $blobSha, $token, null, array(), true );
+		foreach ( $prefix_candidates as $path => $blob_sha ) {
+			$prefix = $this->request( 'GET', '/repos/' . $repository . '/git/blobs/' . $blob_sha, $token, null, array(), true );
 			if ( 'ok' !== $prefix['code'] ) {
 				return $prefix;
 			}
 			$prefixes[ $path ] = $prefix['content'];
 		}
 		try {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 			$snapshot = new RepositorySnapshot( $repositoryId, $repository, $defaultBranch, $sha, $entries, $documents, $prefixes );
 		} catch ( Throwable ) {
 			return $this->error( 'invalid_response' );
@@ -137,7 +143,7 @@ final class GitHubRepositoryClient {
 		return $this->ok( array( 'snapshot' => $snapshot ) );
 	}
 	public function blob( string $repository, string $sha, string $token = '' ): array {
-		if ( ! $this->validRepository( $repository ) || ! $this->validSha( $sha ) ) {
+		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		$response = $this->request( 'GET', '/repos/' . $repository . '/git/blobs/' . $sha, $token );
@@ -158,33 +164,35 @@ final class GitHubRepositoryClient {
 		}
 		return $this->ok( array( 'content' => $content ) );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function gitCommit( string $repository, string $sha, string $token = '' ): array {
-		if ( ! $this->validRepository( $repository ) || ! $this->validSha( $sha ) ) {
+		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		$response = $this->request( 'GET', '/repos/' . $repository . '/git/commits/' . $sha, $token );
 		if ( 'ok' !== $response['code'] ) {
 			return $response;
 		}
-		$data    = $response['data'];
-		$treeSha = $data['tree']['sha'] ?? null;
-		$parents = $data['parents'] ?? null;
-		if ( ! $this->validSha( $data['sha'] ?? null ) || ! hash_equals( $sha, $data['sha'] )
-			|| ! $this->validSha( $treeSha ) || ! is_array( $parents ) || count( $parents ) > 2 ) {
+		$data     = $response['data'];
+		$tree_sha = $data['tree']['sha'] ?? null;
+		$parents  = $data['parents'] ?? null;
+		if ( ! $this->valid_sha( $data['sha'] ?? null ) || ! hash_equals( $sha, $data['sha'] )
+			|| ! $this->valid_sha( $tree_sha ) || ! is_array( $parents ) || count( $parents ) > 2 ) {
 			return $this->error( 'invalid_response' );
 		}
-		$parentShas = array();
+		$parent_shas = array();
 		foreach ( $parents as $parent ) {
-			if ( ! is_array( $parent ) || ! $this->validSha( $parent['sha'] ?? null ) ) {
+			if ( ! is_array( $parent ) || ! $this->valid_sha( $parent['sha'] ?? null ) ) {
 				return $this->error( 'invalid_response' );
 			}
-			$parentShas[] = $parent['sha'];
+			$parent_shas[] = $parent['sha'];
 		}
 		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Compact bounded transport shape.
-		return $this->ok( array( 'sha' => $sha, 'tree_sha' => $treeSha, 'parents' => $parentShas ) );
+		return $this->ok( array( 'sha' => $sha, 'tree_sha' => $tree_sha, 'parents' => $parent_shas ) );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function createBlob( string $repository, string $content, string $token ): array {
-		if ( '' === $token || ! $this->validRepository( $repository ) || strlen( $content ) > self::MAX_BODY
+		if ( '' === $token || ! $this->valid_repository( $repository ) || strlen( $content ) > self::MAX_BODY
 			|| str_contains( $content, "\0" ) || 1 !== preg_match( '//u', $content ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -198,11 +206,13 @@ final class GitHubRepositoryClient {
 			)
 		);
 		$sha      = $response['data']['sha'] ?? null;
-		return 'ok' !== $response['code'] ? $response : ( $this->validSha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
+		return 'ok' !== $response['code'] ? $response : ( $this->valid_sha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
 	}
 	/** @param list<array{path:string,sha:string,mode:string}> $entries */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
 	public function createTree( string $repository, string $baseTreeSha, array $entries, string $token ): array {
-		if ( '' === $token || ! $this->validRepository( $repository ) || ! $this->validSha( $baseTreeSha )
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $baseTreeSha )
 			|| array() === $entries || count( $entries ) > self::MAX_CHANGES ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -210,7 +220,7 @@ final class GitHubRepositoryClient {
 		$seen = array();
 		foreach ( $entries as $entry ) {
 			$path = $entry['path'] ?? null;
-			if ( ! $this->validPath( $path ) || isset( $seen[ $path ] ) || ! $this->validSha( $entry['sha'] ?? null )
+			if ( ! $this->valid_path( $path ) || isset( $seen[ $path ] ) || ! $this->valid_sha( $entry['sha'] ?? null )
 				|| ! in_array( $entry['mode'] ?? null, array( '100644', '100755' ), true ) ) {
 				return $this->error( 'invalid_request' );
 			}
@@ -227,15 +237,18 @@ final class GitHubRepositoryClient {
 			'/repos/' . $repository . '/git/trees',
 			$token,
 			array(
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 				'base_tree' => $baseTreeSha,
 				'tree'      => $tree,
 			)
 		);
 		$sha      = $response['data']['sha'] ?? null;
-		return 'ok' !== $response['code'] ? $response : ( $this->validSha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
+		return 'ok' !== $response['code'] ? $response : ( $this->valid_sha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
 	public function createCommit( string $repository, string $treeSha, string $parentSha, string $message, string $token ): array {
-		if ( '' === $token || ! $this->validRepository( $repository ) || ! $this->validSha( $treeSha ) || ! $this->validSha( $parentSha )
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $treeSha ) || ! $this->valid_sha( $parentSha )
 			|| '' === trim( $message ) || strlen( $message ) > 200 ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -245,15 +258,19 @@ final class GitHubRepositoryClient {
 			$token,
 			array(
 				'message' => $message,
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 				'tree'    => $treeSha,
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 				'parents' => array( $parentSha ),
 			)
 		);
 		$sha      = $response['data']['sha'] ?? null;
-		return 'ok' !== $response['code'] ? $response : ( $this->validSha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
+		return 'ok' !== $response['code'] ? $response : ( $this->valid_sha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
 	public function createRef( string $repository, string $branch, string $defaultBranch, string $sha, string $token ): array {
-		if ( '' === $token || ! $this->validTargetBranch( $repository, $branch, $defaultBranch ) || ! $this->validSha( $sha ) ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $defaultBranch ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Fixed GitHub request shape.
@@ -261,14 +278,15 @@ final class GitHubRepositoryClient {
 		if ( 'ok' !== $response['code'] ) {
 			return $response;
 		}
-		$createdSha = $response['data']['object']['sha'] ?? null;
-		$createdRef = $response['data']['ref'] ?? null;
-		return $this->validSha( $createdSha ) && hash_equals( $sha, $createdSha ) && is_string( $createdRef ) && hash_equals( 'refs/heads/' . $branch, $createdRef )
-			? $this->ok( array( 'sha' => $createdSha ) )
+		$created_sha = $response['data']['object']['sha'] ?? null;
+		$created_ref = $response['data']['ref'] ?? null;
+		return $this->valid_sha( $created_sha ) && hash_equals( $sha, $created_sha ) && is_string( $created_ref ) && hash_equals( 'refs/heads/' . $branch, $created_ref )
+			? $this->ok( array( 'sha' => $created_sha ) )
 			: $this->error( 'invalid_response' );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function pullRequests( string $repository, string $branch, string $token = '' ): array {
-		if ( ! $this->validRepository( $repository ) || ! $this->validBranch( $branch ) ) {
+		if ( ! $this->valid_repository( $repository ) || ! $this->valid_branch( $branch ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		$owner = explode( '/', $repository, 2 )[0];
@@ -284,7 +302,7 @@ final class GitHubRepositoryClient {
 		}
 		$pulls = array();
 		foreach ( $data as $pull ) {
-			$normalized = $this->normalizePull( $repository, $pull );
+			$normalized = $this->normalize_pull( $repository, $pull );
 			if ( null === $normalized || ! hash_equals( $branch, $normalized['head'] ) ) {
 				return $this->error( 'invalid_response' );
 			}
@@ -292,18 +310,20 @@ final class GitHubRepositoryClient {
 		}
 		return $this->ok( array( 'pulls' => $pulls ) );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function pullRequest( string $repository, int $number, string $token = '' ): array {
-		if ( ! $this->validRepository( $repository ) || $number < 1 ) {
+		if ( ! $this->valid_repository( $repository ) || $number < 1 ) {
 			return $this->error( 'invalid_request' );
 		}
 		$response = $this->request( 'GET', '/repos/' . $repository . '/pulls/' . $number, $token, null, array( 404 => 'missing' ) );
-		$pull     = $this->normalizePull( $repository, $response['data'] ?? null );
+		$pull     = $this->normalize_pull( $repository, $response['data'] ?? null );
 		return 'ok' !== $response['code'] ? $response : ( null === $pull
 			? $this->error( 'invalid_response' )
 			: $this->ok( array( 'pull' => $pull ) ) );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function pullRequestFileSet( string $repository, int $number, string $token = '' ): array {
-		if ( ! $this->validRepository( $repository ) || $number < 1 ) {
+		if ( ! $this->valid_repository( $repository ) || $number < 1 ) {
 			return $this->error( 'invalid_request' );
 		}
 		$response = $this->request( 'GET', '/repos/' . $repository . '/pulls/' . $number . '/files?per_page=100', $token );
@@ -318,9 +338,9 @@ final class GitHubRepositoryClient {
 		$seen       = array();
 		foreach ( $files as $file ) {
 			$path = $file['filename'] ?? null;
-			if ( ! is_array( $file ) || ! $this->validPath( $path ) || isset( $seen[ $path ] )
+			if ( ! is_array( $file ) || ! $this->valid_path( $path ) || isset( $seen[ $path ] )
 				|| ! in_array( $file['status'] ?? null, array( 'added', 'modified' ), true )
-				|| ! $this->validSha( $file['sha'] ?? null ) || isset( $file['previous_filename'] ) ) {
+				|| ! $this->valid_sha( $file['sha'] ?? null ) || isset( $file['previous_filename'] ) ) {
 				return $this->error( 'invalid_response' );
 			}
 			$seen[ $path ] = true;
@@ -333,26 +353,29 @@ final class GitHubRepositoryClient {
 		usort( $normalized, static fn ( array $left, array $right ): int => strcmp( $left['path'], $right['path'] ) );
 		return $this->ok( array( 'files' => $normalized ) );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
 	public function createDraftPullRequest( string $repository, string $branch, string $defaultBranch, string $title, string $body, string $token ): array {
-		if ( '' === $token || ! $this->validTargetBranch( $repository, $branch, $defaultBranch ) || '' === trim( $title )
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $defaultBranch ) || '' === trim( $title )
 			|| strlen( $title ) > 120 || strlen( $body ) > 8000
 			|| 1 === preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $title . $body ) ) {
 			return $this->error( 'invalid_request' );
 		}
-		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Fixed GitHub request shape.
+		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Fixed GitHub request shape; preserve public named-parameter compatibility pending the contract cohort.
 		$response = $this->request( 'POST', '/repos/' . $repository . '/pulls', $token, array( 'title' => $title, 'head' => $branch, 'base' => $defaultBranch, 'body' => $body, 'draft' => true ), array( 422 => 'conflict' ) );
-		$pull     = $this->normalizePull( $repository, $response['data'] ?? null );
+		$pull     = $this->normalize_pull( $repository, $response['data'] ?? null );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		return 'ok' !== $response['code'] ? $response : ( null === $pull || ! $pull['draft'] || ! hash_equals( $branch, $pull['head'] ) || ! hash_equals( $defaultBranch, $pull['base'] )
 			? $this->error( 'invalid_response' )
 			: $this->ok( array( 'pull' => $pull ) ) );
 	}
 	/** @param array<string,mixed>|null $body @param array<int,string> $special @return array<string,mixed> */
-	private function request( string $method, string $path, string $token, ?array $body = null, array $special = array(), bool $rawPrefix = false ): array {
-		if ( ! $this->validToken( $token ) || ! str_starts_with( $path, '/repos/' ) ) {
+	private function request( string $method, string $path, string $token, ?array $body = null, array $special = array(), bool $raw_prefix = false ): array {
+		if ( ! $this->valid_token( $token ) || ! str_starts_with( $path, '/repos/' ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		$headers = array(
-			'Accept'               => $rawPrefix ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
+			'Accept'               => $raw_prefix ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
 			'X-GitHub-Api-Version' => '2026-03-10',
 			'User-Agent'           => 'RAN-Booster-Release-Deployments',
 		);
@@ -364,7 +387,7 @@ final class GitHubRepositoryClient {
 			'timeout'             => 12,
 			'redirection'         => 0,
 			'reject_unsafe_urls'  => true,
-			'limit_response_size' => $rawPrefix ? 43 : self::MAX_BODY,
+			'limit_response_size' => $raw_prefix ? 43 : self::MAX_BODY,
 		);
 		if ( null !== $body ) {
 			$args['headers']['Content-Type'] = 'application/json';
@@ -398,7 +421,7 @@ final class GitHubRepositoryClient {
 		if ( $status < 200 || $status >= 300 || ! is_string( $raw ) || strlen( $raw ) > self::MAX_BODY ) {
 			return $this->error( 'remote_unavailable' );
 		}
-		if ( $rawPrefix ) {
+		if ( $raw_prefix ) {
 			return 200 === $status && strlen( $raw ) <= 43 ? $this->ok( array( 'content' => $raw ) ) : $this->error( 'invalid_response' );
 		}
 		try {
@@ -408,11 +431,11 @@ final class GitHubRepositoryClient {
 		}
 		return is_array( $data ) ? $this->ok( array( 'data' => $data ) ) : $this->error( 'invalid_response' );
 	}
-	private function normalizePull( string $repository, mixed $data ): ?array {
+	private function normalize_pull( string $repository, mixed $data ): ?array {
 		if ( ! is_array( $data ) || ! is_int( $data['number'] ?? null ) || $data['number'] < 1
 			|| ! in_array( $data['state'] ?? null, array( 'open', 'closed' ), true )
-			|| ! $this->validSha( $data['head']['sha'] ?? null ) || ! $this->validBranch( $data['head']['ref'] ?? null )
-			|| ! $this->validSha( $data['base']['sha'] ?? null ) || ! $this->validBranch( $data['base']['ref'] ?? null )
+			|| ! $this->valid_sha( $data['head']['sha'] ?? null ) || ! $this->valid_branch( $data['head']['ref'] ?? null )
+			|| ! $this->valid_sha( $data['base']['sha'] ?? null ) || ! $this->valid_branch( $data['base']['ref'] ?? null )
 			|| ! is_string( $data['head']['repo']['full_name'] ?? null ) || 0 !== strcasecmp( $repository, $data['head']['repo']['full_name'] )
 			|| ! is_string( $data['base']['repo']['full_name'] ?? null ) || 0 !== strcasecmp( $repository, $data['base']['repo']['full_name'] ) ) {
 			return null;
@@ -420,25 +443,25 @@ final class GitHubRepositoryClient {
 		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Compact bounded transport shape.
 		return array( 'number' => $data['number'], 'state' => $data['state'], 'draft' => true === ( $data['draft'] ?? null ), 'merged' => is_string( $data['merged_at'] ?? null ) && '' !== $data['merged_at'], 'head' => $data['head']['ref'], 'base' => $data['base']['ref'], 'head_sha' => $data['head']['sha'], 'base_sha' => $data['base']['sha'] );
 	}
-	private function validTargetBranch( string $repository, string $branch, string $defaultBranch ): bool {
-		return $this->validRepository( $repository ) && $this->validBranch( $branch )
-			&& $this->validBranch( $defaultBranch ) && ! hash_equals( $defaultBranch, $branch );
+	private function valid_target_branch( string $repository, string $branch, string $default_branch ): bool {
+		return $this->valid_repository( $repository ) && $this->valid_branch( $branch )
+			&& $this->valid_branch( $default_branch ) && ! hash_equals( $default_branch, $branch );
 	}
-	private function validRepository( mixed $value ): bool {
+	private function valid_repository( mixed $value ): bool {
 		return is_string( $value ) && 1 === preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z/D', $value );
 	}
-	private function validBranch( mixed $value ): bool {
+	private function valid_branch( mixed $value ): bool {
 		return is_string( $value ) && strlen( $value ) <= 191
 			&& 1 === preg_match( '/\A[A-Za-z0-9](?:[A-Za-z0-9._\/-]*[A-Za-z0-9_-])?\z/D', $value )
 			&& ! str_contains( $value, '..' ) && ! str_contains( $value, '//' ) && ! str_contains( $value, '@{' )
 			&& ! str_ends_with( $value, '.lock' );
 	}
-	private function validPath( mixed $value ): bool {
+	private function valid_path( mixed $value ): bool {
 		return is_string( $value ) && '' !== $value && strlen( $value ) <= 512
 			&& ! str_starts_with( $value, '/' ) && ! str_contains( $value, '\\' ) && ! str_contains( $value, "\0" )
 			&& 1 !== preg_match( '#(?:\A|/)\.\.?(/|\z)#', $value ) && 1 === preg_match( '//u', $value );
 	}
-	private function assessmentDocument( string $path ): bool {
+	private function assessment_document( string $path ): bool {
 		return ( ! str_contains( $path, '/' ) && ( str_ends_with( strtolower( $path ), '.php' )
 			|| in_array( $path, array( 'style.css', 'package.json', 'readme.txt', '.prettierignore', InitialReleaseBundle::ORIGIN_PATH, 'release-please-config.json' ), true ) ) )
 			|| ( str_starts_with( $path, '.github/workflows/' ) && 1 === preg_match( '/\.ya?ml\z/i', $path ) )
@@ -457,13 +480,13 @@ final class GitHubRepositoryClient {
 			)
 			|| str_ends_with( $path, 'block.json' ) || str_ends_with( strtolower( $path ), '.pot' );
 	}
-	private function validSha( mixed $value ): bool {
+	private function valid_sha( mixed $value ): bool {
 		return is_string( $value ) && 1 === preg_match( '/\A[a-f0-9]{40}\z/D', $value );
 	}
-	private function validToken( string $value ): bool {
+	private function valid_token( string $value ): bool {
 		return strlen( $value ) <= 255 && 0 === preg_match( '/[\x00-\x20\x7F]/', $value );
 	}
-	private function numericString( mixed $value ): ?string {
+	private function numeric_string( mixed $value ): ?string {
 		$value = is_int( $value ) || is_string( $value ) ? (string) $value : '';
 		return strlen( $value ) <= 191 && 1 === preg_match( '/\A[1-9][0-9]*\z/D', $value ) ? $value : null;
 	}

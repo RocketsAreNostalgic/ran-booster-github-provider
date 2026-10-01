@@ -37,7 +37,7 @@ final class GitHubRepositoryReleaseWorkflow {
 			is_array( $observation ) ? $observation['kind'] : '',
 			is_array( $observation ) ? $observation['observed_at'] : '',
 			$history,
-			$this->credentialChoices(),
+			$this->credential_choices(),
 			array(
 				array(
 					'label' => 'GitHub releases',
@@ -48,7 +48,7 @@ final class GitHubRepositoryReleaseWorkflow {
 					'url'   => 'https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases',
 				),
 			),
-			$this->workflowUrl( $status ),
+			$this->workflow_url( $status ),
 			'Setup PR created does not mean execution readiness. Review RELEASE-STARTER.md before activating workflows; read-only Quality can run on the draft PR.'
 		);
 	}
@@ -83,32 +83,40 @@ final class GitHubRepositoryReleaseWorkflow {
 		);
 	}
 
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credentialId ): RepositoryReleaseWorkflowResult {
 		if ( 'stable' !== $channel ) {
-			return $this->persist( 'inspect', $status, $this->invalidRequest( $status ) );
+			return $this->persist( 'inspect', $status, $this->invalid_request( $status ) );
 		}
-		if ( ! $this->bootstrapPreflight( $preflight ) ) {
-			return $this->persist( 'inspect', $status, $this->preflightResult( $status, $preflight ) );
+		if ( ! $this->bootstrap_preflight( $preflight ) ) {
+			return $this->persist( 'inspect', $status, $this->preflight_result( $status, $preflight ) );
 		}
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		$token = $this->credential( $credentialId, false );
-		return $this->persist( 'inspect', $status, $this->selectedCredentialUnavailable( $credentialId, $token ) ? $this->unauthorised( $status ) : $this->coordinator->inspect( $status, $channel, $preflight, $token ) );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
+		return $this->persist( 'inspect', $status, $this->selected_credential_unavailable( $credentialId, $token ) ? $this->unauthorised( $status ) : $this->coordinator->inspect( $status, $channel, $preflight, $token ) );
 	}
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credentialId ): RepositoryReleaseWorkflowResult {
-		if ( ! $this->bootstrapPreflight( $preflight ) ) {
-			return $this->persist( 'setup', $status, $this->preflightResult( $status, $preflight, $key ) );
+		if ( ! $this->bootstrap_preflight( $preflight ) ) {
+			return $this->persist( 'setup', $status, $this->preflight_result( $status, $preflight, $key ) );
 		}
 		if ( null === $this->coordinator->preview( $key, $status ) ) {
 			return $this->persist( 'setup', $status, $this->unauthorised( $status, $key ) );
 		}
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		$token = $this->credential( $credentialId, true );
 		return $this->persist( 'setup', $status, '' === $token ? $this->unauthorised( $status, $key ) : $this->coordinator->setup( $status, $key, $confirmation, $preflight, $token ) );
 	}
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function outcome( RepositoryReleaseWorkflowTarget $status, ?string $credentialId ): RepositoryReleaseWorkflowResult {
 		if ( ! $this->coordinator->hasCurrentRecord( $status ) ) {
-			return $this->persist( 'outcome', $status, $this->invalidRequest( $status ) );
+			return $this->persist( 'outcome', $status, $this->invalid_request( $status ) );
 		}
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 		$token = $this->credential( $credentialId, true );
-		return $this->persist( 'outcome', $status, $this->selectedCredentialUnavailable( $credentialId, $token ) ? $this->unauthorised( $status ) : $this->coordinator->outcome( $status, $token ) );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
+		return $this->persist( 'outcome', $status, $this->selected_credential_unavailable( $credentialId, $token ) ? $this->unauthorised( $status ) : $this->coordinator->outcome( $status, $token ) );
 	}
 	private function persist( string $operation, RepositoryReleaseWorkflowTarget $status, array $outcome ): RepositoryReleaseWorkflowResult {
 		$observation = match ( $outcome['code'] ) {
@@ -147,10 +155,10 @@ final class GitHubRepositoryReleaseWorkflow {
 		}
 		return new RepositoryReleaseWorkflowResult( $outcome['code'], $outcome['successful'], $outcome['preview_key'], $outcome['failure_stage'], $outcome['diagnostic_code'], $outcome['correlation_reference'] ?? '' );
 	}
-	private function bootstrapPreflight( RepositoryReleaseWorkflowPreflight $preflight ): bool {
+	private function bootstrap_preflight( RepositoryReleaseWorkflowPreflight $preflight ): bool {
 		return in_array( $preflight->code(), array( 'ready', 'release_unavailable' ), true );
 	}
-	private function preflightResult( RepositoryReleaseWorkflowTarget $status, RepositoryReleaseWorkflowPreflight $preflight, string $key = '' ): array {
+	private function preflight_result( RepositoryReleaseWorkflowTarget $status, RepositoryReleaseWorkflowPreflight $preflight, string $key = '' ): array {
 		return array(
 			'code'            => 'workflow_' . ( 'preflight_unavailable' === $preflight->code() ? 'preflight_unavailable' : $preflight->code() ),
 			'successful'      => false,
@@ -168,7 +176,7 @@ final class GitHubRepositoryReleaseWorkflow {
 			'diagnostic_code' => 'credential_authorisation_unavailable',
 		);
 	}
-	private function invalidRequest( RepositoryReleaseWorkflowTarget $status, string $key = '' ): array {
+	private function invalid_request( RepositoryReleaseWorkflowTarget $status, string $key = '' ): array {
 		return array(
 			'code'            => 'workflow_invalid_request',
 			'successful'      => false,
@@ -189,10 +197,10 @@ final class GitHubRepositoryReleaseWorkflow {
 			return '' === $secret && $required ? '' : $secret;
 		} catch ( Throwable ) {
 			return ''; } }
-	private function selectedCredentialUnavailable( ?string $id, string $token ): bool {
+	private function selected_credential_unavailable( ?string $id, string $token ): bool {
 		return null !== $id && '' !== $id && '' === $token;
 	}
-	private function credentialChoices(): array {
+	private function credential_choices(): array {
 		try {
 			$profiles = $this->credentials->credentialProfiles();
 		} catch ( Throwable ) {
@@ -202,26 +210,26 @@ final class GitHubRepositoryReleaseWorkflow {
 			if ( is_array( $profile ) && 'file' === ( $profile['source'] ?? null ) && empty( $profile['immutable'] ) && ! empty( $profile['configured'] ) && is_string( $profile['id'] ?? null ) && is_string( $profile['label'] ?? null ) && is_string( $profile['kind'] ?? null ) ) {
 				$choices[] = array(
 					'id'    => $profile['id'],
-					'label' => $this->credentialLabel( $profile['label'], $profile['kind'] ),
+					'label' => $this->credential_label( $profile['label'], $profile['kind'] ),
 				);
 			}
 		} return array_slice( $choices, 0, 16 );
 	}
-	private function credentialLabel( string $label, string $kind ): string {
-		$suffix = $this->utf8Prefix( ' (' . $kind . ')', 255 );
-		return $this->utf8Prefix( $label, 255 - strlen( $suffix ) ) . $suffix;
+	private function credential_label( string $label, string $kind ): string {
+		$suffix = $this->utf8_prefix( ' (' . $kind . ')', 255 );
+		return $this->utf8_prefix( $label, 255 - strlen( $suffix ) ) . $suffix;
 	}
-	private function utf8Prefix( string $value, int $maximumBytes ): string {
-		$value = substr( $value, 0, max( 0, $maximumBytes ) );
+	private function utf8_prefix( string $value, int $maximum_bytes ): string {
+		$value = substr( $value, 0, max( 0, $maximum_bytes ) );
 		while ( '' !== $value && 1 !== preg_match( '//u', $value ) ) {
 			$value = substr( $value, 0, -1 );
 		}
 		return $value;
 	}
-	private function repositoryLocator( ?array $record ): string {
+	private function repository_locator( ?array $record ): string {
 		return is_array( $record ) && is_string( $record['repository'] ?? null ) ? $record['repository'] : '';
 	}
-	private function workflowUrl( RepositoryReleaseWorkflowTarget $status ): string {
+	private function workflow_url( RepositoryReleaseWorkflowTarget $status ): string {
 		$url = $status->expectedUpdateUri();
 		return 1 === preg_match( '#\Ahttps://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z#D', $url ) ? $url . '/actions' : '';
 	}

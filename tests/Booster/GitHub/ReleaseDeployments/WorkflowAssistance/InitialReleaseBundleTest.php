@@ -15,10 +15,10 @@ require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 
 final class InitialReleaseBundleTest extends TestCase {
-	public function testBuildsOneRepeatableCompleteApi3BootstrapTree(): void {
-		$archive    = TemplatePackApi3Fixture::archive();
-		$packResult = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
-		self::assertSame( 'ok', $packResult['code'] );
+	public function test_builds_one_repeatable_complete_api3_bootstrap_tree(): void {
+		$archive     = TemplatePackApi3Fixture::archive();
+		$pack_result = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+		self::assertSame( 'ok', $pack_result['code'] );
 		$snapshot   = $this->snapshot();
 		$assessment = $this->assessment( $snapshot );
 		$documents  = array();
@@ -33,8 +33,8 @@ final class InitialReleaseBundleTest extends TestCase {
 			array_reverse( $snapshot->entries(), true ),
 			$documents
 		);
-		$first     = InitialReleaseBundle::bootstrap( $packResult['pack'], $assessment, $snapshot, 'https://github.com/owner/example-plugin/' );
-		$second    = InitialReleaseBundle::bootstrap( $packResult['pack'], $this->assessment( $reordered ), $reordered, 'https://github.com/owner/example-plugin' );
+		$first     = InitialReleaseBundle::bootstrap( $pack_result['pack'], $assessment, $snapshot, 'https://github.com/owner/example-plugin/' );
+		$second    = InitialReleaseBundle::bootstrap( $pack_result['pack'], $this->assessment( $reordered ), $reordered, 'https://github.com/owner/example-plugin' );
 
 		self::assertSame( 'ok', $first['code'] );
 		self::assertSame( $first['bundle']->hash(), $second['bundle']->hash() );
@@ -75,7 +75,7 @@ final class InitialReleaseBundleTest extends TestCase {
 	}
 
 
-	public function testGuidanceTracksTheWorkflowPinInACompatiblePack(): void {
+	public function test_guidance_tracks_the_workflow_pin_in_a_compatible_pack(): void {
 		$path     = 'templates/shared/release-please.yml.tmpl';
 		$pin      = str_repeat( 'b', 40 );
 		$template = str_replace( '63c4a4b192bbb4cf203dab281b75a0907e85c3a9', $pin, TemplatePackApi3Fixture::templates()[ $path ] );
@@ -105,7 +105,7 @@ final class InitialReleaseBundleTest extends TestCase {
 		}
 	}
 
-	public function testBlockScalarPinDecoyCannotBecomeOriginProvenance(): void {
+	public function test_block_scalar_pin_decoy_cannot_become_origin_provenance(): void {
 		$path     = 'templates/shared/release-please.yml.tmpl';
 		$original = TemplatePackApi3Fixture::templates()[ $path ];
 		foreach ( array(
@@ -126,7 +126,7 @@ final class InitialReleaseBundleTest extends TestCase {
 		}
 	}
 
-	public function testRefusesNonReadyAssessmentAndOccupiedGeneratedPath(): void {
+	public function test_refuses_non_ready_assessment_and_occupied_generated_path(): void {
 		$archive = TemplatePackApi3Fixture::archive();
 		$pack    = TemplatePack::fromArchive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['pack'];
 		$base    = $this->snapshot();

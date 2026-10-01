@@ -41,7 +41,7 @@ final class TemplatePackRepositoryClient {
 		if ( 'ok' !== $repository['code'] ) {
 			return $repository;
 		}
-		$list = $this->jsonRequest(
+		$list = $this->json_request(
 			'/repos/' . self::REPOSITORY . '/releases?per_page=' . self::RELEASE_WINDOW . '&page=1',
 			self::JSON_BODY_LIMIT,
 			$token
@@ -68,7 +68,7 @@ final class TemplatePackRepositoryClient {
 		}
 		usort( $candidates, static fn ( array $left, array $right ): int => version_compare( $right['version'], $left['version'] ) );
 
-		return array() === $candidates ? $this->error( 'template_pack_unavailable' ) : $this->verifiedRelease( $candidates[0], $token );
+		return array() === $candidates ? $this->error( 'template_pack_unavailable' ) : $this->verified_release( $candidates[0], $token );
 	}
 
 	/**
@@ -77,15 +77,18 @@ final class TemplatePackRepositoryClient {
 	 * @param array<string, mixed> $expectedIdentity
 	 * @return array{code:string, pack?:TemplatePack}
 	 */
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
 	public function exact( array $expectedIdentity, string $token = '' ): array {
-		if ( ! $this->expectedIdentityBelongsHere( $expectedIdentity ) ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
+		if ( ! $this->expected_identity_belongs_here( $expectedIdentity ) ) {
 			return $this->error( 'template_pack_changed' );
 		}
 		$repository = $this->repository( $token );
 		if ( 'ok' !== $repository['code'] ) {
 			return $repository;
 		}
-		$release = $this->jsonRequest(
+		$release = $this->json_request(
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
 			'/repos/' . self::REPOSITORY . '/releases/' . $expectedIdentity['release_id'],
 			self::JSON_BODY_LIMIT,
 			$token
@@ -94,26 +97,28 @@ final class TemplatePackRepositoryClient {
 			return $release;
 		}
 		$candidate = $this->candidate( $release['data'] );
-		if ( ! is_array( $candidate ) || ! $this->candidateMatchesExpected( $candidate, $expectedIdentity ) ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
+		if ( ! is_array( $candidate ) || ! $this->candidate_matches_expected( $candidate, $expectedIdentity ) ) {
 			return $this->error( 'template_pack_changed' );
 		}
-		$result = $this->verifiedRelease( $candidate, $token );
+		$result = $this->verified_release( $candidate, $token );
 		if ( 'ok' !== $result['code'] ) {
 			return in_array( $result['code'], array( 'template_pack_incompatible', 'template_pack_unavailable' ), true )
 				? $result
 				: $this->error( 'template_pack_changed' );
 		}
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the coordinated caller cohort.
 		return $result['pack']->identity() === $expectedIdentity ? $result : $this->error( 'template_pack_changed' );
 	}
 
 	/** @return array{code:string} */
 	private function repository( string $token ): array {
-		$response = $this->jsonRequest( '/repos/' . self::REPOSITORY, 65536, $token );
+		$response = $this->json_request( '/repos/' . self::REPOSITORY, 65536, $token );
 		if ( 'ok' !== $response['code'] ) {
 			return $response;
 		}
-		$id   = $this->positiveNumericString( $response['data']['id'] ?? null );
+		$id   = $this->positive_numeric_string( $response['data']['id'] ?? null );
 		$name = $response['data']['full_name'] ?? null;
 		return is_string( $name ) && hash_equals( self::REPOSITORY, $name ) && null !== $id && hash_equals( self::REPOSITORY_ID, $id )
 			? $this->ok( array() )
@@ -124,8 +129,8 @@ final class TemplatePackRepositoryClient {
 	 * @param array<string, mixed> $candidate
 	 * @return array{code:string, pack?:TemplatePack}
 	 */
-	private function verifiedRelease( array $candidate, string $token ): array {
-		$release = $this->jsonRequest(
+	private function verified_release( array $candidate, string $token ): array {
+		$release = $this->json_request(
 			'/repos/' . self::REPOSITORY . '/releases/' . $candidate['release_id'],
 			self::JSON_BODY_LIMIT,
 			$token
@@ -137,7 +142,7 @@ final class TemplatePackRepositoryClient {
 		if ( ! is_array( $exact ) || $exact !== $candidate ) {
 			return $this->error( 'template_pack_changed' );
 		}
-		$tag = $this->jsonRequest(
+		$tag = $this->json_request(
 			'/repos/' . self::REPOSITORY . '/git/ref/tags/' . rawurlencode( $candidate['release_tag'] ),
 			32768,
 			$token
@@ -145,13 +150,13 @@ final class TemplatePackRepositoryClient {
 		if ( 'ok' !== $tag['code'] ) {
 			return $tag;
 		}
-		$tagType   = $tag['data']['object']['type'] ?? null;
-		$tagTarget = $tag['data']['object']['sha'] ?? null;
-		if ( 'commit' !== $tagType || ! is_string( $tagTarget ) || 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $tagTarget ) ) {
+		$tag_type   = $tag['data']['object']['type'] ?? null;
+		$tag_target = $tag['data']['object']['sha'] ?? null;
+		if ( 'commit' !== $tag_type || ! is_string( $tag_target ) || 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $tag_target ) ) {
 			return $this->error( 'template_pack_invalid' );
 		}
 
-		$commit = $this->jsonRequest(
+		$commit = $this->json_request(
 			'/repos/' . self::REPOSITORY . '/commits/' . rawurlencode( $candidate['release_tag'] ),
 			32768,
 			$token
@@ -159,12 +164,12 @@ final class TemplatePackRepositoryClient {
 		if ( 'ok' !== $commit['code'] ) {
 			return $commit;
 		}
-		$commitSha = $commit['data']['sha'] ?? null;
-		if ( ! is_string( $commitSha ) || 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $commitSha )
-			|| ! hash_equals( $candidate['release_target'], $commitSha ) || ! hash_equals( $tagTarget, $commitSha ) ) {
+		$commit_sha = $commit['data']['sha'] ?? null;
+		if ( ! is_string( $commit_sha ) || 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $commit_sha )
+			|| ! hash_equals( $candidate['release_target'], $commit_sha ) || ! hash_equals( $tag_target, $commit_sha ) ) {
 			return $this->error( 'template_pack_invalid' );
 		}
-		$asset = $this->binaryRequest(
+		$asset = $this->binary_request(
 			'/repos/' . self::REPOSITORY . '/releases/assets/' . $candidate['asset_id'],
 			$candidate['asset_size'],
 			$token
@@ -180,9 +185,9 @@ final class TemplatePackRepositoryClient {
 			'repository_id'      => self::REPOSITORY_ID,
 			'release_id'         => $candidate['release_id'],
 			'release_tag'        => $candidate['release_tag'],
-			'release_commit'     => $commitSha,
+			'release_commit'     => $commit_sha,
 			'release_target'     => $candidate['release_target'],
-			'tag_target'         => $tagTarget,
+			'tag_target'         => $tag_target,
 			'release_draft'      => false,
 			'release_prerelease' => false,
 			'release_immutable'  => true,
@@ -209,55 +214,55 @@ final class TemplatePackRepositoryClient {
 			return false;
 		}
 		$tag     = $release['tag_name'] ?? null;
-		$version = is_string( $tag ) ? $this->versionFromTag( $tag ) : null;
+		$version = is_string( $tag ) ? $this->version_from_tag( $tag ) : null;
 		if ( is_string( $tag ) && null === $version ) {
 			return false;
 		}
 		if ( null === $version ) {
 			return null;
 		}
-		$releaseId = $this->positiveInt( $release['id'] ?? null );
-		$target    = $release['target_commitish'] ?? null;
-		$assets    = is_array( $release['assets'] ?? null ) ? $release['assets'] : array();
-		$matches   = array_values(
+		$release_id = $this->positive_int( $release['id'] ?? null );
+		$target     = $release['target_commitish'] ?? null;
+		$assets     = is_array( $release['assets'] ?? null ) ? $release['assets'] : array();
+		$matches    = array_values(
 			array_filter(
 				$assets,
 				fn ( mixed $asset ): bool => is_array( $asset ) && hash_equals( self::ASSET_NAME, (string) ( $asset['name'] ?? '' ) )
 			)
 		);
-		if ( null === $releaseId || null === $version || ! is_string( $target )
+		if ( null === $release_id || null === $version || ! is_string( $target )
 			|| 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $target ) || 1 !== count( $assets ) || 1 !== count( $matches ) ) {
 			return null;
 		}
-		$asset       = $matches[0];
-		$assetId     = $this->positiveInt( $asset['id'] ?? null );
-		$assetSize   = $this->positiveInt( $asset['size'] ?? null );
-		$assetState  = $asset['state'] ?? null;
-		$contentType = $asset['content_type'] ?? null;
-		$digest      = is_string( $asset['digest'] ?? null ) ? $asset['digest'] : '';
-		if ( null === $assetId || null === $assetSize || $assetSize > self::ASSET_BODY_LIMIT || 'uploaded' !== $assetState
-			|| ! in_array( $contentType, array( 'application/zip', 'application/octet-stream' ), true ) || 1 !== preg_match( '/\Asha256:([a-f0-9]{64})\z/D', $digest, $digestMatch ) ) {
+		$asset        = $matches[0];
+		$asset_id     = $this->positive_int( $asset['id'] ?? null );
+		$asset_size   = $this->positive_int( $asset['size'] ?? null );
+		$asset_state  = $asset['state'] ?? null;
+		$content_type = $asset['content_type'] ?? null;
+		$digest       = is_string( $asset['digest'] ?? null ) ? $asset['digest'] : '';
+		if ( null === $asset_id || null === $asset_size || $asset_size > self::ASSET_BODY_LIMIT || 'uploaded' !== $asset_state
+			|| ! in_array( $content_type, array( 'application/zip', 'application/octet-stream' ), true ) || 1 !== preg_match( '/\Asha256:([a-f0-9]{64})\z/D', $digest, $digest_match ) ) {
 			return null;
 		}
 
 		return array(
-			'release_id'         => $releaseId,
+			'release_id'         => $release_id,
 			'release_tag'        => $tag,
 			'release_target'     => $target,
 			'version'            => $version,
 			'asset_count'        => 1,
-			'asset_id'           => $assetId,
+			'asset_id'           => $asset_id,
 			'asset_name'         => self::ASSET_NAME,
-			'asset_state'        => $assetState,
-			'asset_content_type' => $contentType,
-			'asset_size'         => $assetSize,
+			'asset_state'        => $asset_state,
+			'asset_content_type' => $content_type,
+			'asset_size'         => $asset_size,
 			'asset_digest'       => $digest,
-			'asset_sha256'       => $digestMatch[1],
+			'asset_sha256'       => $digest_match[1],
 		);
 	}
 
 	/** @param array<string, mixed> $expected */
-	private function expectedIdentityBelongsHere( array $expected ): bool {
+	private function expected_identity_belongs_here( array $expected ): bool {
 		$keys = array(
 			'repository_name',
 			'repository_id',
@@ -282,7 +287,7 @@ final class TemplatePackRepositoryClient {
 			&& ( $expected['repository_name'] ?? null ) === self::REPOSITORY
 			&& ( $expected['repository_id'] ?? null ) === self::REPOSITORY_ID
 			&& is_int( $expected['release_id'] ?? null ) && $expected['release_id'] > 0
-			&& is_string( $expected['release_tag'] ?? null ) && null !== $this->versionFromTag( $expected['release_tag'] )
+			&& is_string( $expected['release_tag'] ?? null ) && null !== $this->version_from_tag( $expected['release_tag'] )
 			&& is_string( $expected['release_commit'] ?? null ) && 1 === preg_match( '/\A[a-f0-9]{40}\z/D', $expected['release_commit'] )
 			&& hash_equals( $expected['release_commit'], (string) ( $expected['release_target'] ?? '' ) )
 			&& hash_equals( $expected['release_commit'], (string) ( $expected['tag_target'] ?? '' ) )
@@ -297,7 +302,7 @@ final class TemplatePackRepositoryClient {
 	}
 
 	/** @param array<string, int|string> $candidate @param array<string, mixed> $expected */
-	private function candidateMatchesExpected( array $candidate, array $expected ): bool {
+	private function candidate_matches_expected( array $candidate, array $expected ): bool {
 		return $candidate['release_id'] === $expected['release_id']
 			&& hash_equals( $candidate['release_tag'], $expected['release_tag'] )
 			&& hash_equals( $candidate['release_target'], $expected['release_target'] )
@@ -312,7 +317,7 @@ final class TemplatePackRepositoryClient {
 	}
 
 	/** @return array{code:string, data?:array<string,mixed>|list<mixed>} */
-	private function jsonRequest( string $path, int $limit, string $token ): array {
+	private function json_request( string $path, int $limit, string $token ): array {
 		$response = $this->request( $path, 'application/vnd.github+json', $limit, 0, $token );
 		if ( 'ok' !== $response['code'] ) {
 			return $response;
@@ -327,8 +332,8 @@ final class TemplatePackRepositoryClient {
 	}
 
 	/** @return array{code:string, body?:string} */
-	private function binaryRequest( string $path, int $expectedSize, string $token ): array {
-		return $this->request( $path, 'application/octet-stream', min( self::ASSET_BODY_LIMIT, $expectedSize + 1 ), 3, $token );
+	private function binary_request( string $path, int $expected_size, string $token ): array {
+		return $this->request( $path, 'application/octet-stream', min( self::ASSET_BODY_LIMIT, $expected_size + 1 ), 3, $token );
 	}
 
 	/** @return array{code:string, body?:string} */
@@ -350,10 +355,10 @@ final class TemplatePackRepositoryClient {
 		if ( '' !== $token ) {
 			$args['headers']['Authorization'] = 'Bearer ' . $token;
 		}
-		$redirectScrubber = null;
+		$redirect_scrubber = null;
 		if ( $redirects > 0 && '' !== $token ) {
-			$origin           = self::API_ROOT . $path;
-			$redirectScrubber = static function ( mixed &$location, array &$headers, mixed $data, mixed $options, mixed $original ) use ( $origin ): void {
+			$origin            = self::API_ROOT . $path;
+			$redirect_scrubber = static function ( mixed &$location, array &$headers, mixed $data, mixed $options, mixed $original ) use ( $origin ): void {
 				if ( ! is_object( $original ) || ! isset( $original->url ) || $origin !== $original->url ) {
 					return;
 				}
@@ -364,15 +369,15 @@ final class TemplatePackRepositoryClient {
 					}
 				}
 			};
-			add_action( self::REDIRECT_HOOK, $redirectScrubber, 10, 5 );
+			add_action( self::REDIRECT_HOOK, $redirect_scrubber, 10, 5 );
 		}
 		try {
 			$response = ( $this->send )( 'GET', self::API_ROOT . $path, $args );
 		} catch ( Throwable ) {
 			return $this->error( 'template_pack_unavailable' );
 		} finally {
-			if ( null !== $redirectScrubber ) {
-				remove_action( self::REDIRECT_HOOK, $redirectScrubber, 10 );
+			if ( null !== $redirect_scrubber ) {
+				remove_action( self::REDIRECT_HOOK, $redirect_scrubber, 10 );
 			}
 		}
 		if ( ! is_array( $response ) ) {
@@ -390,7 +395,7 @@ final class TemplatePackRepositoryClient {
 		return $this->ok( array( 'body' => $body ) );
 	}
 
-	private function positiveInt( mixed $value ): ?int {
+	private function positive_int( mixed $value ): ?int {
 		$value = is_int( $value ) || is_string( $value ) ? (string) $value : '';
 		if ( 1 !== preg_match( '/\A[1-9][0-9]*\z/D', $value ) || strlen( $value ) > 18 ) {
 			return null;
@@ -399,12 +404,12 @@ final class TemplatePackRepositoryClient {
 		return $number > 0 && (string) $number === $value ? $number : null;
 	}
 
-	private function positiveNumericString( mixed $value ): ?string {
+	private function positive_numeric_string( mixed $value ): ?string {
 		$value = is_int( $value ) || is_string( $value ) ? (string) $value : '';
 		return strlen( $value ) <= 191 && 1 === preg_match( '/\A[1-9][0-9]*\z/D', $value ) ? $value : null;
 	}
 
-	private function versionFromTag( string $tag ): ?string {
+	private function version_from_tag( string $tag ): ?string {
 		$version = substr( $tag, 1 );
 		return str_starts_with( $tag, 'v' ) && StarterOrigin::version( $version ) ? $version : null;
 	}

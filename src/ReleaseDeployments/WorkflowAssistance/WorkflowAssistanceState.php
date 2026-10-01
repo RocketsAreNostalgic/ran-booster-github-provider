@@ -11,6 +11,7 @@ final class WorkflowAssistanceState {
 	public const FAILURE_OPTION    = 'ran_booster_github_provider_release_workflow_failure_history';
 	public const PREVIEW_PREFIX    = 'ran_booster_github_provider_release_workflow_preview_';
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public static function claimLockName(): string {
 		global $wpdb;
 
@@ -20,9 +21,10 @@ final class WorkflowAssistanceState {
 	}
 
 	/** Remove current provider-owned durable workflow-assistance state. */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve public method and named-parameter compatibility pending the coordinated caller cohort.
 	public function removeDurableState(): bool {
 		$missing = new \stdClass();
-		foreach ( self::currentOptions() as $option ) {
+		foreach ( self::current_options() as $option ) {
 			delete_option( $option );
 			if ( function_exists( 'wp_cache_delete' ) ) {
 				wp_cache_delete( $option, 'options' );
@@ -36,7 +38,7 @@ final class WorkflowAssistanceState {
 	}
 
 	/** @return list<string> */
-	private static function currentOptions(): array {
+	private static function current_options(): array {
 		return array(
 			self::SETUP_OPTION,
 			self::ASSESSMENT_OPTION,

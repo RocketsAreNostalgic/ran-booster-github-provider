@@ -20,25 +20,31 @@ final readonly class RepositorySnapshot {
 	 * @param array<string, string>                                            $blobPrefixes
 	 */
 	public function __construct(
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 		private string $repositoryId,
 		private string $repository,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 		private string $defaultBranch,
 		private string $sha,
 		private array $entries,
 		private array $documents,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 		private array $blobPrefixes = array()
 	) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 		if ( 1 !== preg_match( '/\A[1-9][0-9]*\z/D', $repositoryId )
 			|| 1 !== preg_match( '#\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z#D', $repository )
-			|| ! self::validBranch( $defaultBranch )
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
+			|| ! self::valid_branch( $defaultBranch )
 			|| 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $sha )
 			|| count( $entries ) > self::MAX_ENTRIES
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 			|| count( $documents ) + count( $blobPrefixes ) > self::MAX_DOCUMENTS ) {
 			throw new InvalidArgumentException( 'Repository snapshot identity or bounds are invalid.' );
 		}
 
 		foreach ( $entries as $path => $entry ) {
-			if ( ! self::validPath( $path ) || ! is_array( $entry )
+			if ( ! self::valid_path( $path ) || ! is_array( $entry )
 				|| ! in_array( $entry['type'] ?? null, array( 'blob', 'tree' ), true )
 				|| ! in_array( $entry['mode'] ?? null, array( '100644', '100755', '040000' ), true )
 				|| ( 'tree' === ( $entry['type'] ?? null ) ) !== ( '040000' === ( $entry['mode'] ?? null ) )
@@ -55,6 +61,7 @@ final readonly class RepositorySnapshot {
 				throw new InvalidArgumentException( 'Repository snapshot contains an invalid document.' );
 			}
 		}
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 		foreach ( $blobPrefixes as $path => $prefix ) {
 			if ( ! isset( $entries[ $path ] ) || 'blob' !== $entries[ $path ]['type'] || ! is_string( $prefix )
 				|| strlen( $prefix ) !== min( 43, $entries[ $path ]['size'] ) ) {
@@ -63,16 +70,22 @@ final readonly class RepositorySnapshot {
 		}
 	}
 	/** Binary-safe, bounded prefix from the exact tree blob; not an assessment document. */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function blobPrefix( string $path ): ?string {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 		return isset( $this->documents[ $path ] ) ? substr( $this->documents[ $path ], 0, 43 ) : ( $this->blobPrefixes[ $path ] ?? null );
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function repositoryId(): string {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 		return $this->repositoryId;
 	}
 	public function repository(): string {
 		return $this->repository;
 	}
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function defaultBranch(): string {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 		return $this->defaultBranch;
 	}
 	public function sha(): string {
@@ -89,22 +102,25 @@ final readonly class RepositorySnapshot {
 		return $this->documents[ $path ] ?? null;
 	}
 	/** @return list<string> */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function documentPaths(): array {
 		$paths = array_keys( $this->documents );
 		sort( $paths, SORT_STRING );
 		return $paths;
 	}
 	/** Number of inspected blobs consumed by the GitHub client readback budget. */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function inspectedBlobCount(): int {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public constructor named parameters and their promoted properties pending the contract cohort.
 		return count( $this->documents ) + count( $this->blobPrefixes );
 	}
-	private static function validPath( string $path ): bool {
+	private static function valid_path( string $path ): bool {
 		return '' !== $path && strlen( $path ) <= 512 && ! str_starts_with( $path, '/' )
 			&& ! str_contains( $path, "\0" ) && ! str_contains( $path, '\\' )
 			&& 1 !== preg_match( '#(?:\A|/)\.\.?(/|\z)#', $path )
 			&& 1 === preg_match( '//u', $path );
 	}
-	private static function validBranch( string $branch ): bool {
+	private static function valid_branch( string $branch ): bool {
 		return strlen( $branch ) <= 191
 			&& 1 === preg_match( '/\A[A-Za-z0-9](?:[A-Za-z0-9._\/-]*[A-Za-z0-9_-])?\z/D', $branch )
 			&& ! str_contains( $branch, '..' ) && ! str_contains( $branch, '//' )

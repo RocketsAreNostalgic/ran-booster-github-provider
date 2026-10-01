@@ -66,7 +66,12 @@ and Core DTO members until their coordinated caller cohort. They are migration
 debt, not external-signature exemptions. Do not extend them to new private code.
 The 17 direct `tests/Booster/GitHub/*Test.php` files also enforce owned method
 and variable naming. PHPUnit lifecycle methods and unchanged production/Core
-test doubles have precise declaration/use-local exceptions. WorkflowAssistance,
-shared test support and bootstrap naming remain separate cohorts. See
+test doubles have precise declaration/use-local exceptions. All 14 production
+WorkflowAssistance classes and their 10 same-basename test files now use the same
+scoped checks. Private workflow methods/state and owned locals are migrated;
+public methods/parameters, public constructor promotions and shared fixture/Core
+members retain precise deferrals pending their connected cohorts. Shared test
+support, bootstrap and the three template archive/API/producer test classes remain
+separate naming cohorts. Template/data keys and runtime protocols are unchanged. See
 [the migration ledger](docs/naming-migration.md) and
 [the proposed Core contract manifest](docs/naming-core-contract-manifest.md).
