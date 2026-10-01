@@ -21,9 +21,9 @@ not grant it a private host API or extra mutation authority.
 
 ## Versions and compatibility
 
-The current published package is
-[`v1.0.0-beta.8`](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/releases/tag/v1.0.0-beta.8).
-Its Composer dependencies and host compatibility requirements are listed below.
+Published package versions are listed in
+[GitHub Releases](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/releases).
+This revision's Composer dependencies and host compatibility requirements are listed below.
 [Composer metadata](composer.json) declares PHP and package dependencies; the
 WordPress and Provider API requirements are host contracts, not Composer checks.
 
@@ -59,12 +59,13 @@ contract before adopting a different version.
 
 For package development or a controlled host-integration experiment, clone this
 repository and select the release or development revision you intend to test.
-For example, to inspect and validate the published package:
+To inspect and validate a published package, choose its immutable tag from
+GitHub Releases and set `provider_tag` to that exact tag before running:
 
 ```bash
 git clone https://github.com/RocketsAreNostalgic/ran-booster-github-provider.git
 cd ran-booster-github-provider
-git checkout v1.0.0-beta.8
+git checkout --detach "${provider_tag:?Set provider_tag to an immutable published tag}"
 composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```

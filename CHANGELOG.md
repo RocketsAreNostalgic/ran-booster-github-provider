@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.0.0-beta.9](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.8...v1.0.0-beta.9) (2026-10-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate Provider-owned helper APIs with paired Core consumers ([#48](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/48))
+
+### Bug Fixes
+
+* complete local test naming and standards enforcement ([#46](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/46)) ([7f6a064](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/7f6a064664b4730d81eeb2cdaff7e5aaa8244e8c))
+* migrate and enforce private workflow naming ([#45](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/45)) ([29917ab](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/29917abc5fc25eda2c1d3746fb2314f03bd93f19))
+* migrate and enforce Provider-owned private naming ([#42](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/42)) ([c6b9240](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/c6b924090243a0c0111ffd14c7ebe808ae003dc3))
+
+
+### Code Refactoring
+
+* migrate Provider-owned helper APIs with paired Core consumers ([#48](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/48)) ([57f1dae](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/57f1dae2c98da9570f6acc27d691a7f03851436a))
+
 ## [1.0.0-beta.8](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.7...v1.0.0-beta.8) (2026-09-30)
 
 
