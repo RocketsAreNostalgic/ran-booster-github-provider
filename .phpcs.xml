@@ -18,12 +18,32 @@
 
 	<rule ref="RANWordPressLibrary"/>
 
-	<!-- Preserve the inherited camelCase provider API and implementation locals during extraction. -->
+	<!-- Remaining public/API and workflow cohorts are coordinated under #25/#167/#28. -->
 	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
 		<severity>0</severity>
 	</rule>
+	<!-- Check completed owned methods even in interface-implementing classes. -->
+	<rule ref="RANOwnedMethods">
+		<include-pattern>/src/CredentialPolicy.php</include-pattern>
+		<include-pattern>/src/Diagnostics.php</include-pattern>
+		<include-pattern>/src/GitHubProvider.php</include-pattern>
+		<include-pattern>/src/GitHubReleaseArtifact.php</include-pattern>
+		<include-pattern>/src/GitHubReleaseNativeTarget.php</include-pattern>
+		<include-pattern>/src/RepositoryBrowser.php</include-pattern>
+		<include-pattern>/src/RepositoryWebhookClient.php</include-pattern>
+		<include-pattern>/src/WebhookNormalizer.php</include-pattern>
+		<include-pattern>/src/WebhookPolicy.php</include-pattern>
+	</rule>
 	<rule ref="WordPress.NamingConventions.ValidVariableName">
-		<severity>0</severity>
+		<include-pattern>/src/CredentialPolicy.php</include-pattern>
+		<include-pattern>/src/Diagnostics.php</include-pattern>
+		<include-pattern>/src/GitHubProvider.php</include-pattern>
+		<include-pattern>/src/GitHubReleaseArtifact.php</include-pattern>
+		<include-pattern>/src/GitHubReleaseNativeTarget.php</include-pattern>
+		<include-pattern>/src/RepositoryBrowser.php</include-pattern>
+		<include-pattern>/src/RepositoryWebhookClient.php</include-pattern>
+		<include-pattern>/src/WebhookNormalizer.php</include-pattern>
+		<include-pattern>/src/WebhookPolicy.php</include-pattern>
 	</rule>
 
 	<!-- Yoda rewrites would create a broad migration-only semantic diff in the inherited implementation. -->

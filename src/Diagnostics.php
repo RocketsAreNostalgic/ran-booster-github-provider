@@ -18,14 +18,14 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 
 	public function diagnose( ProviderDiagnosticRequest $request ): array {
 		return array(
-			$this->credentialResult( $request ),
-			$this->repositoryResult( $request ),
+			$this->credential_result( $request ),
+			$this->repository_result( $request ),
 		);
 	}
 
-	private function credentialResult( ProviderDiagnosticRequest $request ): ProviderDiagnosticResult {
-		$credentialId = $request->getCredentialId();
-		if ( null === $credentialId ) {
+	private function credential_result( ProviderDiagnosticRequest $request ): ProviderDiagnosticResult {
+		$credential_id = $request->getCredentialId();
+		if ( null === $credential_id ) {
 			return new ProviderDiagnosticResult(
 				ProviderDiagnosticResult::NOT_CONFIGURED,
 				'gh.credential.not_configured',
@@ -35,11 +35,11 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 		}
 
 		try {
-			$result = $this->browser->validateCredential( $credentialId, $request->claimRemoteCall() );
+			$result = $this->browser->validateCredential( $credential_id, $request->claimRemoteCall() );
 		} catch ( ProviderDiagnosticBudgetExceeded ) {
-			return $this->budgetResult( 'gh.credential.budget_exhausted' );
+			return $this->budget_result( 'gh.credential.budget_exhausted' );
 		} catch ( \Throwable $exception ) {
-			return $this->unavailableResult( 'gh.credential.unavailable', 'GitHub credential validation could not be completed.', $exception );
+			return $this->unavailable_result( 'gh.credential.unavailable', 'GitHub credential validation could not be completed.', $exception );
 		}
 
 		if ( $result->isValid() ) {
@@ -61,7 +61,7 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 		}
 
 		if ( in_array( $result->reason, array( CredentialValidationResult::UNAVAILABLE, CredentialValidationResult::INVALID_RESPONSE ), true ) ) {
-			return $this->unavailableResult( 'gh.credential.unavailable', 'GitHub credential validation could not be completed.' );
+			return $this->unavailable_result( 'gh.credential.unavailable', 'GitHub credential validation could not be completed.' );
 		}
 
 		return new ProviderDiagnosticResult(
@@ -72,7 +72,7 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 		);
 	}
 
-	private function repositoryResult( ProviderDiagnosticRequest $request ): ProviderDiagnosticResult {
+	private function repository_result( ProviderDiagnosticRequest $request ): ProviderDiagnosticResult {
 		$repository = $request->getRepository();
 		if ( null === $repository ) {
 			return new ProviderDiagnosticResult(
@@ -86,11 +86,11 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 		try {
 			$this->browser->repository( $repository, $request->getCredentialId(), $request->claimRemoteCall(), 65536 );
 		} catch ( ProviderDiagnosticBudgetExceeded ) {
-			return $this->budgetResult( 'gh.repository.budget_exhausted' );
+			return $this->budget_result( 'gh.repository.budget_exhausted' );
 		} catch ( RuntimeException $exception ) {
-			return $this->repositoryFailure( $exception );
+			return $this->repository_failure( $exception );
 		} catch ( \Throwable $exception ) {
-			return $this->unavailableResult( 'gh.repository.unavailable', 'GitHub repository access could not be completed.', $exception );
+			return $this->unavailable_result( 'gh.repository.unavailable', 'GitHub repository access could not be completed.', $exception );
 		}
 
 		return new ProviderDiagnosticResult(
@@ -101,7 +101,7 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 		);
 	}
 
-	private function repositoryFailure( RuntimeException $exception ): ProviderDiagnosticResult {
+	private function repository_failure( RuntimeException $exception ): ProviderDiagnosticResult {
 		return match ( $exception->getCode() ) {
 			401, 403 => new ProviderDiagnosticResult(
 				ProviderDiagnosticResult::FAILED,
@@ -121,11 +121,11 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 				'GitHub rate-limited the repository check.',
 				'Try the check again after the rate limit resets.'
 			),
-			default => $this->unavailableResult( 'gh.repository.unavailable', 'GitHub repository access could not be completed.' ),
+			default => $this->unavailable_result( 'gh.repository.unavailable', 'GitHub repository access could not be completed.' ),
 		};
 	}
 
-	private function budgetResult( string $code ): ProviderDiagnosticResult {
+	private function budget_result( string $code ): ProviderDiagnosticResult {
 		return new ProviderDiagnosticResult(
 			ProviderDiagnosticResult::WARNING,
 			$code,
@@ -134,7 +134,7 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 		);
 	}
 
-	private function unavailableResult( string $code, string $message, ?\Throwable $failure = null ): ProviderDiagnosticResult {
+	private function unavailable_result( string $code, string $message, ?\Throwable $failure = null ): ProviderDiagnosticResult {
 		return new ProviderDiagnosticResult(
 			ProviderDiagnosticResult::WARNING,
 			$code,

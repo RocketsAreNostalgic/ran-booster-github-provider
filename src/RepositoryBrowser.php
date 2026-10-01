@@ -48,16 +48,23 @@ class RepositoryBrowser {
 	 * exception message.
 	 */
 	public function repository(
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $fullName,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		?string $credentialId = null,
 		float|int $timeout = 15,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		?int $responseSize = null,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		bool $authenticateDefault = false
 	): RepositoryDescriptor {
-		$fullName = $this->validateRepositoryName( $fullName );
-		$headers  = $this->requestHeaders();
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$fullName = $this->validate_repository_name( $fullName );
+		$headers  = $this->request_headers();
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		if ( null !== $credentialId || $authenticateDefault ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 			$credential = $this->credentials->credentialMaterial( $credentialId );
 			$token      = is_array( $credential ) && isset( $credential['secret'] ) && is_string( $credential['secret'] )
 				? trim( $credential['secret'] )
@@ -76,12 +83,15 @@ class RepositoryBrowser {
 			'reject_unsafe_urls' => true,
 			'headers'            => $headers,
 		);
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		if ( null !== $responseSize ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 			$arguments['limit_response_size'] = $responseSize;
 		}
 
 		$response = wp_remote_get(
-			self::PUBLIC_API_BASE . '/repos/' . $this->encodeRepositoryName( $fullName ),
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $fullName ),
 			$arguments
 		);
 
@@ -94,7 +104,7 @@ class RepositoryBrowser {
 			throw new RuntimeException( 'GitHub rejected the selected credential.', 401 );
 		}
 
-		if ( $this->isRateLimitedResponse( $response, $status ) ) {
+		if ( $this->is_rate_limited_response( $response, $status ) ) {
 			throw new RuntimeException( 'GitHub API rate limit has been reached. Try again later.', 429 );
 		}
 
@@ -110,9 +120,11 @@ class RepositoryBrowser {
 			throw new RuntimeException( 'GitHub could not resolve that repository. Please try again.', 502 );
 		}
 
-		$item       = json_decode( wp_remote_retrieve_body( $response ), true, 512, JSON_BIGINT_AS_STRING );
-		$repository = $this->descriptorFromItem( $item, $credentialId );
+		$item = json_decode( wp_remote_retrieve_body( $response ), true, 512, JSON_BIGINT_AS_STRING );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$repository = $this->descriptor_from_item( $item, $credentialId );
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		if ( null === $repository || 0 !== strcasecmp( $fullName, $repository->locator ) ) {
 			throw new RuntimeException( 'GitHub returned an invalid repository response. Please try again.', 502 );
 		}
@@ -128,48 +140,65 @@ class RepositoryBrowser {
 	 * repositories remain anonymous unless a credential was explicitly
 	 * selected; private repositories may use the provider's default credential.
 	 */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function branchHead(
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $fullName,
 		string $branch,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $expectedRepositoryId,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		?string $credentialId = null,
 		bool $private = false
 	): string {
-		$fullName = $this->validateRepositoryName( $fullName );
-		$branch   = $this->validateBranch( $branch );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$fullName = $this->validate_repository_name( $fullName );
+		$branch   = $this->validate_branch( $branch );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		$identity = $this->repository( $fullName, $credentialId, 15, 65536, $private );
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort. Preserve promoted constructor or Core DTO property contracts.
 		if ( ! hash_equals( $expectedRepositoryId, $identity->providerRepositoryId ) ) {
 			throw new RuntimeException( 'GitHub returned an invalid repository identity while resolving the branch.', 502 );
 		}
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		return $this->currentBranchHead( $fullName, $branch, $credentialId, $private );
 	}
 
 	/**
 	 * Resolve a branch, tag or commit to an immutable repository-bound commit.
 	 */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function immutableRef(
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $fullName,
 		string $ref,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $expectedRepositoryId,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		?string $credentialId = null,
 		bool $private = false
 	): string {
-		$fullName = $this->validateRepositoryName( $fullName );
-		$ref      = $this->validateRef( $ref );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$fullName = $this->validate_repository_name( $fullName );
+		$ref      = $this->validate_ref( $ref );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		$identity = $this->repository( $fullName, $credentialId, 15, 65536, $private );
 
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort. Preserve promoted constructor or Core DTO property contracts.
 		if ( ! hash_equals( $expectedRepositoryId, $identity->providerRepositoryId ) ) {
 			throw new RuntimeException( 'GitHub returned an invalid repository identity while resolving the revision.', 502 );
 		}
 
-		$headers           = $this->authenticatedRequestHeaders( $credentialId, $private );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$headers           = $this->authenticated_request_headers( $credentialId, $private );
 		$headers['Accept'] = 'application/vnd.github.sha';
 		$response          = wp_remote_get(
 			self::PUBLIC_API_BASE
 				. '/repos/'
-				. $this->encodeRepositoryName( $fullName )
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+				. $this->encode_repository_name( $fullName )
 				. '/commits/'
 				. rawurlencode( $ref ),
 			array(
@@ -192,7 +221,7 @@ class RepositoryBrowser {
 		if ( 401 === $status ) {
 			throw new RuntimeException( 'GitHub rejected the selected credential while resolving the repository revision.', 401 );
 		}
-		if ( $this->isRateLimitedResponse( $response, $status ) ) {
+		if ( $this->is_rate_limited_response( $response, $status ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The retry type stores only a normalized integer delay and fixed message.
 			throw new RuntimeException( 'GitHub API rate limit has been reached. Try again later.', 429 );
 		}
@@ -220,21 +249,27 @@ class RepositoryBrowser {
 	/**
 	 * Re-read a previously identity-bound branch without another repository call.
 	 */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort.
 	public function currentBranchHead(
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		string $fullName,
 		string $branch,
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		?string $credentialId = null,
 		bool $private = false
 	): string {
-		$fullName = $this->validateRepositoryName( $fullName );
-		$branch   = $this->validateBranch( $branch );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$fullName = $this->validate_repository_name( $fullName );
+		$branch   = $this->validate_branch( $branch );
 
-		$headers = $this->authenticatedRequestHeaders( $credentialId, $private );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$headers = $this->authenticated_request_headers( $credentialId, $private );
 
 		$response = wp_remote_get(
 			self::PUBLIC_API_BASE
 				. '/repos/'
-				. $this->encodeRepositoryName( $fullName )
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+				. $this->encode_repository_name( $fullName )
 				. '/branches/'
 				. rawurlencode( $branch ),
 			array(
@@ -259,7 +294,7 @@ class RepositoryBrowser {
 			throw new RuntimeException( 'GitHub rejected the selected credential while resolving the repository branch.', 401 );
 		}
 
-		if ( $this->isRateLimitedResponse( $response, $status ) ) {
+		if ( $this->is_rate_limited_response( $response, $status ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The retry type stores only a normalized integer delay and fixed message.
 			throw new RuntimeException( 'GitHub API rate limit has been reached. Try again later.', 429 );
 		}
@@ -298,8 +333,10 @@ class RepositoryBrowser {
 	}
 
 	/** Check one normalized repository-relative directory at an immutable ref. */
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
 	public function pathExists( string $fullName, string $ref, string $path, ?string $credentialId = null, bool $private = false ): bool {
-		$fullName = $this->validateRepositoryName( $fullName );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+		$fullName = $this->validate_repository_name( $fullName );
 		try {
 			$path = RepositoryRelativePath::normalize( $path );
 		} catch ( InvalidArgumentException $exception ) {
@@ -311,13 +348,15 @@ class RepositoryBrowser {
 		}
 
 		$response = wp_remote_get(
-			self::PUBLIC_API_BASE . '/repos/' . $this->encodeRepositoryName( $fullName ) . '/contents/' . implode( '/', array_map( 'rawurlencode', explode( '/', $path ) ) ) . '?ref=' . rawurlencode( strtolower( $ref ) ),
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $fullName ) . '/contents/' . implode( '/', array_map( 'rawurlencode', explode( '/', $path ) ) ) . '?ref=' . rawurlencode( strtolower( $ref ) ),
 			array(
 				'timeout'             => 15,
 				'redirection'         => 0,
 				'limit_response_size' => 1024,
 				'reject_unsafe_urls'  => true,
-				'headers'             => $this->authenticatedRequestHeaders( $credentialId, $private ),
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
+				'headers'             => $this->authenticated_request_headers( $credentialId, $private ),
 			)
 		);
 		if ( is_wp_error( $response ) ) {
@@ -330,7 +369,7 @@ class RepositoryBrowser {
 		if ( 401 === $status ) {
 			throw new RuntimeException( 'GitHub rejected the selected credential while checking the repository path.', 401 );
 		}
-		if ( $this->isRateLimitedResponse( $response, $status ) ) {
+		if ( $this->is_rate_limited_response( $response, $status ) ) {
 			throw new RuntimeException( 'GitHub API rate limit has been reached. Try again later.', 429 );
 		}
 		if ( 403 === $status ) {
@@ -354,7 +393,9 @@ class RepositoryBrowser {
 		throw new RuntimeException( 'GitHub could not check the repository path.', 502 );
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Public contract naming awaits the coordinated #25/#167 caller cohort. Preserve public named-parameter compatibility pending the contract cohort.
 	public function validateCredential( string $credentialId, float $timeout = 15.0 ): CredentialValidationResult {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
 		$credential = $this->credentials->credentialMaterial( $credentialId );
 		$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
@@ -372,7 +413,7 @@ class RepositoryBrowser {
 				'limit_response_size' => 65536,
 				'reject_unsafe_urls'  => true,
 				'headers'             => array_merge(
-					$this->requestHeaders(),
+					$this->request_headers(),
 					array( 'Authorization' => 'Bearer ' . $token )
 				),
 			)
@@ -387,7 +428,7 @@ class RepositoryBrowser {
 			return CredentialValidationResult::invalid();
 		}
 
-		if ( $this->isRateLimitedResponse( $response, $status ) ) {
+		if ( $this->is_rate_limited_response( $response, $status ) ) {
 			return CredentialValidationResult::rateLimited();
 		}
 
@@ -404,7 +445,7 @@ class RepositoryBrowser {
 			return CredentialValidationResult::invalidResponse();
 		}
 
-		return CredentialValidationResult::valid( $this->credentialExpiryReport( $response ) );
+		return CredentialValidationResult::valid( $this->credential_expiry_report( $response ) );
 	}
 
 	/**
@@ -414,7 +455,7 @@ class RepositoryBrowser {
 	 *
 	 * @param array<string, mixed> $response WordPress HTTP response.
 	 */
-	private function credentialExpiryReport( array $response ): CredentialExpiryReport {
+	private function credential_expiry_report( array $response ): CredentialExpiryReport {
 		$value = wp_remote_retrieve_header( $response, 'GitHub-Authentication-Token-Expiration' );
 		if ( ! is_string( $value )
 			|| '' === $value
@@ -449,14 +490,14 @@ class RepositoryBrowser {
 
 	public function browse( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
 		return RepositoryBrowseMode::PUBLIC_OWNER === $request->getMode()
-			? $this->browsePublic( $request )
-			: $this->browseAccessible( $request );
+			? $this->browse_public( $request )
+			: $this->browse_accessible( $request );
 	}
 
-	private function browseAccessible( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
-		$credentialId = (string) $request->getCredentialId();
-		$credential   = $this->credentials->credentialMaterial( $credentialId );
-		$token        = is_array( $credential ) && is_string( $credential['secret'] ?? null )
+	private function browse_accessible( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
+		$credential_id = (string) $request->getCredentialId();
+		$credential    = $this->credentials->credentialMaterial( $credential_id );
+		$token         = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
 			: '';
 
@@ -464,28 +505,28 @@ class RepositoryBrowser {
 			throw new RuntimeException( 'The selected GitHub credential is not available.', 400 );
 		}
 
-		$headers                  = $this->requestHeaders();
+		$headers                  = $this->request_headers();
 		$headers['Authorization'] = 'Bearer ' . $token;
 
-		return $this->browsePages(
+		return $this->browse_pages(
 			self::API_URL . '?affiliation=owner%2Ccollaborator%2Corganization_member',
 			$headers,
 			$request,
-			$credentialId,
+			$credential_id,
 			false
 		);
 	}
 
-	private function browsePublic( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
+	private function browse_public( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
 		$owner = trim( (string) $request->getOwner() );
 		if ( ! preg_match( '/\A(?=.{1,39}\z)(?!-)(?!.*--)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\z/', $owner ) ) {
 			throw new RuntimeException( 'Enter a valid GitHub user or organisation name.', 400 );
 		}
 
-		$credentialId = $request->getCredentialId();
-		$headers      = $this->requestHeaders();
-		if ( null !== $credentialId ) {
-			$credential = $this->credentials->credentialMaterial( $credentialId );
+		$credential_id = $request->getCredentialId();
+		$headers       = $this->request_headers();
+		if ( null !== $credential_id ) {
+			$credential = $this->credentials->credentialMaterial( $credential_id );
 			$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 				? trim( $credential['secret'] )
 				: '';
@@ -497,77 +538,77 @@ class RepositoryBrowser {
 			$headers['Authorization'] = 'Bearer ' . $token;
 		}
 
-		$account        = $this->browseRequest(
+		$account         = $this->browse_request(
 			self::PUBLIC_API_BASE . '/users/' . rawurlencode( $owner ),
 			$headers,
 			$request
 		);
-		$accountType    = is_string( $account['type'] ?? null ) ? $account['type'] : '';
-		$canonicalOwner = is_string( $account['login'] ?? null ) ? $account['login'] : $owner;
+		$account_type    = is_string( $account['type'] ?? null ) ? $account['type'] : '';
+		$canonical_owner = is_string( $account['login'] ?? null ) ? $account['login'] : $owner;
 
-		if ( 'Organization' === $accountType ) {
-			$endpoint = self::PUBLIC_API_BASE . '/orgs/' . rawurlencode( $canonicalOwner ) . '/repos?type=public';
-		} elseif ( 'User' === $accountType ) {
-			$endpoint = self::PUBLIC_API_BASE . '/users/' . rawurlencode( $canonicalOwner ) . '/repos?type=owner';
+		if ( 'Organization' === $account_type ) {
+			$endpoint = self::PUBLIC_API_BASE . '/orgs/' . rawurlencode( $canonical_owner ) . '/repos?type=public';
+		} elseif ( 'User' === $account_type ) {
+			$endpoint = self::PUBLIC_API_BASE . '/users/' . rawurlencode( $canonical_owner ) . '/repos?type=owner';
 		} else {
 			throw new RuntimeException( 'That GitHub account is not a user or organisation.', 400 );
 		}
 
-		return $this->browsePages( $endpoint, $headers, $request, null, true );
+		return $this->browse_pages( $endpoint, $headers, $request, null, true );
 	}
 
 	/** @param array<string, string> $headers */
-	private function browsePages(
+	private function browse_pages(
 		string $endpoint,
 		array $headers,
 		RepositoryBrowseRequest $request,
-		?string $credentialId,
-		bool $publicOnly
+		?string $credential_id,
+		bool $public_only
 	): RepositoryBrowseResult {
 		$repositories = array();
 
 		for ( $page = 1; ; ++$page ) {
 			if ( ! $request->hasCapacity() ) {
-				return $this->partialBrowseResult( $repositories, 503 );
+				return $this->partial_browse_result( $repositories, 503 );
 			}
 
 			$separator = str_contains( $endpoint, '?' ) ? '&' : '?';
 			$url       = $endpoint . $separator . 'per_page=' . self::PER_PAGE . '&page=' . $page . '&sort=full_name';
 			try {
-				$items = $this->browseRequest( $url, $headers, $request );
+				$items = $this->browse_request( $url, $headers, $request );
 			} catch ( RuntimeException | InvalidArgumentException $exception ) {
 				if ( array() === $repositories
-					|| ( $publicOnly
+					|| ( $public_only
 						&& null !== $request->getCredentialId()
 						&& in_array( (int) $exception->getCode(), array( 401, 403, 429 ), true ) )
 				) {
 					throw $exception;
 				}
 
-				return $this->partialBrowseResult( $repositories, (int) $exception->getCode() );
+				return $this->partial_browse_result( $repositories, (int) $exception->getCode() );
 			}
 			if ( ! array_is_list( $items ) ) {
 				if ( array() === $repositories ) {
 					throw new RuntimeException( 'GitHub returned an invalid repository list.', 422 );
 				}
 
-				return $this->partialBrowseResult( $repositories, 422 );
+				return $this->partial_browse_result( $repositories, 422 );
 			}
 
 			foreach ( $items as $item ) {
-				$repository = $this->descriptorFromItem( $item, $credentialId );
-				if ( null === $repository || ( $publicOnly && $repository->private ) ) {
+				$repository = $this->descriptor_from_item( $item, $credential_id );
+				if ( null === $repository || ( $public_only && $repository->private ) ) {
 					continue;
 				}
 
 				$repositories[] = $repository;
 				if ( RepositoryBrowseRequest::MAX_RESULTS <= count( $repositories ) ) {
-					return $this->partialBrowseResult( $repositories, 206 );
+					return $this->partial_browse_result( $repositories, 206 );
 				}
 			}
 
 			if ( count( $items ) < self::PER_PAGE ) {
-				$this->sortRepositories( $repositories );
+				$this->sort_repositories( $repositories );
 
 				return new RepositoryBrowseResult( $repositories );
 			}
@@ -575,7 +616,7 @@ class RepositoryBrowser {
 	}
 
 	/** @param array<string, string> $headers */
-	private function browseRequest( string $url, array $headers, RepositoryBrowseRequest $request ): array {
+	private function browse_request( string $url, array $headers, RepositoryBrowseRequest $request ): array {
 		$response = wp_remote_get(
 			$url,
 			array(
@@ -598,7 +639,7 @@ class RepositoryBrowser {
 		if ( 401 === $status ) {
 			throw new RuntimeException( 'GitHub rejected the selected credential.', 401 );
 		}
-		if ( $this->isRateLimitedResponse( $response, $status ) ) {
+		if ( $this->is_rate_limited_response( $response, $status ) ) {
 			throw new RuntimeException( 'GitHub API rate limit has been reached. Try again later.', 429 );
 		}
 		if ( 403 === $status ) {
@@ -620,13 +661,13 @@ class RepositoryBrowser {
 	}
 
 	/** @param list<RepositoryDescriptor> $repositories */
-	private function partialBrowseResult( array $repositories, int $status ): RepositoryBrowseResult {
+	private function partial_browse_result( array $repositories, int $status ): RepositoryBrowseResult {
 		if ( array() === $repositories ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Status is an internal fixed integer; the message is fixed and redacted.
 			throw new RuntimeException( 'GitHub repository browsing could not continue safely.', $status );
 		}
 
-		$this->sortRepositories( $repositories );
+		$this->sort_repositories( $repositories );
 
 		$reason = match ( $status ) {
 			401, 403 => RepositoryBrowseResult::AUTHORIZATION,
@@ -638,7 +679,7 @@ class RepositoryBrowser {
 		return new RepositoryBrowseResult( $repositories, $reason );
 	}
 
-	private function isRateLimitedResponse( mixed $response, int $status ): bool {
+	private function is_rate_limited_response( mixed $response, int $status ): bool {
 		if ( 429 === $status ) {
 			return true;
 		}
@@ -652,33 +693,33 @@ class RepositoryBrowser {
 			return true;
 		}
 
-		$retryAfter = wp_remote_retrieve_header( $response, 'retry-after' );
-		if ( ! is_string( $retryAfter ) ) {
+		$retry_after = wp_remote_retrieve_header( $response, 'retry-after' );
+		if ( ! is_string( $retry_after ) ) {
 			return false;
 		}
 
-		$retryAfter = trim( $retryAfter );
-		if ( '' === $retryAfter ) {
+		$retry_after = trim( $retry_after );
+		if ( '' === $retry_after ) {
 			return false;
 		}
 
-		if ( preg_match( '/\A\d+\z/', $retryAfter ) ) {
+		if ( preg_match( '/\A\d+\z/', $retry_after ) ) {
 			return true;
 		}
 
-		$retryAt = DateTimeImmutable::createFromFormat(
+		$retry_at = DateTimeImmutable::createFromFormat(
 			'!' . self::HTTP_DATE_FORMAT,
-			$retryAfter,
+			$retry_after,
 			new DateTimeZone( 'GMT' )
 		);
 
-		return false !== $retryAt && $retryAt->format( self::HTTP_DATE_FORMAT ) === $retryAfter;
+		return false !== $retry_at && $retry_at->format( self::HTTP_DATE_FORMAT ) === $retry_after;
 	}
 
 	/**
 	 * @return array<string, string>
 	 */
-	private function requestHeaders(): array {
+	private function request_headers(): array {
 		return array(
 			'Accept'               => 'application/vnd.github+json',
 			'X-GitHub-Api-Version' => self::API_VERSION,
@@ -687,14 +728,14 @@ class RepositoryBrowser {
 	}
 
 	/** @return array<string, string> */
-	private function authenticatedRequestHeaders( ?string $credentialId, bool $private ): array {
-		$headers = $this->requestHeaders();
+	private function authenticated_request_headers( ?string $credential_id, bool $private ): array {
+		$headers = $this->request_headers();
 
-		if ( ! $private && null === $credentialId ) {
+		if ( ! $private && null === $credential_id ) {
 			return $headers;
 		}
 
-		$credential = $this->credentials->credentialMaterial( $credentialId );
+		$credential = $this->credentials->credentialMaterial( $credential_id );
 		$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
 			: '';
@@ -708,9 +749,9 @@ class RepositoryBrowser {
 		return $headers;
 	}
 
-	private function validateRepositoryName( string $fullName ): string {
-		$fullName = trim( $fullName );
-		$parts    = explode( '/', $fullName );
+	private function validate_repository_name( string $full_name ): string {
+		$full_name = trim( $full_name );
+		$parts     = explode( '/', $full_name );
 
 		if ( 2 !== count( $parts )
 			|| ! preg_match( '/\A(?=.{1,39}\z)(?!-)(?!.*--)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\z/', $parts[0] )
@@ -720,10 +761,10 @@ class RepositoryBrowser {
 			throw new RuntimeException( 'Enter a valid GitHub repository in owner/repository form.', 400 );
 		}
 
-		return $fullName;
+		return $full_name;
 	}
 
-	private function validateBranch( string $branch ): string {
+	private function validate_branch( string $branch ): string {
 		if ( ! GitReferenceSyntax::isValidNamedReference( $branch ) ) {
 			throw new RuntimeException( 'Enter a valid GitHub repository branch.', 400 );
 		}
@@ -731,21 +772,21 @@ class RepositoryBrowser {
 		return $branch;
 	}
 
-	private function validateRef( string $ref ): string {
+	private function validate_ref( string $ref ): string {
 		try {
-			return $this->validateBranch( $ref );
+			return $this->validate_branch( $ref );
 		} catch ( RuntimeException ) {
 			throw new RuntimeException( 'Enter a valid GitHub repository branch, tag or commit.', 400 );
 		}
 	}
 
-	private function encodeRepositoryName( string $fullName ): string {
-		$parts = explode( '/', $fullName );
+	private function encode_repository_name( string $full_name ): string {
+		$parts = explode( '/', $full_name );
 
 		return rawurlencode( $parts[0] ) . '/' . rawurlencode( $parts[1] );
 	}
 
-	private function descriptorFromItem( mixed $item, ?string $credentialId = null ): ?RepositoryDescriptor {
+	private function descriptor_from_item( mixed $item, ?string $credential_id = null ): ?RepositoryDescriptor {
 		if ( ! is_array( $item )
 			|| ! isset( $item['id'] )
 			|| ( ! is_int( $item['id'] ) && ! is_string( $item['id'] ) )
@@ -758,33 +799,33 @@ class RepositoryBrowser {
 			return null;
 		}
 
-		$providerRepositoryId = trim( (string) $item['id'] );
-		if ( '' === $providerRepositoryId ) {
+		$provider_repository_id = trim( (string) $item['id'] );
+		if ( '' === $provider_repository_id ) {
 			return null;
 		}
 
 		try {
-			$fullName = $this->validateRepositoryName( $item['full_name'] );
+			$full_name = $this->validate_repository_name( $item['full_name'] );
 		} catch ( RuntimeException ) {
 			return null;
 		}
-		$parts = explode( '/', $fullName );
+		$parts = explode( '/', $full_name );
 
 		return new RepositoryDescriptor(
 			ProviderCode::parse( 'gh' ),
-			$fullName,
+			$full_name,
 			$parts[1],
-			$providerRepositoryId,
+			$provider_repository_id,
 			$item['private'],
 			$item['default_branch'],
-			null !== $credentialId && '' !== $credentialId ? $credentialId : null
+			null !== $credential_id && '' !== $credential_id ? $credential_id : null
 		);
 	}
 
 	/**
 	 * @param list<RepositoryDescriptor> $repositories Repositories to sort.
 	 */
-	private function sortRepositories( array &$repositories ): void {
+	private function sort_repositories( array &$repositories ): void {
 		usort(
 			$repositories,
 			static function ( RepositoryDescriptor $left, RepositoryDescriptor $right ): int {
