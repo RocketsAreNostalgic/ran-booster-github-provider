@@ -31,7 +31,7 @@ WordPress and Provider API requirements are host contracts, not Composer checks.
 | --- | --- |
 | PHP | `^8.2` |
 | WordPress host | WordPress 7.0+ through a compatible Booster host |
-| Outer Provider API | Exactly `13`; not compatible with API 11 or 12 |
+| Outer Provider API | Exactly `14`; not compatible with API 11, 12 or 13 |
 | Release-workflow capability | Initial-only `RepositoryReleaseWorkflowManagementV3` |
 | Shared repository paths | `ran/updater-support ^1.0.0-beta.4` |
 | Release updater | `ran/wp-release-updater ~1.0.0-beta.9`, locked beta.9 / runtime protocol 5 |

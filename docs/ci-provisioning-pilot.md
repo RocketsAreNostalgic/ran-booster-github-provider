@@ -2,7 +2,7 @@
 
 Provider #38 implements the smallest approved experiment from organisation #111.
 Each PHP 8.2/8.5 implementation job provisions PHP and locked Composer dependencies
-once, runs the independent baseline, then checks out the unchanged exact candidate
+once, runs the independent baseline, then checks out the exact candidate
 Core and runs `composer check:host`. Five PHP provisions become three and four
 Composer installs become two. The standalone no-vendor host-contract job and
 release classification retain their separate boundaries. Required lowercase
@@ -29,9 +29,12 @@ outside the checkout. Baseline rejects the Core environment and sibling checkout
 Tracked source bytes (including locks, even with misleading index flags) and
 installed dependency file bytes/symlink targets are checked before and after the
 phases. Only a successful baseline admits the host phase for the same source.
-Host environment variables are scoped to that step; the Core revision remains
-`a53d35f18d226bf37f8485f351a5d0decdac6066`, preserving the existing candidate-only
-API13/V3 qualification. PHPUnit/PHPStan caches are outside vendor and remain
+Host environment variables are scoped to that step. The current candidate is Core
+`ae4de158e3ae02d99162b9b8d0babdc9269a36da`, qualifying Provider API14 / workflow V3
+under Core #167. It supersedes the pilot's historical API13 host
+`a53d35f18d226bf37f8485f351a5d0decdac6066`; the provisioning boundaries are unchanged.
+See [the current recovery evidence](beta31-recovery-qualification.md).
+PHPUnit/PHPStan caches are outside vendor and remain
 ordinary disposable test state. No cached vendor or certified host is trusted.
 These jobs do not establish installed or released Core composition.
 
