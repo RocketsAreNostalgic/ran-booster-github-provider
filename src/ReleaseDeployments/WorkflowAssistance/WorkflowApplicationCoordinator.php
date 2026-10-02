@@ -24,15 +24,15 @@ final class WorkflowApplicationCoordinator {
 	}
 
 	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, string $token ): array {
-		if ( 'stable' !== $channel || $this->records->occupied( $status->providerRepositoryId() ) ) {
+		if ( 'stable' !== $channel || $this->records->occupied( $status->provider_repository_id() ) ) {
 			return $this->result( $status, 'invalid_request' );
 		}
 		if ( 'preflight_unavailable' === $preflight->code() ) {
-			$reason = '' !== $preflight->reasonCode() ? $preflight->reasonCode() : 'provider_unavailable';
+			$reason = '' !== $preflight->reason_code() ? $preflight->reason_code() : 'provider_unavailable';
 			return $this->result( $status, 'preflight_unavailable', false, '', 'release_preflight', $reason );
 		}
 		if ( ! $this->accepts_bootstrap_preflight( $preflight->code() ) ) {
-			return $this->result( $status, $preflight->code(), 'ready' === $preflight->code(), '', 'release_preflight', $this->preflight_diagnostic( $preflight->code(), $preflight->reasonCode() ) );
+			return $this->result( $status, $preflight->code(), 'ready' === $preflight->code(), '', 'release_preflight', $this->preflight_diagnostic( $preflight->code(), $preflight->reason_code() ) );
 		}
 		$remote = $this->bootstrap_bundle( $status, $token, null );
 		if ( 'ok' !== $remote['code'] ) {
@@ -48,18 +48,18 @@ final class WorkflowApplicationCoordinator {
 			? $this->result( $status, 'inspected', true, $key ) : $this->result( $status, 'remote_unavailable', false, '', 'preview_storage' );
 	}
 
-	/** @param array<string,string> $preflightNonces */
+	/** @param array<string,string> $preflight_nonces */
 	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, string $token ): array {
 		$preview = $this->preview( $key, $status );
 		if ( null === $preview || 'bootstrap' !== $preview['kind'] || '' === $token || ! hash_equals( $preview['repository'], trim( $confirmation ) ) ) {
 			return $this->result( $status, 'invalid_request', false, $key );
 		}
 		if ( 'preflight_unavailable' === $preflight->code() ) {
-			$reason = '' !== $preflight->reasonCode() ? $preflight->reasonCode() : 'provider_unavailable';
+			$reason = '' !== $preflight->reason_code() ? $preflight->reason_code() : 'provider_unavailable';
 			return $this->result( $status, 'preflight_unavailable', false, $key, 'release_preflight', $reason );
 		}
 		if ( ! $this->accepts_bootstrap_preflight( $preflight->code() ) ) {
-			return $this->result( $status, 'target_changed', false, $key, 'release_preflight', $this->preflight_diagnostic( $preflight->code(), $preflight->reasonCode() ) );
+			return $this->result( $status, 'target_changed', false, $key, 'release_preflight', $this->preflight_diagnostic( $preflight->code(), $preflight->reason_code() ) );
 		}
 		$latest = $this->templates->discover( $token );
 		$exact  = 'ok' === $latest['code'] && $latest['pack']->identity() === $preview['template_identity']
@@ -121,20 +121,20 @@ final class WorkflowApplicationCoordinator {
 
 	/** @return array<string,mixed>|null */
 	private function current_record( RepositoryReleaseWorkflowTarget $status ): ?array {
-		$record = $this->records->find( $status->providerRepositoryId() );
+		$record = $this->records->find( $status->provider_repository_id() );
 		if ( null === $record || ! hash_equals( $status->type(), $record['package_type'] )
 			|| ! hash_equals( $status->identifier(), $record['package_identifier'] ) ) {
 			return null;
 		}
-		if ( $status->sourceRevision() === $record['source_revision'] ) {
+		if ( $status->source_revision() === $record['source_revision'] ) {
 			return $record;
 		}
 
 		return $this->records->refresh_source_revision(
-			$status->providerRepositoryId(),
+			$status->provider_repository_id(),
 			$status->type(),
 			$status->identifier(),
-			$status->sourceRevision()
+			$status->source_revision()
 		);
 	}
 
@@ -160,8 +160,8 @@ final class WorkflowApplicationCoordinator {
 		};
 		if ( 1 !== preg_match( '/\A[a-f0-9]{32}\z/D', $key ) || ! is_array( $preview ) || array_keys( $preview ) !== self::PREVIEW_FIELDS || 3 !== $preview['schema_version']
 			|| ! is_int( $preview['user_id'] ) || $preview['user_id'] < 1 || get_current_user_id() !== $preview['user_id']
-			|| ! is_int( $preview['revision'] ) || $preview['revision'] < 1 || $status->sourceRevision() !== $preview['revision']
-			|| ! is_string( $preview['repo_id'] ) || 1 !== preg_match( '/\A[1-9][0-9]*\z/D', $preview['repo_id'] ) || ! hash_equals( $status->providerRepositoryId(), $preview['repo_id'] )
+			|| ! is_int( $preview['revision'] ) || $preview['revision'] < 1 || $status->source_revision() !== $preview['revision']
+			|| ! is_string( $preview['repo_id'] ) || 1 !== preg_match( '/\A[1-9][0-9]*\z/D', $preview['repo_id'] ) || ! hash_equals( $status->provider_repository_id(), $preview['repo_id'] )
 			|| ! in_array( $preview['type'], array( 'plugin', 'theme' ), true ) || ! hash_equals( $status->type(), $preview['type'] )
 			|| ! is_string( $preview['identifier'] ) || '' === trim( $preview['identifier'] ) || strlen( $preview['identifier'] ) > 255
 			|| 1 !== preg_match( '//u', $preview['identifier'] ) || 1 === preg_match( '/[\x00-\x1F\x7F]/', $preview['identifier'] )
@@ -209,11 +209,11 @@ final class WorkflowApplicationCoordinator {
 		if ( 'ok' !== $template['code'] ) {
 			return $template;
 		}
-		$assessment = $this->assessor->assess( $target['snapshot'], $status->type(), $status->packageRoot(), $status->installedVersion(), $status->expectedUpdateUri() );
+		$assessment = $this->assessor->assess( $target['snapshot'], $status->type(), $status->package_root(), $status->installed_version(), $status->expected_update_uri() );
 		if ( ! $assessment->ready_for_bootstrap() ) {
 			return array( 'code' => $assessment->code() );
 		}
-		$made = InitialReleaseBundle::bootstrap( $template['pack'], $assessment, $target['snapshot'], $status->expectedUpdateUri() );
+		$made = InitialReleaseBundle::bootstrap( $template['pack'], $assessment, $target['snapshot'], $status->expected_update_uri() );
 		return 'ok' === $made['code'] ? array_merge(
 			$target,
 			array(
@@ -225,12 +225,12 @@ final class WorkflowApplicationCoordinator {
 	}
 
 	private function target( RepositoryReleaseWorkflowTarget $status, string $token ): array {
-		$url = $status->expectedUpdateUri();
+		$url = $status->expected_update_uri();
 		if ( 1 !== preg_match( '#\Ahttps://github\.com/([A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99})/?\z#D', $url, $match ) ) {
 			return array( 'code' => 'invalid_request' );
 		}
 		$repo = $this->github->repository( $match[1], $token );
-		if ( 'ok' !== $repo['code'] || ! hash_equals( $status->providerRepositoryId(), (string) ( $repo['repository_id'] ?? '' ) ) || 0 !== strcasecmp( $match[1], (string) ( $repo['full_name'] ?? '' ) ) ) {
+		if ( 'ok' !== $repo['code'] || ! hash_equals( $status->provider_repository_id(), (string) ( $repo['repository_id'] ?? '' ) ) || 0 !== strcasecmp( $match[1], (string) ( $repo['full_name'] ?? '' ) ) ) {
 			return array( 'code' => 'ok' === $repo['code'] ? 'target_changed' : $repo['code'] );
 		}
 		$base   = $this->github->branch_ref( $repo['full_name'], $repo['default_branch'], $token );
@@ -248,7 +248,7 @@ final class WorkflowApplicationCoordinator {
 	}
 
 	private function open_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, string $token ): array {
-		$claim = $this->records->claim( $status->providerRepositoryId(), $status->type(), $status->identifier(), $status->sourceRevision() );
+		$claim = $this->records->claim( $status->provider_repository_id(), $status->type(), $status->identifier(), $status->source_revision() );
 		if ( null === $claim ) {
 			return $this->result( $status, 'invalid_request', false, $preview_key );
 		}
@@ -261,7 +261,7 @@ final class WorkflowApplicationCoordinator {
 	}
 
 	private function release_claim( RepositoryReleaseWorkflowTarget $status, string $claim ): bool {
-		return $this->records->release_claim( $status->providerRepositoryId(), $claim );
+		return $this->records->release_claim( $status->provider_repository_id(), $claim );
 	}
 
 	private function open_claimed_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, string $token ): array {
@@ -406,8 +406,8 @@ final class WorkflowApplicationCoordinator {
 			'user_id'           => get_current_user_id(),
 			'type'              => $status->type(),
 			'identifier'        => $status->identifier(),
-			'revision'          => $status->sourceRevision(),
-			'repo_id'           => $status->providerRepositoryId(),
+			'revision'          => $status->source_revision(),
+			'repo_id'           => $status->provider_repository_id(),
 			'repository'        => $remote['repository'],
 			'default_branch'    => $remote['default_branch'],
 			'base_sha'          => $remote['base_sha'],
@@ -447,11 +447,11 @@ final class WorkflowApplicationCoordinator {
 		return array(
 			'schema_version'        => 3,
 			'operation'             => 'bootstrap',
-			'repo_id'               => $status->providerRepositoryId(),
+			'repo_id'               => $status->provider_repository_id(),
 			'repository'            => $remote['repository'],
 			'package_type'          => $status->type(),
 			'package_identifier'    => $status->identifier(),
-			'source_revision'       => $status->sourceRevision(),
+			'source_revision'       => $status->source_revision(),
 			'default_branch'        => $remote['default_branch'],
 			'base_sha'              => $remote['base_sha'],
 			'setup_branch'          => $branch,

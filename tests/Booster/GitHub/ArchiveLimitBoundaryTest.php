@@ -33,14 +33,12 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 
 				return new class() {
 					/** @return array<string, mixed> */
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-					public function inspect( string $releaseIdentity, string $tag ): array {
+					public function inspect( string $release_identity, string $tag ): array {
 						return array(
 							'ok'             => true,
 							'code'           => 'release_inspected',
 							'value'          => array(
-								// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve production override or updater named-parameter compatibility.
-								'release_identity'       => $releaseIdentity,
+								'release_identity'       => $release_identity,
 								'tag'                    => $tag,
 								'version'                => '1.2.3',
 								'commit_identity'        => str_repeat( 'a', 40 ),
@@ -88,8 +86,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 			/** @var list<mixed> */
 			public array $arguments = array();
 
-			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact forbidden host-policy probe; renaming would weaken this regression.
-			public function maximumArtifactBytes(): int {
+			public function maximum_artifact_bytes(): int {
 				throw new \LogicException( 'GitHub must not discover host policy from the updater registrar.' );
 			}
 

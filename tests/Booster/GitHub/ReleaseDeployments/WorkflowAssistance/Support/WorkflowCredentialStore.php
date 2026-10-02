@@ -18,8 +18,7 @@ final class WorkflowCredentialStore implements ProviderCredentialStore {
 	/** @var array{secret:string}|null */
 	public ?array $eligible_material = array( 'secret' => 'test-token' );
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function credentialProfiles(): array {
+	public function credential_profiles(): array {
 		++$this->profile_reads;
 		return $this->profiles ?? array(
 			'eligible' => array(
@@ -41,14 +40,12 @@ final class WorkflowCredentialStore implements ProviderCredentialStore {
 		);
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function credentialMaterial( ?string $id = null ): ?array {
+	public function credential_material( ?string $id = null ): ?array {
 		$this->material_reads[] = $id;
 		return 'eligible' === $id ? $this->eligible_material : null;
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function hasWebhookProfile(): bool {
+	public function has_webhook_profile(): bool {
 		return false;
 	}
 }

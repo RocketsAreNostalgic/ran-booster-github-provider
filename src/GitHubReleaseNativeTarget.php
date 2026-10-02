@@ -20,56 +20,40 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 	/** @var (Closure(): int)|null */
 	private ?Closure $maximum_artifact_bytes;
 
-	/** @param string|callable|null $accessToken */
+	/** @param string|callable|null $access_token */
 	public function __construct(
 		private object $registrar,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private string $packageType,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private string $metadataFile,
+		private string $package_type,
+		private string $metadata_file,
 		private string $repository,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private string $providerRepositoryId,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string|callable|null $accessToken,
+		private string $provider_repository_id,
+		string|callable|null $access_token,
 		private string $channel,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private string $deploymentPolicy,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		?callable $maximumArtifactBytes = null
+		private string $deployment_policy,
+		?callable $maximum_artifact_bytes = null
 	) {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( ! in_array( $packageType, array( 'plugin', 'theme' ), true )
+		if ( ! in_array( $package_type, array( 'plugin', 'theme' ), true )
 			|| ! in_array( $channel, array( 'stable', 'prerelease' ), true )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			|| ! in_array( $deploymentPolicy, array( 'disabled', 'forced-off', 'manual', 'automatic' ), true ) ) {
+			|| ! in_array( $deployment_policy, array( 'disabled', 'forced-off', 'manual', 'automatic' ), true ) ) {
 			throw new LogicException( 'The GitHub release native target is incompatible.' );
 		}
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$this->access_token = is_string( $accessToken )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			? static fn (): string => $accessToken
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			: ( null === $accessToken ? null : Closure::fromCallable( $accessToken ) );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		$this->maximum_artifact_bytes = null === $maximumArtifactBytes ? null : Closure::fromCallable( $maximumArtifactBytes );
+		$this->access_token           = is_string( $access_token )
+			? static fn (): string => $access_token
+			: ( null === $access_token ? null : Closure::fromCallable( $access_token ) );
+		$this->maximum_artifact_bytes = null === $maximum_artifact_bytes ? null : Closure::fromCallable( $maximum_artifact_bytes );
 	}
 
 	public function register(): bool {
 		try {
 			if ( null === $this->updater ) {
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-				$method    = 'plugin' === $this->packageType ? 'plugin' : 'theme';
+				$method    = 'plugin' === $this->package_type ? 'plugin' : 'theme';
 				$arguments = array(
 					'github',
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-					$this->metadataFile,
+					$this->metadata_file,
 					$this->repository,
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-					$this->providerRepositoryId,
+					$this->provider_repository_id,
 					$this->channel,
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-					$this->deploymentPolicy,
+					$this->deployment_policy,
 					$this->access_token,
 				);
 				if ( null !== $this->maximum_artifact_bytes ) {
@@ -88,7 +72,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 			return new RepositoryReleaseNativeTargetStatus( false );
 		}
 		if ( ! is_callable( array( $this->updater, 'status' ) ) ) {
-			return new RepositoryReleaseNativeTargetStatus( false, failureCode: 'github_updater_status_unavailable' );
+			return new RepositoryReleaseNativeTargetStatus( false, failure_code: 'github_updater_status_unavailable' );
 		}
 
 		try {
@@ -106,7 +90,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 
 					return new RepositoryReleaseNativeTargetStatus(
 						false,
-						failureCode: '' === $code ? 'github_updater_status_unavailable' : 'github_updater_' . substr( $code, 0, 48 )
+						failure_code: '' === $code ? 'github_updater_status_unavailable' : 'github_updater_' . substr( $code, 0, 48 )
 					);
 				}
 
@@ -161,7 +145,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 				$this->status_text( $status['offered_release_identity'], 191 )
 			);
 		} catch ( \Throwable ) {
-			return new RepositoryReleaseNativeTargetStatus( false, failureCode: 'github_updater_status_unavailable' );
+			return new RepositoryReleaseNativeTargetStatus( false, failure_code: 'github_updater_status_unavailable' );
 		}
 	}
 

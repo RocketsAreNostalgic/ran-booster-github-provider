@@ -48,7 +48,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 
 		$prepared = ReleaseArtifactCustodian::claim( $artifact->handoff_to_core() );
 		self::assertInstanceOf( PreparedArtifact::class, $prepared );
-		self::assertSame( str_repeat( 'a', 40 ), $prepared->getResolvedRef() );
+		self::assertSame( str_repeat( 'a', 40 ), $prepared->get_resolved_ref() );
 		self::assertNotContains( $prepared->getPath(), $provider_paths );
 		foreach ( $provider_paths as $path ) {
 			self::assertFileDoesNotExist( $path );
@@ -132,8 +132,7 @@ final class ReleaseAcquisitionTest extends TestCase {
 		$provider = GitHubProvider::create(
 			$credentials,
 			new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
-				// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
-				public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
+				public function latest_authenticated_delivery(): ?AuthenticatedWebhookDeliveryEvidence {
 					return null;
 				}
 			},

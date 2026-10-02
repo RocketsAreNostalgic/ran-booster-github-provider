@@ -52,11 +52,11 @@ final class ReleaseCandidateListingTest extends TestCase {
 		);
 
 		self::assertCount( 2, $result->candidates );
-		self::assertSame( '52', $result->candidates[0]->providerReleaseId );
+		self::assertSame( '52', $result->candidates[0]->provider_release_id );
 		self::assertSame( 'v2.0.0-beta.2', $result->candidates[0]->tag );
 		self::assertSame( '2.0.0-beta.2', $result->candidates[0]->version );
 		self::assertTrue( $result->candidates[0]->prerelease );
-		self::assertSame( array( 'example.zip' ), $result->candidates[0]->expectedAssetNames );
+		self::assertSame( array( 'example.zip' ), $result->candidates[0]->expected_asset_names );
 		self::assertStringContainsString( '/repos/owner/example/releases', NeutralReleaseUpdaterFixtures::requests()[0][0] );
 	}
 
@@ -199,8 +199,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		$provider = GitHubProvider::create(
 			$credentials,
 			new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
-				// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
-				public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
+				public function latest_authenticated_delivery(): ?AuthenticatedWebhookDeliveryEvidence {
 					return null;
 				}
 			},

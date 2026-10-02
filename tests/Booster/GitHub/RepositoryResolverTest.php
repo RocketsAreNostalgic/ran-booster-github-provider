@@ -61,20 +61,13 @@ final class RepositoryResolverTest extends TestCase {
 		$setup = $this->provider( new RepositoryResolverSecretsStub() )->get_metadata()->admin?->setup;
 
 		self::assertNotNull( $setup );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertStringContainsString( 'limited to one user or organisation', $setup->credentialSummary );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertStringContainsString( 'select the project repositories once', $setup->credentialSummary );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertStringContainsString( 'Booster does not change that GitHub repository selection', $setup->credentialSummary );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertStringContainsString( 'Contents to Read-only', $setup->credentialSummary );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertStringContainsString( 'admin:repo_hook', $setup->credentialSummary );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertStringContainsString( 'Webhooks: Read and write', $setup->credentialSummary );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertStringContainsString( 'Workflows: Read and write', $setup->credentialSummary );
+		self::assertStringContainsString( 'limited to one user or organisation', $setup->credential_summary );
+		self::assertStringContainsString( 'select the project repositories once', $setup->credential_summary );
+		self::assertStringContainsString( 'Booster does not change that GitHub repository selection', $setup->credential_summary );
+		self::assertStringContainsString( 'Contents to Read-only', $setup->credential_summary );
+		self::assertStringContainsString( 'admin:repo_hook', $setup->credential_summary );
+		self::assertStringContainsString( 'Webhooks: Read and write', $setup->credential_summary );
+		self::assertStringContainsString( 'Workflows: Read and write', $setup->credential_summary );
 	}
 
 	public function test_anonymous_lookup_resolves_canonical_public_repository_metadata(): void {
@@ -91,7 +84,7 @@ final class RepositoryResolverTest extends TestCase {
 				'default_branch'         => 'main',
 				'credential_id'          => null,
 			),
-			$repository->toArray()
+			$repository->to_array()
 		);
 		self::assertSame( array(), $secrets->lookups );
 		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
@@ -134,10 +127,8 @@ final class RepositoryResolverTest extends TestCase {
 		);
 
 		self::assertSame( 'RocketsAreNostalgic/tnyGmaps', $repository->locator );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'tnyGmaps', $repository->packageSlug );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '565105478', $repository->providerRepositoryId );
+		self::assertSame( 'tnyGmaps', $repository->package_slug );
+		self::assertSame( '565105478', $repository->provider_repository_id );
 	}
 
 	public function test_selected_git_hub_credential_resolves_actual_private_repository_metadata(): void {
@@ -164,12 +155,9 @@ final class RepositoryResolverTest extends TestCase {
 		$requests   = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
 
 		self::assertTrue( $repository->private );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'develop', $repository->defaultBranch );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '9223372036854775807123', $repository->providerRepositoryId );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'private-profile', $repository->credentialId );
+		self::assertSame( 'develop', $repository->default_branch );
+		self::assertSame( '9223372036854775807123', $repository->provider_repository_id );
+		self::assertSame( 'private-profile', $repository->credential_id );
 		self::assertSame( array( 'private-profile' ), $secrets->lookups );
 		self::assertSame(
 			'Bearer ' . self::TOKEN,
@@ -283,7 +271,7 @@ final class RepositoryResolverTest extends TestCase {
 		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub() );
 
 		try {
-			$browser->browse( RepositoryBrowseRequest::publicOwner( 'RocketsAreNostalgic' ) );
+			$browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic' ) );
 			self::fail( 'A failed public listing must not return repository data.' );
 		} catch ( RuntimeException $exception ) {
 			self::assertSame( $expected_status, $exception->getCode() );
@@ -358,15 +346,14 @@ final class RepositoryResolverTest extends TestCase {
 		);
 		$secrets = new RepositoryResolverSecretsStub( array( $profile_id => $profile ) );
 		$result  = ( new RepositoryBrowser( $secrets ) )->browse(
-			RepositoryBrowseRequest::publicOwner( 'UnrelatedOwner', $profile_id )
+			RepositoryBrowseRequest::public_owner( 'UnrelatedOwner', $profile_id )
 		);
 
 		self::assertCount( 30, $result->repositories );
 		self::assertSame( array( $profile_id ), $secrets->lookups );
 		foreach ( $result->repositories as $repository ) {
 			self::assertFalse( $repository->private );
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-			self::assertNull( $repository->credentialId );
+			self::assertNull( $repository->credential_id );
 		}
 
 		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
@@ -384,7 +371,7 @@ final class RepositoryResolverTest extends TestCase {
 		$browser = new RepositoryBrowser( $secrets );
 
 		try {
-			$browser->browse( RepositoryBrowseRequest::publicOwner( 'RocketsAreNostalgic', 'missing-profile' ) );
+			$browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic', 'missing-profile' ) );
 			self::fail( 'A missing public lookup profile must not become an anonymous request.' );
 		} catch ( RuntimeException $exception ) {
 			self::assertSame( 400, $exception->getCode() );
@@ -406,7 +393,7 @@ final class RepositoryResolverTest extends TestCase {
 		);
 
 		try {
-			$browser->browse( RepositoryBrowseRequest::publicOwner( 'RocketsAreNostalgic', 'public-profile' ) );
+			$browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic', 'public-profile' ) );
 			self::fail( 'An authenticated public lookup denial must fail closed.' );
 		} catch ( RuntimeException $exception ) {
 			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
@@ -444,7 +431,7 @@ final class RepositoryResolverTest extends TestCase {
 		);
 
 		try {
-			$browser->browse( RepositoryBrowseRequest::publicOwner( 'RocketsAreNostalgic', 'public-profile' ) );
+			$browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic', 'public-profile' ) );
 			self::fail( 'A later authenticated page denial must not return partial results.' );
 		} catch ( RuntimeException $exception ) {
 			self::assertSame( 429, $exception->getCode() );
@@ -477,7 +464,7 @@ final class RepositoryResolverTest extends TestCase {
 			)
 		);
 
-		$browser->browse( RepositoryBrowseRequest::publicOwner( 'RocketsAreNostalgic', 'public-profile' ) );
+		$browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic', 'public-profile' ) );
 		self::assertSame( array( 'public-profile' ), $secrets->lookups );
 		foreach ( \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() as $request ) {
 			self::assertSame( 'Bearer ' . self::TOKEN, $request['arguments']['headers']['Authorization'] );
@@ -495,7 +482,7 @@ final class RepositoryResolverTest extends TestCase {
 				$this->response( 200, array() ),
 			)
 		);
-		$browser->browse( RepositoryBrowseRequest::publicOwner( 'RocketsAreNostalgic' ) );
+		$browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic' ) );
 
 		self::assertSame( array( 'public-profile' ), $secrets->lookups );
 		foreach ( \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() as $request ) {
@@ -533,9 +520,8 @@ final class RepositoryResolverTest extends TestCase {
 
 		$result = $browser->browse( RepositoryBrowseRequest::accessible( 'listing-profile' ) );
 
-		self::assertTrue( $result->isPartial() );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( RepositoryBrowseResult::RATE_LIMIT, $result->partialReason );
+		self::assertTrue( $result->is_partial() );
+		self::assertSame( RepositoryBrowseResult::RATE_LIMIT, $result->partial_reason );
 		self::assertCount( 30, $result->repositories );
 		self::assertCount( 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
@@ -562,9 +548,8 @@ final class RepositoryResolverTest extends TestCase {
 
 		$result = $browser->browse( RepositoryBrowseRequest::accessible( 'listing-profile' ) );
 
-		self::assertTrue( $result->isPartial() );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( RepositoryBrowseResult::LIMIT, $result->partialReason );
+		self::assertTrue( $result->is_partial() );
+		self::assertSame( RepositoryBrowseResult::LIMIT, $result->partial_reason );
 		self::assertCount( 150, $result->repositories );
 		self::assertCount( RepositoryBrowseRequest::MAX_REMOTE_CALLS, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
@@ -594,7 +579,7 @@ final class RepositoryResolverTest extends TestCase {
 			RepositoryBrowseRequest::accessible( 'listing-profile' )
 		);
 
-		self::assertFalse( $result->isPartial() );
+		self::assertFalse( $result->is_partial() );
 		self::assertCount( 30, $result->repositories );
 		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
 		self::assertCount( 2, $requests );
@@ -646,7 +631,7 @@ final class RepositoryResolverTest extends TestCase {
 		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub() );
 
 		try {
-			$browser->browse( RepositoryBrowseRequest::publicOwner( 'RocketsAreNostalgic' ) );
+			$browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic' ) );
 			self::fail( 'A discovery transport failure must be reported normally.' );
 		} catch ( RuntimeException $failure ) {
 			self::assertStringNotContainsString( 'http_request_failed', $failure->getMessage() );
@@ -656,7 +641,7 @@ final class RepositoryResolverTest extends TestCase {
 		$result = ( new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'profile-1' => self::TOKEN ) ) ) )
 			->validate_credential( 'profile-1' );
 
-		self::assertFalse( $result->isValid() );
+		self::assertFalse( $result->is_valid() );
 		self::assertSame( 'unavailable', $result->reason );
 	}
 

@@ -90,7 +90,7 @@ $contracts = array(
 		'version'         => array( array(), 'string' ),
 		'package_root'    => array( array(), 'string' ),
 		'main_file'       => array( array(), 'string' ),
-		'identifier'      => array( array( array( 'packageType', 'string' ) ), 'string' ),
+		'identifier'      => array( array( array( 'package_type', 'string' ) ), 'string' ),
 	),
 	RepositoryReleaseArtifactCustody::class      => array(
 		'inspect'      => array( array( array( 'inspection', 'callable' ) ), 'mixed' ),
@@ -103,9 +103,9 @@ $contracts = array(
 	RepositoryReleaseWorkflowManagementV3::class => array(
 		'workflow_status'  => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ) ), RepositoryReleaseWorkflowStatus::class ),
 		'workflow_preview' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ) ), '?' . RepositoryReleaseWorkflowPreview::class ),
-		'workflow_inspect' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'channel', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflow_setup'   => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ), array( 'confirmation', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflow_outcome' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflow_inspect' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'channel', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credential_id', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflow_setup'   => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ), array( 'confirmation', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credential_id', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflow_outcome' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'credential_id', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
 	),
 );
 

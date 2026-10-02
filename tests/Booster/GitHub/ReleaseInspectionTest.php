@@ -40,16 +40,12 @@ final class ReleaseInspectionTest extends TestCase {
 
 		$result = $provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '42', $result->providerReleaseId );
+		self::assertSame( '42', $result->provider_release_id );
 		self::assertSame( 'v1.2.3', $result->tag );
 		self::assertSame( '1.2.3', $result->version );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( str_repeat( 'a', 40 ), $result->providerCommitId );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'example', $result->packageRoot );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'example.php', $result->mainFile );
+		self::assertSame( str_repeat( 'a', 40 ), $result->provider_commit_id );
+		self::assertSame( 'example', $result->package_root );
+		self::assertSame( 'example.php', $result->main_file );
 		self::assertMatchesRegularExpression( '/\Av2:[a-f0-9]{64}\z/D', $result->fingerprint );
 		self::assertSame( 'https://github.com/owner/example/releases/tag/v1.2.3', $provider->release_details_url( $repository, $result->tag ) );
 		foreach ( NeutralReleaseUpdaterFixtures::requests() as $request ) {
@@ -68,10 +64,8 @@ final class ReleaseInspectionTest extends TestCase {
 			'stable'
 		);
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'example', $result->packageRoot );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'style.css', $result->mainFile );
+		self::assertSame( 'example', $result->package_root );
+		self::assertSame( 'style.css', $result->main_file );
 	}
 
 	public function test_opaque_core_identity_is_rejected_by_the_git_hub_service_without_http(): void {
@@ -123,8 +117,7 @@ final class ReleaseInspectionTest extends TestCase {
 		$provider = GitHubProvider::create(
 			new RepositoryResolverSecretsStub(),
 			new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
-				// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
-				public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
+				public function latest_authenticated_delivery(): ?AuthenticatedWebhookDeliveryEvidence {
 					return null;
 				}
 			},

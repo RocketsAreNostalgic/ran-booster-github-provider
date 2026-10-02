@@ -24,7 +24,7 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 	}
 
 	private function credential_result( ProviderDiagnosticRequest $request ): ProviderDiagnosticResult {
-		$credential_id = $request->getCredentialId();
+		$credential_id = $request->get_credential_id();
 		if ( null === $credential_id ) {
 			return new ProviderDiagnosticResult(
 				ProviderDiagnosticResult::NOT_CONFIGURED,
@@ -35,14 +35,14 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 		}
 
 		try {
-			$result = $this->browser->validate_credential( $credential_id, $request->claimRemoteCall() );
+			$result = $this->browser->validate_credential( $credential_id, $request->claim_remote_call() );
 		} catch ( ProviderDiagnosticBudgetExceeded ) {
 			return $this->budget_result( 'gh.credential.budget_exhausted' );
 		} catch ( \Throwable $exception ) {
 			return $this->unavailable_result( 'gh.credential.unavailable', 'GitHub credential validation could not be completed.', $exception );
 		}
 
-		if ( $result->isValid() ) {
+		if ( $result->is_valid() ) {
 			return new ProviderDiagnosticResult(
 				ProviderDiagnosticResult::PASSED,
 				'gh.credential.valid',
@@ -73,7 +73,7 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 	}
 
 	private function repository_result( ProviderDiagnosticRequest $request ): ProviderDiagnosticResult {
-		$repository = $request->getRepository();
+		$repository = $request->get_repository();
 		if ( null === $repository ) {
 			return new ProviderDiagnosticResult(
 				ProviderDiagnosticResult::NOT_CONFIGURED,
@@ -84,7 +84,7 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 		}
 
 		try {
-			$this->browser->repository( $repository, $request->getCredentialId(), $request->claimRemoteCall(), 65536 );
+			$this->browser->repository( $repository, $request->get_credential_id(), $request->claim_remote_call(), 65536 );
 		} catch ( ProviderDiagnosticBudgetExceeded ) {
 			return $this->budget_result( 'gh.repository.budget_exhausted' );
 		} catch ( RuntimeException $exception ) {

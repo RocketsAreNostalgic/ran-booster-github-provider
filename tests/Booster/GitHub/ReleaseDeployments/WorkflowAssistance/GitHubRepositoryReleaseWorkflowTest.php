@@ -41,7 +41,7 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 
 		$result = $workflow->status( $status );
 
-		self::assertSame( 'https://github.com/owner/example-plugin/actions', $result->providerWorkflowUrl() );
+		self::assertSame( 'https://github.com/owner/example-plugin/actions', $result->provider_workflow_url() );
 		self::assertSame(
 			array(
 				array(
@@ -49,7 +49,7 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 					'label' => 'Repository access (classic)',
 				),
 			),
-			$result->credentialChoices()
+			$result->credential_choices()
 		);
 		self::assertSame( 1, $credentials->profile_reads );
 		self::assertSame( array(), $credentials->material_reads );
@@ -75,11 +75,11 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		$status   = WorkflowProviderFixtures::target();
 		$result   = $workflow->status( $status );
 
-		self::assertSame( 'theme', $result->packageType() );
-		self::assertSame( 'foreign-plugin/foreign-plugin.php', $result->packageIdentifier() );
-		self::assertSame( 5, $result->sourceRevision() );
-		self::assertFalse( $result->recordExact() );
-		self::assertTrue( $result->recordOccupied() );
+		self::assertSame( 'theme', $result->package_type() );
+		self::assertSame( 'foreign-plugin/foreign-plugin.php', $result->package_identifier() );
+		self::assertSame( 5, $result->source_revision() );
+		self::assertFalse( $result->record_exact() );
+		self::assertTrue( $result->record_occupied() );
 	}
 
 	public function test_status_preserves_bootstrap_operation_across_source_revisions_without_writing(): void {
@@ -92,12 +92,12 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 
 		foreach ( array( 3, 4 ) as $revision ) {
 			$result = $workflow->status( WorkflowProviderFixtures::target( source_revision: $revision ) );
-			self::assertSame( 3 === $revision, $result->recordExact() );
-			self::assertTrue( $result->recordOccupied() );
-			self::assertSame( 'bootstrap', $result->recordOperation() );
-			self::assertSame( 3, $result->sourceRevision() );
-			self::assertSame( 'plugin', $result->packageType() );
-			self::assertSame( 'example-plugin/example-plugin.php', $result->packageIdentifier() );
+			self::assertSame( 3 === $revision, $result->record_exact() );
+			self::assertTrue( $result->record_occupied() );
+			self::assertSame( 'bootstrap', $result->record_operation() );
+			self::assertSame( 3, $result->source_revision() );
+			self::assertSame( 'plugin', $result->package_type() );
+			self::assertSame( 'example-plugin/example-plugin.php', $result->package_identifier() );
 		}
 		self::assertSame( $before, $GLOBALS['ran_booster_release_deployments_test_options'] );
 		self::assertSame( array(), $credentials->material_reads );
@@ -118,10 +118,10 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 			$transport   = new D23ApplicationTransport();
 			$result      = $this->workflow( $credentials, transport: $transport )->status( WorkflowProviderFixtures::target() );
 
-			self::assertTrue( $result->recordOccupied() );
-			self::assertFalse( $result->recordExact() );
-			self::assertSame( '', $result->recordOperation() );
-			self::assertSame( '', $result->pullRequestUrl() );
+			self::assertTrue( $result->record_occupied() );
+			self::assertFalse( $result->record_exact() );
+			self::assertSame( '', $result->record_operation() );
+			self::assertSame( '', $result->pull_request_url() );
 			self::assertSame( $before, $GLOBALS['ran_booster_release_deployments_test_options'] );
 			self::assertSame( array(), $credentials->material_reads );
 			self::assertSame( array(), $transport->requests );
@@ -133,7 +133,7 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		$workflow    = $this->workflow( $credentials );
 		$status      = WorkflowProviderFixtures::target();
 
-		self::assertSame( 'workflow_invalid_request', $workflow->outcome( $status, 'eligible' )->workflowCode() );
+		self::assertSame( 'workflow_invalid_request', $workflow->outcome( $status, 'eligible' )->workflow_code() );
 		self::assertSame( array(), $credentials->material_reads );
 		self::assertFalse( method_exists( $workflow, 'inspectUpdate' ) );
 		self::assertFalse( method_exists( $workflow, 'setupUpdate' ) );
@@ -148,8 +148,8 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		self::assertTrue( $records->save( $this->record() ) );
 		$workflow = $this->workflow( $credentials, $records, $transport );
 
-		self::assertSame( 'workflow_unauthorised', $workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), 'eligible' )->workflowCode() );
-		self::assertSame( 'workflow_unauthorised', $workflow->outcome( $status, 'eligible' )->workflowCode() );
+		self::assertSame( 'workflow_unauthorised', $workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), 'eligible' )->workflow_code() );
+		self::assertSame( 'workflow_unauthorised', $workflow->outcome( $status, 'eligible' )->workflow_code() );
 		self::assertSame( array( 'eligible', 'eligible' ), $credentials->material_reads );
 		self::assertSame( array(), $transport->requests );
 	}
@@ -169,7 +169,7 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		);
 		$status                = WorkflowProviderFixtures::target();
 
-		$choice = $this->workflow( $credentials )->status( $status )->credentialChoices()[0];
+		$choice = $this->workflow( $credentials )->status( $status )->credential_choices()[0];
 
 		self::assertLessThanOrEqual( 255, strlen( $choice['label'] ) );
 		self::assertSame( 1, preg_match( '//u', $choice['label'] ) );
@@ -183,13 +183,13 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		$blocked     = WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::PREFLIGHT_UNAVAILABLE, 'provider_unavailable' );
 
 		$preflight_result = $workflow->inspect( $status, 'stable', $blocked, 'eligible' );
-		self::assertSame( 'workflow_preflight_unavailable', $preflight_result->workflowCode() );
-		self::assertSame( '', $preflight_result->correlationReference() );
+		self::assertSame( 'workflow_preflight_unavailable', $preflight_result->workflow_code() );
+		self::assertSame( '', $preflight_result->correlation_reference() );
 		self::assertSame( array(), $credentials->material_reads );
 
 		$preview = $workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), null );
 		self::assertTrue( $preview->successful() );
-		self::assertSame( 'workflow_unauthorised', $workflow->setup( $status, $preview->previewKey(), 'owner/example-plugin', WorkflowProviderFixtures::preflight(), 'constant' )->workflowCode() );
+		self::assertSame( 'workflow_unauthorised', $workflow->setup( $status, $preview->preview_key(), 'owner/example-plugin', WorkflowProviderFixtures::preflight(), 'constant' )->workflow_code() );
 		self::assertSame( array(), $credentials->material_reads );
 	}
 

@@ -33,7 +33,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$body     = $this->encode( $this->valid_push_payload() );
 		$envelope = $this->normalizer()->normalize_webhook( $this->request( $body ) );
 
-		self::assertTrue( $envelope->hasEvents() );
+		self::assertTrue( $envelope->has_events() );
 		self::assertSame(
 			array(
 				'provider'               => 'gh',
@@ -43,7 +43,7 @@ final class WebhookNormalizerTest extends TestCase {
 				'commit'                 => self::COMMIT,
 				'delivery_id'            => self::DELIVERY_ID,
 			),
-			$envelope->getEvents()[0]->toArray()
+			$envelope->get_events()[0]->to_array()
 		);
 	}
 
@@ -51,10 +51,9 @@ final class WebhookNormalizerTest extends TestCase {
 		$payload                     = $this->valid_push_payload();
 		$payload['repository']['id'] = 123456;
 		$body                        = $this->encode( $payload );
-		$event                       = $this->normalizer()->normalize_webhook( $this->request( $body ) )->getEvents()[0];
+		$event                       = $this->normalizer()->normalize_webhook( $this->request( $body ) )->get_events()[0];
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '123456', $event->providerRepositoryId );
+		self::assertSame( '123456', $event->provider_repository_id );
 	}
 
 	public function test_signed_ping_is_returned_as_a_probe(): void {
@@ -62,8 +61,8 @@ final class WebhookNormalizerTest extends TestCase {
 		$request  = $this->request( $body, 'ping' );
 		$envelope = $this->normalizer()->normalize_webhook( $request );
 
-		self::assertTrue( $envelope->isProbe() );
-		self::assertSame( array(), $envelope->getEvents() );
+		self::assertTrue( $envelope->is_probe() );
+		self::assertSame( array(), $envelope->get_events() );
 	}
 
 	public function test_signed_unrelated_event_is_ignored_without_parsing_its_body(): void {
@@ -71,7 +70,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$request  = $this->request( $body, 'issues' );
 		$envelope = $this->normalizer()->normalize_webhook( $request );
 
-		self::assertTrue( $envelope->isIgnored() );
+		self::assertTrue( $envelope->is_ignored() );
 	}
 
 	public function test_exact_body_and_header_limits_are_accepted(): void {
@@ -81,7 +80,7 @@ final class WebhookNormalizerTest extends TestCase {
 			$this->request( $body, str_repeat( 'e', 64 ), str_repeat( 'd', 191 ) )
 		);
 
-		self::assertTrue( $envelope->isIgnored() );
+		self::assertTrue( $envelope->is_ignored() );
 	}
 
 	public function test_body_above_the_limit_is_rejected_before_secrets(): void {
@@ -329,7 +328,7 @@ final class WebhookNormalizerTest extends TestCase {
 			$normalizer->normalize_webhook( $this->request( $secret_body ) );
 			self::fail( 'Malformed JSON should be rejected.' );
 		} catch ( WebhookRejected $exception ) {
-			self::assertSame( 400, $exception->getStatusCode() );
+			self::assertSame( 400, $exception->get_status_code() );
 				self::assertStringNotContainsString( self::OWNER_SECRET, $exception->getMessage() );
 			self::assertStringNotContainsString( 'body-secret', $exception->getMessage() );
 		}
@@ -412,8 +411,8 @@ final class WebhookNormalizerTest extends TestCase {
 		$body     = $this->encode( $payload );
 		$envelope = $this->normalizer()->normalize_webhook( $this->request( $body ) );
 
-		self::assertTrue( $envelope->isIgnored() );
-		self::assertSame( array(), $envelope->getEvents() );
+		self::assertTrue( $envelope->is_ignored() );
+		self::assertSame( array(), $envelope->get_events() );
 	}
 
 	/**
@@ -444,7 +443,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$body       = $this->encode( $this->valid_push_payload() );
 		$normalizer = $this->normalizer( array( $this->profile( self::OWNER_SECRET, $scope, $target ) ) );
 
-		self::assertTrue( $normalizer->normalize_webhook( $this->verified_request( $body, $scope, $target ) )->hasEvents() );
+		self::assertTrue( $normalizer->normalize_webhook( $this->verified_request( $body, $scope, $target ) )->has_events() );
 	}
 
 	/**
@@ -484,7 +483,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$normalizer = $this->normalizer( $profiles );
 		$body       = $this->encode( $this->valid_push_payload() );
 
-		self::assertTrue( $normalizer->normalize_webhook( $this->request( $body ) )->hasEvents() );
+		self::assertTrue( $normalizer->normalize_webhook( $this->request( $body ) )->has_events() );
 
 		$this->assert_rejected(
 			401,
@@ -498,8 +497,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$deliveries = new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
 			public int $calls = 0;
 
-			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
-			public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
+			public function latest_authenticated_delivery(): ?AuthenticatedWebhookDeliveryEvidence {
 				++$this->calls;
 
 				return null;
@@ -514,7 +512,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 	public function test_webhook_readiness_reports_configured_but_no_retained_delivery_evidence(): void {
 		$result = $this->normalizer()->diagnose_webhook_readiness();
-		$output = implode( ' ', $result->toArray() );
+		$output = implode( ' ', $result->to_array() );
 
 		self::assertSame( ProviderDiagnosticResult::WARNING, $result->status );
 		self::assertSame( 'gh.webhook.delivery_not_observed', $result->code );
@@ -554,13 +552,12 @@ final class WebhookNormalizerTest extends TestCase {
 
 	public function test_webhook_readiness_safely_reports_unavailable_delivery_evidence(): void {
 		$deliveries = new class() implements AuthenticatedWebhookDeliveryEvidenceReader {
-			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
-			public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
+			public function latest_authenticated_delivery(): ?AuthenticatedWebhookDeliveryEvidence {
 				throw new \RuntimeException( 'delivery-evidence-canary' );
 			}
 		};
 		$result     = $this->normalizer( null, $deliveries )->diagnose_webhook_readiness();
-		$output     = implode( ' ', $result->toArray() );
+		$output     = implode( ' ', $result->to_array() );
 
 		self::assertSame( ProviderDiagnosticResult::FAILED, $result->status );
 		self::assertSame( 'gh.webhook.delivery_evidence_unavailable', $result->code );
@@ -572,7 +569,7 @@ final class WebhookNormalizerTest extends TestCase {
 			new WebhookProfileReaderStub( unreadable: true ),
 			new EmptyAuthenticatedWebhookDeliveryEvidenceReader()
 		) )->diagnose_webhook_readiness();
-		$output = implode( ' ', $result->toArray() );
+		$output = implode( ' ', $result->to_array() );
 
 		self::assertSame( ProviderDiagnosticResult::FAILED, $result->status );
 		self::assertSame( 'gh.webhook.configuration_unavailable', $result->code );
@@ -629,8 +626,7 @@ final class WebhookNormalizerTest extends TestCase {
 			public function __construct( private ?AuthenticatedWebhookDeliveryEvidence $evidence ) {
 			}
 
-			// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Test double preserves the Core or production override contract pending coordinated naming.
-			public function latestAuthenticatedDelivery(): ?AuthenticatedWebhookDeliveryEvidence {
+			public function latest_authenticated_delivery(): ?AuthenticatedWebhookDeliveryEvidence {
 				return $this->evidence;
 			}
 		};
@@ -651,12 +647,12 @@ final class WebhookNormalizerTest extends TestCase {
 				'X-Hub-Signature-256' => $this->signature( $body, $secret ),
 			),
 			self::RETAINED_HEADERS
-		) )->withVerification( $this->verification( 'owner', 'RocketsAreNostalgic' ) );
+		) )->with_verification( $this->verification( 'owner', 'RocketsAreNostalgic' ) );
 	}
 
 	private function verified_request( string $body, string $scope, string $target, string $secret = self::OWNER_SECRET ): WebhookRequest {
 		return $this->request( $body, 'push', self::DELIVERY_ID, $secret )
-			->withVerification( $this->verification( $scope, $target ) );
+			->with_verification( $this->verification( $scope, $target ) );
 	}
 
 	private function verification( string $scope, string $target ): SignedWebhookVerification {
@@ -739,7 +735,7 @@ final class WebhookNormalizerTest extends TestCase {
 			$operation();
 			self::fail( 'Webhook request should have been rejected.' );
 		} catch ( WebhookRejected $exception ) {
-			self::assertSame( $status_code, $exception->getStatusCode() );
+			self::assertSame( $status_code, $exception->get_status_code() );
 			self::assertNotSame( '', $exception->getMessage() );
 			self::assertStringNotContainsString( self::OWNER_SECRET, $exception->getMessage() );
 			self::assertStringNotContainsString( self::OTHER_SECRET, $exception->getMessage() );

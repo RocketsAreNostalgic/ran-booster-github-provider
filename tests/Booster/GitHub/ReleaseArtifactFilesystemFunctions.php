@@ -20,10 +20,9 @@ function mkdir( string $directory, int $permissions = 0777, bool $recursive = fa
 }
 
 /** @return resource|false */
-// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve the existing PHP filesystem callback parameter contract.
-function fopen( string $filename, string $mode, bool $useIncludePath = false, mixed $context = null ) {
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Deterministic filesystem seam preserves the existing callback parameter contract.
-	$stream = null === $context ? \fopen( $filename, $mode, $useIncludePath ) : \fopen( $filename, $mode, $useIncludePath, $context );
+function fopen( string $filename, string $mode, bool $use_include_path = false, mixed $context = null ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Deterministic filesystem seam preserves the PHP callback parameter contract.
+	$stream = null === $context ? \fopen( $filename, $mode, $use_include_path ) : \fopen( $filename, $mode, $use_include_path, $context );
 	$hook   = 'rb' === $mode
 		? $GLOBALS['ran_booster_custody_after_source_open'] ?? null
 		: $GLOBALS['ran_booster_custody_after_destination_open'] ?? null;

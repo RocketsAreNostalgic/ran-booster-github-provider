@@ -22,30 +22,19 @@ final class GitHubReleaseArtifact implements RepositoryReleaseArtifact, Reposito
 	public function __construct(
 		private object $artifact,
 		private string $version,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private string $providerCommitId,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private string $packageRoot,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private string $mainFile,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private int $artifactSize,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		int $maximumArtifactBytes,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private string $artifactSha256
+		private string $provider_commit_id,
+		private string $package_root,
+		private string $main_file,
+		private int $artifact_size,
+		int $maximum_artifact_bytes,
+		private string $artifact_sha256
 	) {
 		if ( 1 !== preg_match( '/\A[A-Za-z0-9][A-Za-z0-9._+-]{0,63}\z/D', $version )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			|| ! $this->bounded_opaque_value( $providerCommitId, 191 )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			|| 1 !== preg_match( '/\A[A-Za-z0-9][A-Za-z0-9._-]{0,190}\z/D', $packageRoot )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			|| 1 !== preg_match( '/\A[A-Za-z0-9][A-Za-z0-9._-]{0,190}\z/D', $mainFile )
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			|| $artifactSize < 1 || $maximumArtifactBytes < $artifactSize
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-			|| 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $artifactSha256 )
+			|| ! $this->bounded_opaque_value( $provider_commit_id, 191 )
+			|| 1 !== preg_match( '/\A[A-Za-z0-9][A-Za-z0-9._-]{0,190}\z/D', $package_root )
+			|| 1 !== preg_match( '/\A[A-Za-z0-9][A-Za-z0-9._-]{0,190}\z/D', $main_file )
+			|| $artifact_size < 1 || $maximum_artifact_bytes < $artifact_size
+			|| 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $artifact_sha256 )
 			|| ! method_exists( $artifact, 'inspect' ) || ! method_exists( $artifact, 'discard' ) ) {
 			throw new RuntimeException( 'The GitHub release artifact is invalid.' );
 		}
@@ -99,18 +88,15 @@ final class GitHubReleaseArtifact implements RepositoryReleaseArtifact, Reposito
 	}
 
 	public function resolved_ref(): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-		return $this->providerCommitId;
+		return $this->provider_commit_id;
 	}
 
 	public function size(): int {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-		return $this->artifactSize;
+		return $this->artifact_size;
 	}
 
 	public function sha256(): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-		return $this->artifactSha256;
+		return $this->artifact_sha256;
 	}
 
 	public function version(): string {
@@ -118,28 +104,21 @@ final class GitHubReleaseArtifact implements RepositoryReleaseArtifact, Reposito
 	}
 
 	public function package_root(): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-		return $this->packageRoot;
+		return $this->package_root;
 	}
 
 	public function main_file(): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-		return $this->mainFile;
+		return $this->main_file;
 	}
 
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-	public function identifier( string $packageType ): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( ! in_array( $packageType, array( 'plugin', 'theme' ), true ) ) {
+	public function identifier( string $package_type ): string {
+		if ( ! in_array( $package_type, array( 'plugin', 'theme' ), true ) ) {
 			throw new RuntimeException( 'The GitHub release artifact package type is invalid.' );
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return 'plugin' === $packageType
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-			? $this->packageRoot . '/' . $this->mainFile
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-			: $this->packageRoot;
+		return 'plugin' === $package_type
+			? $this->package_root . '/' . $this->main_file
+			: $this->package_root;
 	}
 
 	private function bounded_opaque_value( string $value, int $maximum_bytes ): bool {

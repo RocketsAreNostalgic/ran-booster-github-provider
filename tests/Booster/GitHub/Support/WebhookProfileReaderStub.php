@@ -13,8 +13,7 @@ final class WebhookProfileReaderStub implements ProviderWebhookProfileReader {
 	public function __construct( private bool $configured = true, private bool $unreadable = false ) {
 	}
 
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve external Core interface method spelling pending coordinated contract migration.
-	public function hasWebhookProfile(): bool {
+	public function has_webhook_profile(): bool {
 		++$this->calls;
 		if ( $this->unreadable ) {
 			throw new \RuntimeException( 'github-webhook-secret-canary' );
