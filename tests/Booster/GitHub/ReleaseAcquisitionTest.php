@@ -49,14 +49,14 @@ final class ReleaseAcquisitionTest extends TestCase {
 		$prepared = ReleaseArtifactCustodian::claim( $artifact->handoff_to_core() );
 		self::assertInstanceOf( PreparedArtifact::class, $prepared );
 		self::assertSame( str_repeat( 'a', 40 ), $prepared->get_resolved_ref() );
-		self::assertNotContains( $prepared->getPath(), $provider_paths );
+		self::assertNotContains( $prepared->get_path(), $provider_paths );
 		foreach ( $provider_paths as $path ) {
 			self::assertFileDoesNotExist( $path );
 		}
-		self::assertSame( 0600, fileperms( $prepared->getPath() ) & 0777 );
-		self::assertSame( 0700, fileperms( dirname( $prepared->getPath() ) ) & 0777 );
-		$prepared->assertUnchanged();
-		$directory = dirname( $prepared->getPath() );
+		self::assertSame( 0600, fileperms( $prepared->get_path() ) & 0777 );
+		self::assertSame( 0700, fileperms( dirname( $prepared->get_path() ) ) & 0777 );
+		$prepared->assert_unchanged();
+		$directory = dirname( $prepared->get_path() );
 		$prepared->cleanup();
 		self::assertDirectoryDoesNotExist( $directory );
 	}

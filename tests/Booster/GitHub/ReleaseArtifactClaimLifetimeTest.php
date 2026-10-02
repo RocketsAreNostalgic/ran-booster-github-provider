@@ -28,8 +28,8 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 
 			$prepared = ReleaseArtifactCustodian::claim( $artifact->handoff_to_core() );
 			self::assertFileDoesNotExist( $path );
-			$prepared->assertUnchanged();
-			$owned_path = $prepared->getPath();
+			$prepared->assert_unchanged();
+			$owned_path = $prepared->get_path();
 			$prepared->cleanup();
 			self::assertFileDoesNotExist( $owned_path );
 			self::assertDirectoryDoesNotExist( dirname( $owned_path ) );
@@ -245,8 +245,8 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 			$this->expect_handoff_failure( $artifact );
 
 			self::assertNotNull( $source->prepared );
-			self::assertFileDoesNotExist( $source->prepared->getPath() );
-			self::assertDirectoryDoesNotExist( dirname( $source->prepared->getPath() ) );
+			self::assertFileDoesNotExist( $source->prepared->get_path() );
+			self::assertDirectoryDoesNotExist( dirname( $source->prepared->get_path() ) );
 			self::assertFileDoesNotExist( $path );
 		} finally {
 			$this->reset_filesystem_hooks();
@@ -320,10 +320,10 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 			$this->expect_handoff_failure( $artifact, true );
 
 			self::assertNotNull( $source->prepared );
-			self::assertFileExists( $source->prepared->getPath() );
+			self::assertFileExists( $source->prepared->get_path() );
 			self::assertTrue( $artifact->discard() );
 			self::assertFileDoesNotExist( $path );
-			chmod( $source->prepared->getPath(), 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only retained-copy cleanup.
+			chmod( $source->prepared->get_path(), 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only retained-copy cleanup.
 			$source->prepared->cleanup();
 		} finally {
 			$this->reset_filesystem_hooks();
@@ -435,7 +435,7 @@ final class FaultingStructuralReleaseArtifact {
 	public function inspect( callable $reader ): mixed {
 		$this->prepared = $reader( $this->path );
 		if ( $this->break_prepared_copy ) {
-			chmod( $this->prepared->getPath(), 0644 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only prepared-copy identity drift.
+			chmod( $this->prepared->get_path(), 0644 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only prepared-copy identity drift.
 		}
 
 		throw new RuntimeException( 'Provider artifact runtime became unavailable.' );
