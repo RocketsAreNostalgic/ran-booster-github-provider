@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0-beta.12](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.11...v1.0.0-beta.12) (2026-10-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* complete recovered beta.31 naming consumers ([#53](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/53))
+
+### Bug Fixes
+
+* complete recovered beta.31 naming consumers ([#53](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/53)) ([4a40311](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/4a403117dc7a5963fca558c7bba979caaa546c41))
+
 ## [1.0.0-beta.11](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.10...v1.0.0-beta.11) (2026-10-01)
 
 
