@@ -41,9 +41,9 @@ final class DiagnosticsTest extends TestCase {
 					'remediation' => 'Select a repository to verify its visibility and scope.',
 				),
 			),
-			array_map( static fn( ProviderDiagnosticResult $result ): array => $result->toArray(), $results )
+			array_map( static fn( ProviderDiagnosticResult $result ): array => $result->to_array(), $results )
 		);
-		self::assertSame( 0, $request->getRemoteCalls() );
+		self::assertSame( 0, $request->get_remote_calls() );
 		self::assertSame( array(), $browser->credential_calls );
 		self::assertSame( array(), $browser->repository_calls );
 	}
@@ -62,7 +62,7 @@ final class DiagnosticsTest extends TestCase {
 			),
 		);
 		yield 'rate limited' => array(
-			CredentialValidationResult::rateLimited(),
+			CredentialValidationResult::rate_limited(),
 			array(
 				'status'      => ProviderDiagnosticResult::WARNING,
 				'code'        => 'gh.credential.rate_limited',
@@ -80,7 +80,7 @@ final class DiagnosticsTest extends TestCase {
 			),
 		);
 		yield 'invalid response' => array(
-			CredentialValidationResult::invalidResponse(),
+			CredentialValidationResult::invalid_response(),
 			array(
 				'status'      => ProviderDiagnosticResult::WARNING,
 				'code'        => 'gh.credential.unavailable',
@@ -113,9 +113,9 @@ final class DiagnosticsTest extends TestCase {
 
 		$results = ( new Diagnostics( $browser ) )->diagnose( $request );
 
-		self::assertSame( $expected, $results[0]->toArray() );
+		self::assertSame( $expected, $results[0]->to_array() );
 		self::assertSame( array( array( 'diagnostic-profile', 10.0 ) ), $browser->credential_calls );
-		self::assertSame( 1, $request->getRemoteCalls() );
+		self::assertSame( 1, $request->get_remote_calls() );
 	}
 
 	/**
@@ -190,12 +190,12 @@ final class DiagnosticsTest extends TestCase {
 
 		$results = ( new Diagnostics( $browser ) )->diagnose( $request );
 
-		self::assertSame( $expected, $results[1]->toArray() );
+		self::assertSame( $expected, $results[1]->to_array() );
 		self::assertSame(
 			array( array( 'RocketsAreNostalgic/ran-booster', null, 10.0, 65536 ) ),
 			$browser->repository_calls
 		);
-		self::assertStringNotContainsString( self::SECRET_CANARY, implode( ' ', $results[1]->toArray() ) );
+		self::assertStringNotContainsString( self::SECRET_CANARY, implode( ' ', $results[1]->to_array() ) );
 	}
 
 	public function test_remote_call_budget_is_consumed_in_credential_then_repository_order(): void {
@@ -212,10 +212,10 @@ final class DiagnosticsTest extends TestCase {
 				'message'     => 'This GitHub check was not run because the diagnostic budget was exhausted.',
 				'remediation' => 'Run diagnostics again after other provider requests have completed.',
 			),
-			$results[1]->toArray()
+			$results[1]->to_array()
 		);
-		self::assertSame( 1, $request->getRemoteCalls() );
-		self::assertSame( 'remote_calls', $request->getExhaustionReason() );
+		self::assertSame( 1, $request->get_remote_calls() );
+		self::assertSame( 'remote_calls', $request->get_exhaustion_reason() );
 		self::assertCount( 1, $browser->credential_calls );
 		self::assertSame( array(), $browser->repository_calls );
 	}
@@ -238,8 +238,8 @@ final class DiagnosticsTest extends TestCase {
 		self::assertSame( 'gh.repository.budget_exhausted', $results[1]->code );
 		self::assertSame( ProviderDiagnosticResult::WARNING, $results[0]->status );
 		self::assertSame( ProviderDiagnosticResult::WARNING, $results[1]->status );
-		self::assertSame( 0, $request->getRemoteCalls() );
-		self::assertSame( 'deadline', $request->getExhaustionReason() );
+		self::assertSame( 0, $request->get_remote_calls() );
+		self::assertSame( 'deadline', $request->get_exhaustion_reason() );
 		self::assertSame( array(), $browser->credential_calls );
 		self::assertSame( array(), $browser->repository_calls );
 	}

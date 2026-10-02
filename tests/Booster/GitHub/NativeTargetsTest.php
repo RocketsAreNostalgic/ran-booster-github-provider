@@ -36,12 +36,9 @@ final class NativeTargetsTest extends TestCase {
 		$status = $this->target( null )->status();
 
 		self::assertFalse( $status->active );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '', $status->offeredVersion );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '', $status->failureCode );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '', $status->candidateCode );
+		self::assertSame( '', $status->offered_version );
+		self::assertSame( '', $status->failure_code );
+		self::assertSame( '', $status->candidate_code );
 	}
 
 	public function test_registered_neutral_updater_is_active(): void {
@@ -53,8 +50,7 @@ final class NativeTargetsTest extends TestCase {
 
 		$status = $target->status();
 		self::assertFalse( $status->active );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'github_updater_status_unavailable', $status->failureCode );
+		self::assertSame( 'github_updater_status_unavailable', $status->failure_code );
 	}
 
 	public function test_registered_neutral_updater_projects_its_bounded_status(): void {
@@ -89,24 +85,15 @@ final class NativeTargetsTest extends TestCase {
 		$status = $target->status();
 
 		self::assertTrue( $status->active );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '1.2.0', $status->offeredVersion );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'newer', $status->versionRelationship );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 1_700_000_000, $status->lastCheck );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertNull( $status->nextCheck );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'release_identity_verified', $status->candidateCode );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'v1.2.0', $status->candidateReleaseTag );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '1.2.0', $status->candidateReleaseVersion );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '1.2.0', $status->candidatePackageHeaderVersion );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'provider-release-42', $status->candidateProviderReleaseId );
+		self::assertSame( '1.2.0', $status->offered_version );
+		self::assertSame( 'newer', $status->version_relationship );
+		self::assertSame( 1_700_000_000, $status->last_check );
+		self::assertNull( $status->next_check );
+		self::assertSame( 'release_identity_verified', $status->candidate_code );
+		self::assertSame( 'v1.2.0', $status->candidate_release_tag );
+		self::assertSame( '1.2.0', $status->candidate_release_version );
+		self::assertSame( '1.2.0', $status->candidate_package_header_version );
+		self::assertSame( 'provider-release-42', $status->candidate_provider_release_id );
 	}
 
 	public function test_registered_neutral_updater_projects_a_reordered_outer_status(): void {
@@ -141,10 +128,8 @@ final class NativeTargetsTest extends TestCase {
 		$status = $target->status();
 
 		self::assertTrue( $status->active );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '1.2.0', $status->offeredVersion );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'release_identity_verified', $status->candidateCode );
+		self::assertSame( '1.2.0', $status->offered_version );
+		self::assertSame( 'release_identity_verified', $status->candidate_code );
 	}
 
 	public function test_native_offer_requires_its_opaque_identity_and_version_together(): void {
@@ -185,7 +170,7 @@ final class NativeTargetsTest extends TestCase {
 			);
 
 			self::assertFalse( $target->status()->active );
-			self::assertSame( 'github_updater_status_unavailable', $target->status()->failureCode );
+			self::assertSame( 'github_updater_status_unavailable', $target->status()->failure_code );
 		}
 	}
 
@@ -220,10 +205,8 @@ final class NativeTargetsTest extends TestCase {
 
 		$status = $target->status();
 		self::assertTrue( $status->active );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '', $status->offeredVersion );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '', $status->candidateProviderReleaseId );
+		self::assertSame( '', $status->offered_version );
+		self::assertSame( '', $status->candidate_provider_release_id );
 	}
 
 	public function test_queued_and_inactive_neutral_states_do_not_claim_native_authority(): void {
@@ -245,7 +228,7 @@ final class NativeTargetsTest extends TestCase {
 		);
 
 		self::assertFalse( $target->status()->active );
-		self::assertSame( '', $target->status()->failureCode );
+		self::assertSame( '', $target->status()->failure_code );
 
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
@@ -265,10 +248,8 @@ final class NativeTargetsTest extends TestCase {
 
 		$status = $target->status();
 		self::assertFalse( $status->active );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'github_updater_runtime_handoff_invalid', $status->failureCode );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertLessThanOrEqual( 64, strlen( $status->failureCode ) );
+		self::assertSame( 'github_updater_runtime_handoff_invalid', $status->failure_code );
+		self::assertLessThanOrEqual( 64, strlen( $status->failure_code ) );
 	}
 
 	public function test_repeated_registration_reflects_declined_and_throwing_public_handles(): void {
@@ -338,12 +319,9 @@ final class NativeTargetsTest extends TestCase {
 		$status = $target->status();
 
 		self::assertFalse( $status->active );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'github_updater_status_unavailable', $status->failureCode );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '', $status->offeredVersion );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( '', $status->candidateCode );
+		self::assertSame( 'github_updater_status_unavailable', $status->failure_code );
+		self::assertSame( '', $status->offered_version );
+		self::assertSame( '', $status->candidate_code );
 	}
 
 	private function target( string|callable|null $access_token, ?object $registrar = null ): GitHubReleaseNativeTarget {

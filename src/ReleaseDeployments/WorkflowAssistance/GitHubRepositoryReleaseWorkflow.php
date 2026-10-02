@@ -17,18 +17,18 @@ final class GitHubRepositoryReleaseWorkflow {
 	public function __construct( private ProviderCredentialStore $credentials, private WorkflowApplicationCoordinator $coordinator, private SetupRecordStore $records ) {}
 
 	public function status( RepositoryReleaseWorkflowTarget $status ): RepositoryReleaseWorkflowStatus {
-		$record      = $this->records->find( $status->providerRepositoryId() );
-		$exact       = null !== $record && $status->type() === $record['package_type'] && $status->identifier() === $record['package_identifier'] && $status->sourceRevision() === $record['source_revision'];
+		$record      = $this->records->find( $status->provider_repository_id() );
+		$exact       = null !== $record && $status->type() === $record['package_type'] && $status->identifier() === $record['package_identifier'] && $status->source_revision() === $record['source_revision'];
 		$type        = null === $record ? $status->type() : $record['package_type'];
 		$identifier  = null === $record ? $status->identifier() : $record['package_identifier'];
-		$revision    = null === $record ? $status->sourceRevision() : $record['source_revision'];
-		$observation = $this->records->assessment_observation( $status->providerRepositoryId(), $status->type(), $status->identifier(), $status->sourceRevision() );
-		$history     = array_map( static fn ( array $entry ): array => array_intersect_key( $entry, array_flip( array( 'operation', 'outcome_code', 'failure_stage', 'diagnostic_code', 'diagnostic_available', 'correlation_reference', 'recorded_at' ) ) ), $this->records->failure_history( $status->providerRepositoryId(), $status->type(), $status->identifier(), $status->sourceRevision() ) );
+		$revision    = null === $record ? $status->source_revision() : $record['source_revision'];
+		$observation = $this->records->assessment_observation( $status->provider_repository_id(), $status->type(), $status->identifier(), $status->source_revision() );
+		$history     = array_map( static fn ( array $entry ): array => array_intersect_key( $entry, array_flip( array( 'operation', 'outcome_code', 'failure_stage', 'diagnostic_code', 'diagnostic_available', 'correlation_reference', 'recorded_at' ) ) ), $this->records->failure_history( $status->provider_repository_id(), $status->type(), $status->identifier(), $status->source_revision() ) );
 		return new RepositoryReleaseWorkflowStatus(
 			'gh',
-			$status->providerRepositoryId(),
+			$status->provider_repository_id(),
 			$exact,
-			$this->records->occupied( $status->providerRepositoryId() ),
+			$this->records->occupied( $status->provider_repository_id() ),
 			$exact ? 'https://github.com/' . $record['repository'] . '/pull/' . $record['pr_number'] : '',
 			$type,
 			$identifier,
@@ -61,7 +61,7 @@ final class GitHubRepositoryReleaseWorkflow {
 		return new RepositoryReleaseWorkflowPreview(
 			$key,
 			'gh',
-			$status->providerRepositoryId(),
+			$status->provider_repository_id(),
 			$preview['kind'],
 			$preview['preflight_channel'],
 			$preview['repository'],
@@ -117,10 +117,10 @@ final class GitHubRepositoryReleaseWorkflow {
 			$this->records->save_assessment_observation(
 				array(
 					'kind'               => $observation,
-					'repository_id'      => $status->providerRepositoryId(),
+					'repository_id'      => $status->provider_repository_id(),
 					'package_type'       => $status->type(),
 					'package_identifier' => $status->identifier(),
-					'source_revision'    => $status->sourceRevision(),
+					'source_revision'    => $status->source_revision(),
 					'observed_at'        => gmdate( 'Y-m-d\\TH:i:s\\Z' ),
 				)
 			);
@@ -135,8 +135,8 @@ final class GitHubRepositoryReleaseWorkflow {
 					'failure_stage'         => $outcome['failure_stage'],
 					'package_type'          => $status->type(),
 					'package_identifier'    => $status->identifier(),
-					'source_revision'       => $status->sourceRevision(),
-					'repository_id'         => $status->providerRepositoryId(),
+					'source_revision'       => $status->source_revision(),
+					'repository_id'         => $status->provider_repository_id(),
 					'diagnostic_code'       => $outcome['diagnostic_code'],
 					'diagnostic_available'  => $available,
 					'correlation_reference' => $reference,
@@ -156,7 +156,7 @@ final class GitHubRepositoryReleaseWorkflow {
 			'successful'      => false,
 			'preview_key'     => $key,
 			'failure_stage'   => 'release_preflight',
-			'diagnostic_code' => '' !== $preflight->reasonCode() ? $preflight->reasonCode() : 'preflight_contract_unavailable',
+			'diagnostic_code' => '' !== $preflight->reason_code() ? $preflight->reason_code() : 'preflight_contract_unavailable',
 		);
 	}
 	private function unauthorised( RepositoryReleaseWorkflowTarget $status, string $key = '' ): array {
@@ -181,10 +181,10 @@ final class GitHubRepositoryReleaseWorkflow {
 		if ( null === $id || '' === $id ) {
 			return '';
 		} try {
-			$profile = $this->credentials->credentialProfiles()[ $id ] ?? null;
+			$profile = $this->credentials->credential_profiles()[ $id ] ?? null;
 			if ( ! is_array( $profile ) || 'file' !== ( $profile['source'] ?? null ) || ! empty( $profile['immutable'] ) || empty( $profile['configured'] ) ) {
 				return '';
-			} $material = $this->credentials->credentialMaterial( $id );
+			} $material = $this->credentials->credential_material( $id );
 			$secret     = is_array( $material ) && is_string( $material['secret'] ?? null ) ? trim( $material['secret'] ) : '';
 			return '' === $secret && $required ? '' : $secret;
 		} catch ( Throwable ) {
@@ -194,7 +194,7 @@ final class GitHubRepositoryReleaseWorkflow {
 	}
 	private function credential_choices(): array {
 		try {
-			$profiles = $this->credentials->credentialProfiles();
+			$profiles = $this->credentials->credential_profiles();
 		} catch ( Throwable ) {
 			return array();
 		} $choices = array();
@@ -222,7 +222,7 @@ final class GitHubRepositoryReleaseWorkflow {
 		return is_array( $record ) && is_string( $record['repository'] ?? null ) ? $record['repository'] : '';
 	}
 	private function workflow_url( RepositoryReleaseWorkflowTarget $status ): string {
-		$url = $status->expectedUpdateUri();
+		$url = $status->expected_update_uri();
 		return 1 === preg_match( '#\Ahttps://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z#D', $url ) ? $url . '/actions' : '';
 	}
 }

@@ -1,15 +1,36 @@
 # Provider naming migration — 1 October 2026
 
-## Operative API13 methods-only scope — 1 October 2026
+## Operative API14 recovery scope — 2 October 2026
 
-The current accepted tranche implements exactly 50 methods across GitHubProvider
+The current recovery completes owned public parameters, properties, promotions and
+connected consumers on top of the earlier 50 Core-interface method migrations.
+Core DTO fields, method calls, named arguments, test doubles and reflection checks
+use the corresponding snake_case API14 declarations; no old-name aliases or mixed
+API13/API14 tuple compatibility are provided. Workflow V3, persisted/template keys,
+credentials, webhook behavior and updater runtime protocol 5 are unchanged.
+
+The exact candidate Core is
+`ae4de158e3ae02d99162b9b8d0babdc9269a36da`, matching the immutable host pin in
+[CI](../.github/workflows/ci.yml). Host-contract and implementation qualification
+cover 432 tests / 3,354 assertions, including interface parameter-name conformance.
+See [the current recovery qualification](beta31-recovery-qualification.md) for
+exact source identities and remaining release, composition and installed gates.
+Source qualification does not authorize publication or Core dependency adoption.
+
+All sections below preserve historical audits and checkpoints. Their earlier
+public-parameter deferrals, proposed mappings, source line references and host
+identities describe those checkpoints, not the operative API14 contract above.
+
+## Historical API13 methods-only checkpoint — 1 October 2026
+
+The accepted tranche at this checkpoint implemented exactly 50 methods across GitHubProvider
 (30), WebhookPolicy (8), CredentialPolicy (5), GitHubReleaseArtifact (4), and
 WebhookNormalizer (3), paired with 47 Core declarations across 20 interfaces.
 Only method declarations and their receiver-resolved callers/reflection names
-change. Public parameter names and promotions in the historical broader proposal
-below remain deferred; that proposal is not blanket implementation authority.
-Core owns API13 admission and combined qualification. Bitbucket retains its
-separate owner and must provide a matching migration. Source/host overlays are
+changed. Public parameter names and promotions in the broader proposal
+below remained deferred at that checkpoint; that proposal is not blanket implementation authority.
+Core owned API13 admission and combined qualification. Bitbucket had a
+separate owner responsible for its matching migration. Source/host overlays are
 preparation only; publication and real Core lock adoption remain separate gates.
 
 The remaining sections preserve the earlier audit evidence and proposal.

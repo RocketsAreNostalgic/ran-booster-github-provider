@@ -34,10 +34,10 @@ final class CredentialExpiryValidationTest extends TestCase {
 			new RepositoryResolverSecretsStub( array( 'expiry-profile' => self::TOKEN ) )
 		) )->validate_credential( 'expiry-profile' );
 
-		self::assertTrue( $result->isValid() );
+		self::assertTrue( $result->is_valid() );
 		self::assertNotNull( $result->expiry );
-		self::assertTrue( $result->expiry->isKnown() );
-		self::assertSame( $expected, $result->expiry->expiresAt );
+		self::assertTrue( $result->expiry->is_known() );
+		self::assertSame( $expected, $result->expiry->expires_at );
 	}
 
 	/**
@@ -61,10 +61,10 @@ final class CredentialExpiryValidationTest extends TestCase {
 			new RepositoryResolverSecretsStub( array( 'expiry-profile' => self::TOKEN ) )
 		) )->validate_credential( 'expiry-profile' );
 
-		self::assertTrue( $result->isValid() );
+		self::assertTrue( $result->is_valid() );
 		self::assertNotNull( $result->expiry );
-		self::assertFalse( $result->expiry->isKnown() );
-		self::assertNull( $result->expiry->expiresAt );
+		self::assertFalse( $result->expiry->is_known() );
+		self::assertNull( $result->expiry->expires_at );
 	}
 
 	public function test_failed_validation_never_returns_expiry_metadata_or_leaks_header(): void {
@@ -81,9 +81,9 @@ final class CredentialExpiryValidationTest extends TestCase {
 			new RepositoryResolverSecretsStub( array( 'expiry-profile' => self::TOKEN ) )
 		) )->validate_credential( 'expiry-profile' );
 
-		self::assertFalse( $result->isValid() );
+		self::assertFalse( $result->is_valid() );
 		self::assertNull( $result->expiry );
-		self::assertStringNotContainsString( $header, (string) $result->getDisplayMessage() );
+		self::assertStringNotContainsString( $header, (string) $result->get_display_message() );
 	}
 
 	/**

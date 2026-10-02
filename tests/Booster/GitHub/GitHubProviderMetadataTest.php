@@ -15,17 +15,15 @@ final class GitHubProviderMetadataTest extends TestCase {
 		$admin = $this->provider()->get_metadata()->admin;
 
 		self::assertNotNull( $admin );
-		$classic      = $admin->getCredentialKind( 'classic' );
-		$fine_grained = $admin->getCredentialKind( 'fine-grained' );
+		$classic      = $admin->get_credential_kind( 'classic' );
+		$fine_grained = $admin->get_credential_kind( 'fine-grained' );
 
 		self::assertNotNull( $classic );
 		self::assertSame( 'Classic personal access token', $classic->label );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'Classic PAT', $classic->shortLabel );
+		self::assertSame( 'Classic PAT', $classic->short_label );
 		self::assertNotNull( $fine_grained );
 		self::assertSame( 'Fine-grained personal access token', $fine_grained->label );
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Assert the unchanged external Core DTO property contract.
-		self::assertSame( 'Fine-grained PAT', $fine_grained->shortLabel );
+		self::assertSame( 'Fine-grained PAT', $fine_grained->short_label );
 	}
 
 	private function provider(): GitHubProvider {

@@ -58,7 +58,7 @@ final class GitHubProviderWebhookManagementTest extends TestCase {
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
-		$serialized = json_encode( $result->toArray(), JSON_THROW_ON_ERROR );
+		$serialized = json_encode( $result->to_array(), JSON_THROW_ON_ERROR );
 		self::assertStringNotContainsString( self::SAVED_TOKEN, $serialized );
 		self::assertStringNotContainsString( self::SECRET, $serialized );
 	}

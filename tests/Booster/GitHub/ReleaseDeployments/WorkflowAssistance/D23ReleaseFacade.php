@@ -25,36 +25,27 @@ final class D23ReleaseFacade implements ReleaseTrackingFacade {
 	public function statuses( string $type, array $identifiers ): array {
 		return array( $identifiers[0] => $this->status( $type, $identifiers[0] ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function nonceAction( string $operation, string $type, string $identifier, int $sourceRevision, string $channel = '' ): string {
+	public function nonce_action( string $operation, string $type, string $identifier, int $source_revision, string $channel = '' ): string {
 		return 'nonce';
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function preflight( string $type, string $identifier, int $expectedSourceRevision, string $channel, string $nonce ): ?ReleaseTrackingPreflight {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-		$this->calls[] = array( 'preflight', $type, $identifier, $expectedSourceRevision, $channel, $nonce );
+	public function preflight( string $type, string $identifier, int $expected_source_revision, string $channel, string $nonce ): ?ReleaseTrackingPreflight {
+		$this->calls[] = array( 'preflight', $type, $identifier, $expected_source_revision, $channel, $nonce );
 		return $this->preflight_contract_unavailable ? null : ( $this->preflight_response ?? new ReleaseTrackingPreflight( $this->preflight_code, 'example-plugin' ) );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function assessmentPreflight( string $type, string $identifier, int $expectedSourceRevision, string $channel, string $nonce ): ?ReleaseTrackingPreflight {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-		$this->calls[] = array( 'assessment_preflight', $type, $identifier, $expectedSourceRevision, $channel, $nonce );
+	public function assessment_preflight( string $type, string $identifier, int $expected_source_revision, string $channel, string $nonce ): ?ReleaseTrackingPreflight {
+		$this->calls[] = array( 'assessment_preflight', $type, $identifier, $expected_source_revision, $channel, $nonce );
 		return $this->preflight_contract_unavailable ? null : ( $this->preflight_response ?? new ReleaseTrackingPreflight( $this->preflight_code, 'example-plugin' ) );
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function enable( string $type, string $identifier, int $expectedSourceRevision, string $channel, string $nonce ): ReleaseTrackingResult {
+	public function enable( string $type, string $identifier, int $expected_source_revision, string $channel, string $nonce ): ReleaseTrackingResult {
 		return ReleaseTrackingResult::failed( 'unused', 'unused' );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function changeChannel( string $type, string $identifier, int $expectedSourceRevision, string $channel, string $nonce ): ReleaseTrackingResult {
+	public function change_channel( string $type, string $identifier, int $expected_source_revision, string $channel, string $nonce ): ReleaseTrackingResult {
 		return ReleaseTrackingResult::failed( 'unused', 'unused' );
 	}
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function refresh( string $type, string $identifier, int $expectedSourceRevision, string $nonce ): ReleaseTrackingResult {
+	public function refresh( string $type, string $identifier, int $expected_source_revision, string $nonce ): ReleaseTrackingResult {
 		return ReleaseTrackingResult::failed( 'unused', 'unused' );
 	}
-	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase,WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Core interface double preserves the declared method and named-parameter contract.
-	public function returnToBranch( string $type, string $identifier, int $expectedSourceRevision, string $nonce ): ReleaseTrackingResult {
+	public function return_to_branch( string $type, string $identifier, int $expected_source_revision, string $nonce ): ReleaseTrackingResult {
 		return ReleaseTrackingResult::failed( 'unused', 'unused' );
 	}
 }

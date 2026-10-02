@@ -32,7 +32,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 		);
 		$result   = ( new RepositoryWebhookClient() )->{$method}( '101', 'owner/example', self::TOKEN );
 		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
-		$evidence = $result->toArray();
+		$evidence = $result->to_array();
 
 		self::assertCount( 1, $requests );
 		self::assertSame( 65536, $requests[0]['arguments']['limit_response_size'] );
@@ -50,7 +50,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 		$result = ( new RepositoryWebhookClient() )->{$method}( '101', 'owner/example', self::TOKEN );
 		$action = strtolower( substr( $method, strlen( 'assess_' ) ) );
 
-		self::assertSame( $action . '_assessment_unavailable', $result->toArray()['code'] );
+		self::assertSame( $action . '_assessment_unavailable', $result->to_array()['code'] );
 	}
 
 	public function test_setup_uses_at_most_five_successful_calls_across_three_pages(): void {
@@ -78,9 +78,9 @@ final class RepositoryWebhookClientTest extends TestCase {
 		self::assertSame( array( 'GET', 'GET', 'GET', 'POST', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ) );
 		self::assertSame( array( 262144, 262144, 262144, 65536, 65536 ), array_column( array_column( $requests, 'arguments' ), 'limit_response_size' ) );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
-		self::assertStringNotContainsString( self::TOKEN, json_encode( $result->toArray(), JSON_THROW_ON_ERROR ) );
+		self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
-		self::assertStringNotContainsString( self::SECRET, json_encode( $result->toArray(), JSON_THROW_ON_ERROR ) );
+		self::assertStringNotContainsString( self::SECRET, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 	}
 
 	/** @return iterable<string, array{int}> */
@@ -106,7 +106,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertSame( 'failed', $result->state() );
 		self::assertSame( 'setup_failed', $result->code() );
-		self::assertNull( $result->hookId() );
+		self::assertNull( $result->hook_id() );
 		self::assertSame( array( 'GET', 'POST' ), array_column( array_column( $requests, 'arguments' ), 'method' ) );
 	}
 
@@ -122,7 +122,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertSame( 'ambiguous', $result->state() );
 		self::assertSame( 'setup_failed_ambiguous', $result->code() );
-		self::assertNull( $result->hookId() );
+		self::assertNull( $result->hook_id() );
 		self::assertCount( 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
 
@@ -138,7 +138,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertSame( 'ambiguous', $result->state() );
 		self::assertSame( 'setup_failed_ambiguous', $result->code() );
-		self::assertNull( $result->hookId() );
+		self::assertNull( $result->hook_id() );
 		self::assertCount( 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
 
@@ -159,8 +159,8 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertSame( 'failed', $result->state() );
 		self::assertSame( 'setup_compensated', $result->code() );
-		self::assertSame( '55', $result->hookId() );
-		self::assertSame( 'absent', $result->toArray()['delivery'] );
+		self::assertSame( '55', $result->hook_id() );
+		self::assertSame( 'absent', $result->to_array()['delivery'] );
 		self::assertSame( array( 'GET', 'POST', 'GET', 'DELETE', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ) );
 	}
 
@@ -181,8 +181,8 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertSame( 'partial', $result->state() );
 		self::assertSame( 'setup_compensation_incomplete', $result->code() );
-		self::assertSame( '55', $result->hookId() );
-		self::assertFalse( $result->confirmsAbsence() );
+		self::assertSame( '55', $result->hook_id() );
+		self::assertFalse( $result->confirms_absence() );
 		self::assertSame( array( 'GET', 'POST', 'GET', 'DELETE', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ) );
 	}
 
@@ -207,7 +207,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertSame( 'ambiguous', $result->state() );
 		self::assertSame( 'existing_hook_requires_reconfigure', $result->code() );
-		self::assertNull( $result->hookId(), 'An unowned hook ID must not seed a later remove operation.' );
+		self::assertNull( $result->hook_id(), 'An unowned hook ID must not seed a later remove operation.' );
 		self::assertCount( 1, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
 
@@ -217,7 +217,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		$result = ( new RepositoryWebhookClient() )->remove( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
 
-		self::assertTrue( $result->confirmsAbsence() );
+		self::assertTrue( $result->confirms_absence() );
 		self::assertCount( 3, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
 
@@ -246,7 +246,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertSame( 'ambiguous', $result->state() );
 		self::assertSame( 'reconfigure_readback_unavailable', $result->code() );
-		self::assertSame( '55', $result->hookId() );
+		self::assertSame( '55', $result->hook_id() );
 		self::assertSame( array( 'GET', 'PATCH', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ) );
 	}
 
@@ -265,7 +265,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertTrue( $result->succeeded() );
 		self::assertSame( 'configured_pending_delivery', $result->code() );
-		self::assertSame( '55', $result->hookId() );
+		self::assertSame( '55', $result->hook_id() );
 		self::assertSame( array( 'GET', 'PATCH', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ) );
 		self::assertSame( array( 65536, 65536, 65536 ), array_column( array_column( $requests, 'arguments' ), 'limit_response_size' ) );
 		self::assertSame(
@@ -283,7 +283,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 			json_decode( $requests[1]['arguments']['body'], true, 32, JSON_THROW_ON_ERROR )
 		);
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
-		self::assertStringNotContainsString( self::SECRET, json_encode( $result->toArray(), JSON_THROW_ON_ERROR ) );
+		self::assertStringNotContainsString( self::SECRET, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 	}
 
 	public function test_remove_absence_readback_failure_remains_ambiguous_with_the_known_hook_identity(): void {
@@ -301,7 +301,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertSame( 'ambiguous', $result->state() );
 		self::assertSame( 'remove_readback_unavailable', $result->code() );
-		self::assertSame( '55', $result->hookId() );
+		self::assertSame( '55', $result->hook_id() );
 		self::assertSame( array( 'GET', 'DELETE', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ) );
 	}
 
@@ -322,13 +322,13 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertTrue( $result->succeeded() );
 		self::assertSame( 'configuration_confirmed', $result->code() );
-		self::assertSame( '55', $result->hookId() );
+		self::assertSame( '55', $result->hook_id() );
 		self::assertCount( 1, $requests );
 		self::assertSame( 'GET', $requests[0]['arguments']['method'] );
 		self::assertSame( 65536, $requests[0]['arguments']['limit_response_size'] );
 		self::assertSame( 0, $requests[0]['arguments']['redirection'] );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
-		self::assertStringNotContainsString( self::TOKEN, json_encode( $result->toArray(), JSON_THROW_ON_ERROR ) );
+		self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 	}
 
 	public function test_ping_acceptance_does_not_use_provider_delivery_history_as_signing_proof(): void {
@@ -362,11 +362,11 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertTrue( $result->succeeded() );
 		self::assertSame( 'ping_requested', $result->code() );
-		self::assertSame( 'unknown', $result->toArray()['delivery'] );
+		self::assertSame( 'unknown', $result->to_array()['delivery'] );
 		self::assertSame( array( 'GET', 'POST' ), array_column( array_column( $requests, 'arguments' ), 'method' ) );
 		self::assertStringContainsString( '/hooks/55/pings', $requests[1]['url'] );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
-		self::assertStringNotContainsString( self::TOKEN, json_encode( $result->toArray(), JSON_THROW_ON_ERROR ) );
+		self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 	}
 
 	public function test_ping_acceptance_without_a_new_delivery_does_not_claim_verification(): void {
@@ -387,7 +387,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertTrue( $result->succeeded() );
 		self::assertSame( 'ping_requested', $result->code() );
-		self::assertSame( 'unknown', $result->toArray()['delivery'] );
+		self::assertSame( 'unknown', $result->to_array()['delivery'] );
 	}
 
 	public function test_ping_acceptance_remains_unverified_when_provider_history_contains_ping_deliveries(): void {
@@ -417,7 +417,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 		$result = ( new RepositoryWebhookClient() )->test( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
 
 		self::assertSame( 'ping_requested', $result->code() );
-		self::assertSame( 'unknown', $result->toArray()['delivery'] );
+		self::assertSame( 'unknown', $result->to_array()['delivery'] );
 	}
 
 	public function test_ping_acceptance_remains_unverified_when_provider_history_contains_failed_deliveries(): void {
@@ -444,7 +444,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertTrue( $result->succeeded() );
 		self::assertSame( 'ping_requested', $result->code() );
-		self::assertSame( 'unknown', $result->toArray()['delivery'] );
+		self::assertSame( 'unknown', $result->to_array()['delivery'] );
 	}
 
 	public function test_ping_acceptance_remains_unverified_when_provider_history_contains_redirected_deliveries(): void {
@@ -471,7 +471,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertTrue( $result->succeeded() );
 		self::assertSame( 'ping_requested', $result->code() );
-		self::assertSame( 'unknown', $result->toArray()['delivery'] );
+		self::assertSame( 'unknown', $result->to_array()['delivery'] );
 	}
 
 	public function test_ping_refuses_a_mismatched_recorded_hook_before_any_ping_request(): void {

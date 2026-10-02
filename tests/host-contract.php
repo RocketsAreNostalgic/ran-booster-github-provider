@@ -33,12 +33,12 @@ require $core_root . '/autoload.php';
 
 $core_plugin = file_get_contents( $core_root . '/ran-booster.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Exact certified source contract.
 if ( ! is_string( $core_plugin )
-	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 13 \);/", $core_plugin )
+	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 14 \);/", $core_plugin )
 ) {
 	throw new RuntimeException( 'Unexpected Provider API generation.' );
 }
 if ( ! class_exists( ProviderRegistrationContext::class ) ) {
-	throw new RuntimeException( 'Provider API 13 registration context is unavailable.' );
+	throw new RuntimeException( 'Provider API 14 registration context is unavailable.' );
 }
 
 /** @return string */
@@ -90,7 +90,7 @@ $contracts = array(
 		'version'         => array( array(), 'string' ),
 		'package_root'    => array( array(), 'string' ),
 		'main_file'       => array( array(), 'string' ),
-		'identifier'      => array( array( array( 'packageType', 'string' ) ), 'string' ),
+		'identifier'      => array( array( array( 'package_type', 'string' ) ), 'string' ),
 	),
 	RepositoryReleaseArtifactCustody::class      => array(
 		'inspect'      => array( array( array( 'inspection', 'callable' ) ), 'mixed' ),
@@ -103,9 +103,9 @@ $contracts = array(
 	RepositoryReleaseWorkflowManagementV3::class => array(
 		'workflow_status'  => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ) ), RepositoryReleaseWorkflowStatus::class ),
 		'workflow_preview' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ) ), '?' . RepositoryReleaseWorkflowPreview::class ),
-		'workflow_inspect' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'channel', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflow_setup'   => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ), array( 'confirmation', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflow_outcome' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'credentialId', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflow_inspect' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'channel', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credential_id', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflow_setup'   => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ), array( 'confirmation', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credential_id', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflow_outcome' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'credential_id', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
 	),
 );
 

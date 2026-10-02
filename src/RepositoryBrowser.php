@@ -58,7 +58,7 @@ class RepositoryBrowser {
 		$headers   = $this->request_headers();
 
 		if ( null !== $credential_id || $authenticate_default ) {
-			$credential = $this->credentials->credentialMaterial( $credential_id );
+			$credential = $this->credentials->credential_material( $credential_id );
 			$token      = is_array( $credential ) && isset( $credential['secret'] ) && is_string( $credential['secret'] )
 				? trim( $credential['secret'] )
 				: '';
@@ -139,8 +139,7 @@ class RepositoryBrowser {
 		$branch    = $this->validate_branch( $branch );
 		$identity  = $this->repository( $full_name, $credential_id, 15, 65536, $is_private );
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort. Preserve promoted constructor or Core DTO property contracts.
-		if ( ! hash_equals( $expected_repository_id, $identity->providerRepositoryId ) ) {
+		if ( ! hash_equals( $expected_repository_id, $identity->provider_repository_id ) ) {
 			throw new RuntimeException( 'GitHub returned an invalid repository identity while resolving the branch.', 502 );
 		}
 
@@ -161,8 +160,7 @@ class RepositoryBrowser {
 		$ref       = $this->validate_ref( $ref );
 		$identity  = $this->repository( $full_name, $credential_id, 15, 65536, $is_private );
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort. Preserve promoted constructor or Core DTO property contracts.
-		if ( ! hash_equals( $expected_repository_id, $identity->providerRepositoryId ) ) {
+		if ( ! hash_equals( $expected_repository_id, $identity->provider_repository_id ) ) {
 			throw new RuntimeException( 'GitHub returned an invalid repository identity while resolving the revision.', 502 );
 		}
 
@@ -357,7 +355,7 @@ class RepositoryBrowser {
 	}
 
 	public function validate_credential( string $credential_id, float $timeout = 15.0 ): CredentialValidationResult {
-		$credential = $this->credentials->credentialMaterial( $credential_id );
+		$credential = $this->credentials->credential_material( $credential_id );
 		$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
 			: '';
@@ -390,7 +388,7 @@ class RepositoryBrowser {
 		}
 
 		if ( $this->is_rate_limited_response( $response, $status ) ) {
-			return CredentialValidationResult::rateLimited();
+			return CredentialValidationResult::rate_limited();
 		}
 
 		if ( 403 === $status ) {
@@ -403,7 +401,7 @@ class RepositoryBrowser {
 
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( ! is_array( $body ) || ! is_string( $body['login'] ?? null ) || '' === trim( $body['login'] ) ) {
-			return CredentialValidationResult::invalidResponse();
+			return CredentialValidationResult::invalid_response();
 		}
 
 		return CredentialValidationResult::valid( $this->credential_expiry_report( $response ) );
@@ -450,14 +448,14 @@ class RepositoryBrowser {
 	}
 
 	public function browse( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
-		return RepositoryBrowseMode::PUBLIC_OWNER === $request->getMode()
+		return RepositoryBrowseMode::PUBLIC_OWNER === $request->get_mode()
 			? $this->browse_public( $request )
 			: $this->browse_accessible( $request );
 	}
 
 	private function browse_accessible( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
-		$credential_id = (string) $request->getCredentialId();
-		$credential    = $this->credentials->credentialMaterial( $credential_id );
+		$credential_id = (string) $request->get_credential_id();
+		$credential    = $this->credentials->credential_material( $credential_id );
 		$token         = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
 			: '';
@@ -479,15 +477,15 @@ class RepositoryBrowser {
 	}
 
 	private function browse_public( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
-		$owner = trim( (string) $request->getOwner() );
+		$owner = trim( (string) $request->get_owner() );
 		if ( ! preg_match( '/\A(?=.{1,39}\z)(?!-)(?!.*--)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\z/', $owner ) ) {
 			throw new RuntimeException( 'Enter a valid GitHub user or organisation name.', 400 );
 		}
 
-		$credential_id = $request->getCredentialId();
+		$credential_id = $request->get_credential_id();
 		$headers       = $this->request_headers();
 		if ( null !== $credential_id ) {
-			$credential = $this->credentials->credentialMaterial( $credential_id );
+			$credential = $this->credentials->credential_material( $credential_id );
 			$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 				? trim( $credential['secret'] )
 				: '';
@@ -529,7 +527,7 @@ class RepositoryBrowser {
 		$repositories = array();
 
 		for ( $page = 1; ; ++$page ) {
-			if ( ! $request->hasCapacity() ) {
+			if ( ! $request->has_capacity() ) {
 				return $this->partial_browse_result( $repositories, 503 );
 			}
 
@@ -540,7 +538,7 @@ class RepositoryBrowser {
 			} catch ( RuntimeException | InvalidArgumentException $exception ) {
 				if ( array() === $repositories
 					|| ( $public_only
-						&& null !== $request->getCredentialId()
+						&& null !== $request->get_credential_id()
 						&& in_array( (int) $exception->getCode(), array( 401, 403, 429 ), true ) )
 				) {
 					throw $exception;
@@ -581,9 +579,9 @@ class RepositoryBrowser {
 		$response = wp_remote_get(
 			$url,
 			array(
-				'timeout'             => $request->claimRemoteCall(),
+				'timeout'             => $request->claim_remote_call(),
 				'redirection'         => 0,
-				'limit_response_size' => $request->getResponseSizeLimit(),
+				'limit_response_size' => $request->get_response_size_limit(),
 				'reject_unsafe_urls'  => true,
 				'headers'             => $headers,
 			)
@@ -595,7 +593,7 @@ class RepositoryBrowser {
 
 		$body   = wp_remote_retrieve_body( $response );
 		$status = (int) wp_remote_retrieve_response_code( $response );
-		$request->acceptResponseBody( $body );
+		$request->accept_response_body( $body );
 
 		if ( 401 === $status ) {
 			throw new RuntimeException( 'GitHub rejected the selected credential.', 401 );
@@ -696,7 +694,7 @@ class RepositoryBrowser {
 			return $headers;
 		}
 
-		$credential = $this->credentials->credentialMaterial( $credential_id );
+		$credential = $this->credentials->credential_material( $credential_id );
 		$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
 			: '';
@@ -726,7 +724,7 @@ class RepositoryBrowser {
 	}
 
 	private function validate_branch( string $branch ): string {
-		if ( ! GitReferenceSyntax::isValidNamedReference( $branch ) ) {
+		if ( ! GitReferenceSyntax::is_valid_named_reference( $branch ) ) {
 			throw new RuntimeException( 'Enter a valid GitHub repository branch.', 400 );
 		}
 

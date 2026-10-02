@@ -23,10 +23,8 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 	private WebhookPolicy $policy;
 
 	public function __construct(
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private ProviderWebhookProfileReader $webhookProfiles,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		private AuthenticatedWebhookDeliveryEvidenceReader $deliveryEvidence
+		private ProviderWebhookProfileReader $webhook_profiles,
+		private AuthenticatedWebhookDeliveryEvidenceReader $delivery_evidence
 	) {
 		$this->policy = new WebhookPolicy();
 	}
@@ -37,8 +35,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 
 	public function diagnose_webhook_readiness(): ProviderDiagnosticResult {
 		try {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-			if ( ! $this->webhookProfiles->hasWebhookProfile() ) {
+			if ( ! $this->webhook_profiles->has_webhook_profile() ) {
 				return new ProviderDiagnosticResult(
 					ProviderDiagnosticResult::NOT_CONFIGURED,
 					'gh.webhook.not_configured',
@@ -56,8 +53,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		}
 
 		try {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-			$evidence = $this->deliveryEvidence->latestAuthenticatedDelivery();
+			$evidence = $this->delivery_evidence->latest_authenticated_delivery();
 		} catch ( \Throwable $exception ) {
 			return new ProviderDiagnosticResult(
 				ProviderDiagnosticResult::FAILED,
@@ -77,15 +73,13 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			);
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-		if ( ! $evidence->matchedManagedPackage ) {
+		if ( ! $evidence->matched_managed_package ) {
 			return new ProviderDiagnosticResult(
 				ProviderDiagnosticResult::WARNING,
 				'gh.webhook.delivery_authenticated_unmatched',
 				sprintf(
 					'Site-wide Push-to-Deploy check: Booster authenticated a GitHub push delivery at %s site time, but it matched no managed package. This result is not scoped to the repository selected above.',
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-					$evidence->receivedAt
+					$evidence->received_at
 				),
 				'Check repository identity, configured branch, and package deployment policy across managed GitHub repositories, then send a fresh push.'
 			);
@@ -96,22 +90,21 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			'gh.webhook.delivery_authenticated',
 			sprintf(
 				'Site-wide Push-to-Deploy check: Booster authenticated a GitHub push delivery at %s site time and matched at least one managed package. This result is not scoped to the repository selected above.',
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Preserve promoted constructor or Core DTO property contracts.
-				$evidence->receivedAt
+				$evidence->received_at
 			),
 			'Review Deployment activity for the package outcome. If the webhook secret or provider hook changed after this time, send a fresh push.'
 		);
 	}
 
 	public function normalize_webhook( WebhookRequest $request ): WebhookEnvelope {
-		if ( ! $request->getProvider()->equals( ProviderCode::parse( 'gh' ) ) ) {
+		if ( ! $request->get_provider()->equals( ProviderCode::parse( 'gh' ) ) ) {
 			throw new WebhookRejected( 400, 'Webhook provider does not match GitHub.' );
 		}
 
-		$body         = $request->getBody();
+		$body         = $request->get_body();
 		$event        = $this->event( $request );
 		$delivery     = $this->delivery( $request );
-		$verification = $request->requireVerification();
+		$verification = $request->require_verification();
 
 		if ( 'ping' === $event ) {
 			return WebhookEnvelope::probe();
@@ -155,7 +148,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 
 	private function event( WebhookRequest $request ): string {
 		$event = $this->bounded_header(
-			$request->getRawHeaderValues( 'x-github-event' ),
+			$request->get_raw_header_values( 'x-github-event' ),
 			self::MAX_EVENT_BYTES
 		);
 
@@ -168,7 +161,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 
 	private function delivery( WebhookRequest $request ): string {
 		$delivery = $this->bounded_header(
-			$request->getRawHeaderValues( 'x-github-delivery' ),
+			$request->get_raw_header_values( 'x-github-delivery' ),
 			self::MAX_DELIVERY_BYTES
 		);
 

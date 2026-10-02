@@ -71,25 +71,22 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 
 	public function authorize_webhook(
 		SignedWebhookVerification $verification,
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		string $repositoryAuthorityId,
+		string $repository_authority_id,
 		string $repository
 	): bool {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		if ( '' === $repositoryAuthorityId || ! $verification->getProvider()->equals( $this->get_provider() ) ) {
+		if ( '' === $repository_authority_id || ! $verification->get_provider()->equals( $this->get_provider() ) ) {
 			return false;
 		}
 
 		$repository = strtolower( trim( $repository, '/' ) );
 		$owner      = explode( '/', $repository, 2 )[0];
-		foreach ( $verification->getProfiles() as $profile ) {
+		foreach ( $verification->get_profiles() as $profile ) {
 			$scope  = strtolower( trim( $profile['scope'] ) );
 			$target = strtolower( trim( $profile['target'], " \t\n\r\0\x0B/" ) );
 			if ( ( 'owner' === $scope && '' !== $target && $target === $owner )
 				|| ( 'repository' === $scope
 					&& '' !== $profile['authority_id']
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-					&& hash_equals( $profile['authority_id'], $repositoryAuthorityId ) )
+					&& hash_equals( $profile['authority_id'], $repository_authority_id ) )
 			) {
 				return true;
 			}
@@ -98,10 +95,8 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 		return false;
 	}
 
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-	public function repository_target_matches( string $target, string $repositoryLocator ): bool {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- Preserve public named-parameter compatibility pending the contract cohort.
-		return 0 === strcasecmp( trim( $target, '/' ), trim( $repositoryLocator, '/' ) );
+	public function repository_target_matches( string $target, string $repository_locator ): bool {
+		return 0 === strcasecmp( trim( $target, '/' ), trim( $repository_locator, '/' ) );
 	}
 
 	private function assert_secret( string $secret ): void {
