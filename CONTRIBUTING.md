@@ -27,11 +27,11 @@ candidate Booster checkout pinned in [CI](.github/workflows/ci.yml):
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the candidate host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = a53d35f18d226bf37f8485f351a5d0decdac6066 &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ae4de158e3ae02d99162b9b8d0babdc9269a36da &&
   composer check:host
 ```
 
-This is candidate-only Provider API 13 / workflow V3 qualification, not
+This is candidate-only Provider API 14 / workflow V3 qualification, not
 certification against a released Core host. The SHA above mirrors the existing
 CI configuration; update the example when that authoritative tuple changes,
 not the certification pin to match prose.
@@ -65,17 +65,17 @@ fix use the same scope. Upstream method-name diagnostics are replaced by the
 owned-method check so explicit public-contract deferrals work consistently.
 
 Yoda conditions and reserved-parameter naming are now enforced without broad
-migration suppressions. Precise line-local deferrals preserve public named
-arguments and genuine Core/WordPress/updater signatures. These public-contract
-migration deferrals must not spread to new private code. Fixture-owned identifiers
+migration suppressions. Only genuine foreign WordPress/updater/native signatures may retain
+precise line-local deferrals. Owned Core API14 parameters and DTO fields now
+use snake_case, including connected named arguments. Fixture-owned identifiers
 and their connected callers now use snake_case, including named arguments.
 
 The accepted Provider-owned helper tranche migrates 52 methods, 64 camelCase
 parameter occurrences (including three private promotions) and four reserved
 parameters, with connected callers and Core consumers. This intentionally
 breaks the old beta PHP API; no mixed old/new tuple compatibility is claimed.
-The separate API13 tranche migrates all 50 Core-interface implementation methods
-with Core declarations and receiver-resolved callers. Public parameters and
-promotions remain separate obligations. Persisted/template keys,
+The earlier API13 tranche migrated all 50 Core-interface implementation methods.
+The current API14 recovery completes public parameters, properties, promotions
+and connected callers with the matching Core declarations. Persisted/template keys,
 credentials and runtime protocols are unchanged. See [the migration ledger](docs/naming-migration.md) and
 [the proposed Core contract manifest](docs/naming-core-contract-manifest.md).

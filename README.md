@@ -176,11 +176,12 @@ Maintainers should use [CONTRIBUTING.md](CONTRIBUTING.md) for quality commands,
 [AGENTS.md](AGENTS.md) for the repository engineering contract. The package is
 licensed under [GPL-2.0-or-later](LICENSE).
 
-## API13 naming candidate
+## API14 naming candidate
 
-This source migrates 50 implementations of Core-owned methods to snake_case.
-It requires the exact API13 Core candidate and is not compatible with API12
-method contracts. WorkflowV3 and persisted/template identities are unchanged.
+This source includes the earlier 50 Core-owned interface method migrations and
+completes owned parameter, property and connected consumer naming. It requires
+the exact API14 Core candidate pinned in CI; prior API12/API13 tuples are not
+compatible. WorkflowV3 and persisted/template identities remain unchanged.
 Candidate host qualification is preparation, not released-Core certification.
 See Core #167 for reviewed candidate identities and the publication/adoption
-sequence. The earlier published beta.9 remains the API12 helper release.
+sequence. The earlier published beta.9 remains historical API12 helper evidence.

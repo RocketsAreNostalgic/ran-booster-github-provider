@@ -44,7 +44,7 @@ The implementation consumes Booster-owned provider contracts, so implementation 
 ```sh
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the candidate host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 36ea3fcee380b0869c8ca8bd83270408f4c6f2d3 &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ae4de158e3ae02d99162b9b8d0babdc9269a36da &&
   composer check:host
 ```
 
