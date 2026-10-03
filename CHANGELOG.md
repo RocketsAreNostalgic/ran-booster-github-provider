@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.13](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.12...v1.0.0-beta.13) (2026-10-03)
+
+
+### Bug Fixes
+
+* resolve level-five provider analysis findings ([#55](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/55)) ([fc2b2ef](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/fc2b2efceb847d8816c0b5f6c3dedffdf6eb8009))
+
 ## [1.0.0-beta.12](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.11...v1.0.0-beta.12) (2026-10-02)
 
 
