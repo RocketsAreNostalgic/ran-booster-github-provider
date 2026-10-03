@@ -198,7 +198,7 @@ final class SourceReadyAssessor {
 		);
 	}
 
-	/** @return array{path:string,content:string}|string */
+	/** @return array{path:string,content:string,php_version:string}|string */
 	private function header( RepositorySnapshot $snapshot, string $type, string $version, string $update_uri ): array|string {
 		$candidates = array();
 		if ( 'theme' === $type ) {

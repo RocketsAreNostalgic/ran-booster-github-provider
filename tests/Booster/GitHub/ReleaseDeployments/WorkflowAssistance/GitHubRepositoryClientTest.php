@@ -437,6 +437,39 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertStringEndsWith( '/pulls/17/files?per_page=100', $transport->requests[2]['url'] );
 	}
 
+	public function test_non_string_transport_bodies_are_rejected_before_decoding(): void {
+		foreach ( array( array(), 123, false, new \stdClass() ) as $body ) {
+			$response         = $this->response( 200, array() );
+			$response['body'] = $body;
+			$client           = new GitHubRepositoryClient( new D23GitHubTransport( array( $response ) ) );
+
+			self::assertSame( 'remote_unavailable', $client->repository( self::REPOSITORY )['code'] );
+		}
+	}
+
+	public function test_pull_request_file_set_retains_the_bounded_change_limit(): void {
+		foreach ( array(
+			32  => 'ok',
+			33  => 'invalid_response',
+			100 => 'invalid_response',
+		) as $count => $code ) {
+			$files = array();
+			for ( $index = 0; $index < $count; ++$index ) {
+				$files[] = array(
+					'filename' => 'file-' . $index . '.php',
+					'status'   => 'modified',
+					'sha'      => self::SHA,
+				);
+			}
+			$client = new GitHubRepositoryClient( new D23GitHubTransport( array( $this->response( 200, $files ) ) ) );
+			$result = $client->pull_request_file_set( self::REPOSITORY, 17 );
+			self::assertSame( $code, $result['code'] );
+			if ( 'ok' === $code ) {
+				self::assertCount( 32, $result['files'] );
+			}
+		}
+	}
+
 	public function test_malformed_inputs_responses_and_conflicts_fail_closed(): void {
 		$wrong                              = $this->pull( 17, 'open', 'setup', 'main', self::SHA );
 		$wrong['head']['repo']['full_name'] = 'owner/other';

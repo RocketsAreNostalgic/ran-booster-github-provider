@@ -225,7 +225,7 @@ final class TemplatePackRepositoryClient {
 				fn ( mixed $asset ): bool => is_array( $asset ) && hash_equals( self::ASSET_NAME, (string) ( $asset['name'] ?? '' ) )
 			)
 		);
-		if ( null === $release_id || null === $version || ! is_string( $target )
+		if ( null === $release_id || ! is_string( $target )
 			|| 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $target ) || 1 !== count( $assets ) || 1 !== count( $matches ) ) {
 			return null;
 		}

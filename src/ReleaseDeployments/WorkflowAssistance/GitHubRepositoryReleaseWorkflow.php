@@ -143,7 +143,7 @@ final class GitHubRepositoryReleaseWorkflow {
 					'recorded_at'           => gmdate( 'Y-m-d\\TH:i:s\\Z' ),
 				)
 			);
-			$outcome['correlation_reference'] = $available ? $reference : '';
+			$outcome['correlation_reference'] = '';
 		}
 		return new RepositoryReleaseWorkflowResult( $outcome['code'], $outcome['successful'], $outcome['preview_key'], $outcome['failure_stage'], $outcome['diagnostic_code'], $outcome['correlation_reference'] ?? '' );
 	}
@@ -217,9 +217,6 @@ final class GitHubRepositoryReleaseWorkflow {
 			$value = substr( $value, 0, -1 );
 		}
 		return $value;
-	}
-	private function repository_locator( ?array $record ): string {
-		return is_array( $record ) && is_string( $record['repository'] ?? null ) ? $record['repository'] : '';
 	}
 	private function workflow_url( RepositoryReleaseWorkflowTarget $status ): string {
 		$url = $status->expected_update_uri();

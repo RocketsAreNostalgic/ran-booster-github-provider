@@ -53,7 +53,7 @@ final readonly class SourceReadyAssessment {
 		}
 		foreach ( $extra_files as $extra ) {
 			if ( ! is_array( $extra ) || ! in_array( $extra['type'] ?? null, array( 'generic' ), true )
-				|| ( 'generic' === $extra['type'] && array_keys( $extra ) !== array( 'type', 'path' ) ) ) {
+				|| array_keys( $extra ) !== array( 'type', 'path' ) ) {
 				throw new InvalidArgumentException( 'Source-ready assessment contains an invalid version source.' );
 			}
 		}

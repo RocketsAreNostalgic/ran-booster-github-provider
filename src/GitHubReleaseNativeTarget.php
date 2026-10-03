@@ -14,8 +14,8 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 
 	private ?object $updater = null;
 
-	/** @var string|callable|null */
-	private string|Closure|null $access_token;
+	/** @var (Closure(): string)|null */
+	private ?Closure $access_token;
 
 	/** @var (Closure(): int)|null */
 	private ?Closure $maximum_artifact_bytes;
