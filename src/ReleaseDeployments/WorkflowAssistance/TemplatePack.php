@@ -322,7 +322,7 @@ final readonly class TemplatePack {
 	/** @param list<string> $expected */
 	private static function template_placeholders_match( string $content, array $expected ): bool {
 		preg_match_all( '/\{\{RAN_([A-Z][A-Z0-9_]*)\}\}/', $content, $matches );
-		$actual = array_values( array_unique( $matches[1] ?? array() ) );
+		$actual = array_values( array_unique( $matches[1] ) );
 		sort( $actual, SORT_STRING );
 		sort( $expected, SORT_STRING );
 

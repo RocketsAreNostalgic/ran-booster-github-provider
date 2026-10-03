@@ -311,7 +311,7 @@ final class GitHubRepositoryClient {
 		if ( 'ok' !== $response['code'] ) {
 			return $response;
 		}
-		if ( ! array_is_list( $files ) || count( $files ) > self::MAX_CHANGES || count( $files ) >= 100 ) {
+		if ( ! array_is_list( $files ) || count( $files ) > self::MAX_CHANGES ) {
 			return $this->error( 'invalid_response' );
 		}
 		$normalized = array();
@@ -395,7 +395,7 @@ final class GitHubRepositoryClient {
 		if ( 429 === $status ) {
 			return $this->error( 'rate_limited' );
 		}
-		if ( $status < 200 || $status >= 300 || ! is_string( $raw ) || strlen( $raw ) > self::MAX_BODY ) {
+		if ( $status < 200 || $status >= 300 || ! is_string( $response['body'] ?? '' ) || strlen( $raw ) > self::MAX_BODY ) {
 			return $this->error( 'remote_unavailable' );
 		}
 		if ( $raw_prefix ) {

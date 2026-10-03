@@ -785,7 +785,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			return false;
 		}
 
-		return WP_Filesystem() && $wp_filesystem instanceof \WP_Filesystem_Direct;
+		// Initialization replaces the global; inspect its current value after the call.
+		return WP_Filesystem() && ( $GLOBALS['wp_filesystem'] ?? null ) instanceof \WP_Filesystem_Direct;
 	}
 
 	private function success( mixed $result, string $code, string $cleanup_status ): bool {

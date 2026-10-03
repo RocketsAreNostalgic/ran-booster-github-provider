@@ -240,9 +240,6 @@ final class RepositoryWebhookClient {
 		}
 		return $this->hooks_path( $repository ) . '/' . rawurlencode( $hook_id );
 	}
-	private function deliveries_path( string $repository, string $hook_id ): string {
-		return $this->hook_path( $repository, $hook_id ) . '/deliveries?per_page=100';
-	}
 	private function repository_path( string $repository ): string {
 		$parts = explode( '/', trim( $repository ) );
 		if ( 2 !== count( $parts ) || 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] ) || 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] ) ) {
@@ -267,52 +264,6 @@ final class RepositoryWebhookClient {
 			}
 		}
 		return $data;
-	}
-	/** @return array<string,true>|null */
-	private function delivery_ids( string $body ): ?array {
-		$data = json_decode( $body, true, 32, JSON_BIGINT_AS_STRING );
-		if ( ! is_array( $data ) || ! array_is_list( $data ) ) {
-			return null;
-		}
-		$ids = array();
-		foreach ( $data as $delivery ) {
-			if ( ! is_array( $delivery ) || null === $this->delivery_id( $delivery ) ) {
-				return null;
-			}
-			$ids[ $this->delivery_id( $delivery ) ] = true;
-		}
-
-		return $ids;
-	}
-	/** @param array<string,true> $baseline @return array{status_code:?int}|false|null */
-	private function new_ping_delivery( string $body, array $baseline ): array|false|null {
-		$data = json_decode( $body, true, 32, JSON_BIGINT_AS_STRING );
-		if ( ! is_array( $data ) || ! array_is_list( $data ) ) {
-			return false;
-		}
-		foreach ( $data as $delivery ) {
-			$id = is_array( $delivery ) ? $this->delivery_id( $delivery ) : null;
-			if ( ! is_array( $delivery ) || null === $id || ! is_string( $delivery['event'] ?? null ) ) {
-				return false;
-			}
-			if ( ! isset( $baseline[ $id ] ) && 'ping' === $delivery['event'] ) {
-				$status_code = $delivery['status_code'] ?? null;
-				if ( null !== $status_code && ! is_int( $status_code ) ) {
-					return false;
-				}
-
-				return array( 'status_code' => $status_code );
-			}
-		}
-
-		return null;
-	}
-	/** @param array<string,mixed> $delivery */
-	private function delivery_id( array $delivery ): ?string {
-		$id = $delivery['id'] ?? null;
-		$id = is_int( $id ) || is_string( $id ) ? trim( (string) $id ) : '';
-
-		return 1 === preg_match( '/\A[1-9][0-9]{0,18}\z/D', $id ) ? $id : null;
 	}
 	/** @param array<string,mixed>|null $hook */
 	private function hook_id( ?array $hook ): ?string {
