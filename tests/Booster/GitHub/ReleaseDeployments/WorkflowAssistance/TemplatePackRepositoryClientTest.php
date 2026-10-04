@@ -21,7 +21,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	public function test_latest_incompatible_pack_refuses_without_falling_back(): void {
 		$compatible_manifest   = TemplatePackApi3Fixture::manifest();
 		$compatible_archive    = TemplatePackApi3Fixture::archive( $compatible_manifest );
-		$incompatible_manifest = $this->manifest_identity( TemplatePackApi3Fixture::manifest( 4, '2.0.0' ), 42, 'v2.0.0' );
+		$incompatible_manifest = $this->manifest_identity( TemplatePackApi3Fixture::manifest( 4, '2.0.0' ), 'v2.0.0' );
 		$incompatible_archive  = TemplatePackApi3Fixture::archive( $incompatible_manifest );
 
 		$compatible   = $this->release( 41, 'v1.2.3', $compatible_archive );
@@ -356,7 +356,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 	}
 
 	/** @param array<string, mixed> $manifest @return array<string, mixed> */
-	private function manifest_identity( array $manifest, int $release_id, string $tag ): array {
+	private function manifest_identity( array $manifest, string $tag ): array {
 		$manifest['release']['tag'] = $tag;
 
 		return $manifest;

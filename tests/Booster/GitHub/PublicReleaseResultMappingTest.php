@@ -221,7 +221,9 @@ final class PublicReleaseResultMappingTest extends TestCase {
 }
 
 final class PublicReleaseRegistrarFixture {
-	public function __construct( private PublicReleaseSourceFixture $source ) {} public function releases( mixed ...$arguments ): object {
+	public function __construct( private PublicReleaseSourceFixture $source ) {}
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Structural release-registrar fixture accepts the real contract arguments.
+	public function releases( mixed ...$arguments ): object {
 		return $this->source; }
 }
 final class PublicReleaseSourceFixture {
@@ -229,10 +231,14 @@ final class PublicReleaseSourceFixture {
 	public int $acquire_calls = 0;
 	public function __construct( private array $release_list, private array $inspect, private array $acquire ) {} public function list(): array {
 		return $this->release_list;
-	} public function inspect( string $id, string $tag ): array {
+	}
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Structural release-source fixture preserves the public lookup signature.
+	public function inspect( string $id, string $tag ): array {
 		++$this->inspect_calls;
 		return $this->inspect;
-	} public function acquire( string $id, string $tag, string $fingerprint ): array {
+	}
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Structural release-source fixture preserves the public acquisition signature.
+	public function acquire( string $id, string $tag, string $fingerprint ): array {
 		++$this->acquire_calls;
 		return $this->acquire; }
 }

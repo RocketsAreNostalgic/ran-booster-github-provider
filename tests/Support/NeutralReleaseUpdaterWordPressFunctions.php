@@ -27,6 +27,7 @@ if ( ! function_exists( 'WP_Filesystem' ) ) {
 }
 
 if ( ! function_exists( 'add_action' ) ) {
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WordPress signature is preserved; this fixture only models the behavior asserted by callers.
 	function add_action( string $hook, callable $callback, int $priority = 10, int $arguments = 1 ): void {
 		$GLOBALS['ran_booster_release_actions'][ $hook ][] = $callback;
 	}
@@ -37,11 +38,13 @@ if ( ! function_exists( 'add_filter' ) ) {
 }
 
 if ( ! function_exists( 'doing_action' ) ) {
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- WordPress signature is preserved; this fixture only models the behavior asserted by callers.
 	function doing_action( string $hook ): bool {
 		return false; }
 }
 
 if ( ! function_exists( 'did_action' ) ) {
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- WordPress signature is preserved; this fixture only models the behavior asserted by callers.
 	function did_action( string $hook ): int {
 		return 0; }
 }

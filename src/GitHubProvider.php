@@ -385,6 +385,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return isset( $this->native_targets[ $key ] ) && $this->native_targets[ $key ]->status()->active;
 	}
 
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterfaceBeforeLastUsed -- Core RepositoryReleaseNativeTargetFactory requires the package-root argument; GitHub targets use the installed identifier.
 	public function create_native_target(
 		string $package_type,
 		RepositoryReference $repository,

@@ -18,25 +18,45 @@
 
 	<rule ref="RANWordPressLibrary"/>
 
-	<!-- Upstream method naming defers to RANOwnedMethods; public/API exceptions remain line-local under #25/#167/#28. -->
+	<!-- Owned declarations, including inherited methods, are checked across the maintained tree. -->
+	<rule ref="RANOwnedMethods"/>
 	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
 		<severity>0</severity>
 	</rule>
-	<!-- Check completed owned methods even in interface-implementing classes. -->
-	<rule ref="RANOwnedMethods">
-		<include-pattern>/src/</include-pattern>
-		<include-pattern>/tests/</include-pattern>
-	</rule>
-	<rule ref="WordPress.NamingConventions.ValidVariableName">
-		<include-pattern>/src/</include-pattern>
-		<include-pattern>/tests/</include-pattern>
-	</rule>
-
-	<!-- Test doubles preserve the WordPress and provider callback signatures they replace. -->
+	<rule ref="WordPress.NamingConventions.ValidVariableName"/>
+	<rule ref="WordPress.PHP.YodaConditions"/>
 	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
-		<exclude-pattern>/tests/Support/NeutralReleaseUpdaterWordPressFunctions.php</exclude-pattern>
-		<exclude-pattern>/tests/Booster/GitHub/PublicReleaseResultMappingTest.php</exclude-pattern>
+		<type>error</type>
 	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed">
+		<severity>5</severity>
+		<type>error</type>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClass">
+		<severity>5</severity>
+		<type>error</type>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassBeforeLastUsed">
+		<severity>5</severity>
+		<type>error</type>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed">
+		<severity>5</severity>
+		<type>error</type>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterface">
+		<severity>5</severity>
+		<type>error</type>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterfaceBeforeLastUsed">
+		<severity>5</severity>
+		<type>error</type>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterfaceAfterLastUsed">
+		<severity>5</severity>
+		<type>error</type>
+	</rule>
+	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames"/>
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<exclude-pattern>/tests/</exclude-pattern>

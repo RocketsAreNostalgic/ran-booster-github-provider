@@ -62,18 +62,18 @@ function ran_booster_github_provider_assert_method( string $interface_name, stri
 	$reflection = new ReflectionMethod( $interface_name, $method );
 	$parameters = $reflection->getParameters();
 	if ( count( $expected_parameters ) !== count( $parameters ) ) {
-		throw new RuntimeException( "Unexpected parameter count for {$interface_name}::{$method}()." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+		throw new RuntimeException( "Unexpected parameter count for {$interface_name}::{$method}()." ); // Dependency-free CI contract failure only.
 	}
 
 	foreach ( $expected_parameters as $index => $expected_parameter ) {
 		$parameter = $parameters[ $index ];
 		if ( $parameter->getName() !== $expected_parameter[0] || ran_booster_github_provider_type_name( $parameter->getType() ) !== $expected_parameter[1] ) {
-			throw new RuntimeException( "Unexpected parameter contract for {$interface_name}::{$method}()." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+			throw new RuntimeException( "Unexpected parameter contract for {$interface_name}::{$method}()." ); // Dependency-free CI contract failure only.
 		}
 	}
 
 	if ( ran_booster_github_provider_type_name( $reflection->getReturnType() ) !== $expected_return ) {
-		throw new RuntimeException( "Unexpected return contract for {$interface_name}::{$method}()." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+		throw new RuntimeException( "Unexpected return contract for {$interface_name}::{$method}()." ); // Dependency-free CI contract failure only.
 	}
 }
 
@@ -111,7 +111,7 @@ $contracts = array(
 
 foreach ( $contracts as $interface_name => $methods ) {
 	if ( ! interface_exists( $interface_name ) ) {
-		throw new RuntimeException( "Required Booster host contract is unavailable: {$interface_name}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+		throw new RuntimeException( "Required Booster host contract is unavailable: {$interface_name}" ); // Dependency-free CI contract failure only.
 	}
 
 	$actual_methods   = get_class_methods( $interface_name );
@@ -119,7 +119,7 @@ foreach ( $contracts as $interface_name => $methods ) {
 	sort( $actual_methods );
 	sort( $expected_methods );
 	if ( $actual_methods !== $expected_methods ) {
-		throw new RuntimeException( "Unexpected method set for {$interface_name}." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CI contract failure only.
+		throw new RuntimeException( "Unexpected method set for {$interface_name}." ); // Dependency-free CI contract failure only.
 	}
 
 	foreach ( $methods as $method => $signature ) {

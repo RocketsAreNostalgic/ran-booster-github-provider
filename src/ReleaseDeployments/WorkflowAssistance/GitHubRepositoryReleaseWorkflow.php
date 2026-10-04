@@ -85,30 +85,30 @@ final class GitHubRepositoryReleaseWorkflow {
 
 	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id ): RepositoryReleaseWorkflowResult {
 		if ( 'stable' !== $channel ) {
-			return $this->persist( 'inspect', $status, $this->invalid_request( $status ) );
+			return $this->persist( 'inspect', $status, $this->invalid_request() );
 		}
 		if ( ! $this->bootstrap_preflight( $preflight ) ) {
-			return $this->persist( 'inspect', $status, $this->preflight_result( $status, $preflight ) );
+			return $this->persist( 'inspect', $status, $this->preflight_result( $preflight ) );
 		}
 		$token = $this->credential( $credential_id, false );
-		return $this->persist( 'inspect', $status, $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised( $status ) : $this->coordinator->inspect( $status, $channel, $preflight, $token ) );
+		return $this->persist( 'inspect', $status, $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->inspect( $status, $channel, $preflight, $token ) );
 	}
 	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id ): RepositoryReleaseWorkflowResult {
 		if ( ! $this->bootstrap_preflight( $preflight ) ) {
-			return $this->persist( 'setup', $status, $this->preflight_result( $status, $preflight, $key ) );
+			return $this->persist( 'setup', $status, $this->preflight_result( $preflight, $key ) );
 		}
 		if ( null === $this->coordinator->preview( $key, $status ) ) {
-			return $this->persist( 'setup', $status, $this->unauthorised( $status, $key ) );
+			return $this->persist( 'setup', $status, $this->unauthorised( $key ) );
 		}
 		$token = $this->credential( $credential_id, true );
-		return $this->persist( 'setup', $status, '' === $token ? $this->unauthorised( $status, $key ) : $this->coordinator->setup( $status, $key, $confirmation, $preflight, $token ) );
+		return $this->persist( 'setup', $status, '' === $token ? $this->unauthorised( $key ) : $this->coordinator->setup( $status, $key, $confirmation, $preflight, $token ) );
 	}
 	public function outcome( RepositoryReleaseWorkflowTarget $status, ?string $credential_id ): RepositoryReleaseWorkflowResult {
 		if ( ! $this->coordinator->has_current_record( $status ) ) {
-			return $this->persist( 'outcome', $status, $this->invalid_request( $status ) );
+			return $this->persist( 'outcome', $status, $this->invalid_request() );
 		}
 		$token = $this->credential( $credential_id, true );
-		return $this->persist( 'outcome', $status, $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised( $status ) : $this->coordinator->outcome( $status, $token ) );
+		return $this->persist( 'outcome', $status, $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->outcome( $status, $token ) );
 	}
 	private function persist( string $operation, RepositoryReleaseWorkflowTarget $status, array $outcome ): RepositoryReleaseWorkflowResult {
 		$observation = match ( $outcome['code'] ) {
@@ -150,7 +150,7 @@ final class GitHubRepositoryReleaseWorkflow {
 	private function bootstrap_preflight( RepositoryReleaseWorkflowPreflight $preflight ): bool {
 		return in_array( $preflight->code(), array( 'ready', 'release_unavailable' ), true );
 	}
-	private function preflight_result( RepositoryReleaseWorkflowTarget $status, RepositoryReleaseWorkflowPreflight $preflight, string $key = '' ): array {
+	private function preflight_result( RepositoryReleaseWorkflowPreflight $preflight, string $key = '' ): array {
 		return array(
 			'code'            => 'workflow_' . ( 'preflight_unavailable' === $preflight->code() ? 'preflight_unavailable' : $preflight->code() ),
 			'successful'      => false,
@@ -159,7 +159,7 @@ final class GitHubRepositoryReleaseWorkflow {
 			'diagnostic_code' => '' !== $preflight->reason_code() ? $preflight->reason_code() : 'preflight_contract_unavailable',
 		);
 	}
-	private function unauthorised( RepositoryReleaseWorkflowTarget $status, string $key = '' ): array {
+	private function unauthorised( string $key = '' ): array {
 		return array(
 			'code'            => 'workflow_unauthorised',
 			'successful'      => false,
@@ -168,7 +168,7 @@ final class GitHubRepositoryReleaseWorkflow {
 			'diagnostic_code' => 'credential_authorisation_unavailable',
 		);
 	}
-	private function invalid_request( RepositoryReleaseWorkflowTarget $status, string $key = '' ): array {
+	private function invalid_request( string $key = '' ): array {
 		return array(
 			'code'            => 'workflow_invalid_request',
 			'successful'      => false,
