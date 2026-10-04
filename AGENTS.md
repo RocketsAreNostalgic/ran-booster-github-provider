@@ -8,14 +8,14 @@ The supported baseline follows the current Booster host: PHP 8.2+ and WordPress 
 
 ## Architecture boundary
 
-Production package code must not depend on the whole `ran/booster` Composer package or import Booster private Admin/Internal/Logging/Secrets/Storage/WordPress implementation namespaces. Booster owns the provider contracts and host orchestration; this package implements the GitHub-specific side of those contracts. Test-only CI may check out an exact candidate Booster revision to prove the host contract.
+Production package code must not depend on the whole `ran/booster` Composer package or import Booster private Admin/Internal/Logging/Secrets/Storage/WordPress implementation namespaces. Booster owns the provider contracts and host orchestration; this package implements the GitHub-specific side of those contracts. Test-only CI may check out an exact certified Booster revision to prove the host contract.
 
 The package may depend on explicit shared libraries where the dependency is genuinely host-neutral. `ran/updater-support` currently supplies the reviewed repository-relative path primitive. Core remains responsible for host policy and final release-artifact custody.
 
 ## RAN quality profile
 
 The repository profile is `php-library`. Each PHP matrix job provisions once,
-runs the complete independent baseline before introducing exact candidate Core,
+runs the complete independent baseline before introducing exact certified Core,
 then runs the host aggregate. `.github/workflows/ci.yml` and
 `scripts/ci-quality-phase.sh` own this Provider-specific sequence and its drift
 controls. Its baseline preserves `quality-php-library-v2.yml` at immutable
@@ -39,24 +39,25 @@ composer check
 
 Use `composer standards:fix` to apply PHPCBF. `composer check` covers strict Composer validation, PHP syntax, PHPCS/WPCS/PHPCompatibility, the package-owned deterministic foundation contract, and the release workflow/classification contracts.
 
-The implementation consumes Booster-owned provider contracts, so implementation static analysis and the provider PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the candidate Booster checkout and run:
+The implementation consumes Booster-owned provider contracts, so implementation static analysis and the provider PHPUnit suite are deliberately certified against an exact Booster checkout rather than by adding the whole Booster plugin as a package dependency. For an equivalent local host-backed pass, set `RAN_BOOSTER_CORE_PATH` to the certified Booster checkout and run:
 
 ```sh
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
-# Match the candidate host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ae4de158e3ae02d99162b9b8d0babdc9269a36da &&
+# Match the certified host pinned in .github/workflows/ci.yml.
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf &&
   composer check:host
 ```
 
 `composer test` aggregates the host-independent foundation and release-control tests. `composer check:host` aggregates `test:host-contract`, `analyze` and `test:implementation`; the focused commands remain available.
 
-CI pins and verifies the candidate Booster revision before running those host-backed gates, separately verifies the host contract, validates mutable PR release classification, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
+CI pins and verifies the certified Booster revision before running those host-backed gates, separately verifies the host contract, validates mutable PR release classification, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
 
-The candidate-only host tuple above is the published combined naming
-recovery preparation under Core #167. It targets the Provider API 14 / workflow V3
-contracts and supersedes the prior candidate pin for this qualification only.
-It does not certify a released host, Core dependency adoption or UI changes.
-Preserve the full PHP 8.2/8.5 matrix and all terminal gates.
+The certified source host is the immutable Core `v1.0.0-beta.31` tag target
+`8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf`, with Provider API 14 / workflow V3.
+PHPStan blocks at level 5 over `src/` and `tests/foundation-contract.php`;
+bootstrap/symbol discovery does not extend that analysis coverage. Levels 6–8
+remain separate work. This source-host proof does not claim installed-site or
+UI acceptance. Preserve the full PHP 8.2/8.5 matrix and all terminal gates.
 
 ## Review and merge discipline
 

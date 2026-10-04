@@ -47,14 +47,12 @@ an active runtime and fail closed; upgrading this package alone does not qualify
 the host's installed composition.
 Do not infer host compatibility from matching version numbers.
 
-**Published Provider compatibility is not released-Core certification.** As of
-1 October 2026, Core main has adopted Provider beta.9, but Core beta.31 remains a
-release proposal; the latest published Core beta.30 is not an API-13 host.
-Provider CI qualifies an exact candidate host, identified in
-[the contribution guide](CONTRIBUTING.md), rather than certifying whichever Core
-revision is newest. Use the Provider version bundled with your chosen Booster
-release. A package release alone does not qualify a different host/dependency
-composition.
+**Use the Provider version bundled with your chosen Booster release.** Core
+`v1.0.0-beta.31` is published and bundles Provider beta.13. Provider CI pins that
+immutable Core tag target for source-host qualification, as identified in
+[the contribution guide](CONTRIBUTING.md). Its level-5 analysis and host tests do
+not establish installed-site or UI acceptance for a different composition. A
+package release alone does not qualify a different host/dependency combination.
 
 This is prerelease software. Pin an immutable release and retain the consuming
 application's lockfile. Public contracts and prerelease persistence formats can
