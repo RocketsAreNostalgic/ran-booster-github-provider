@@ -29,9 +29,9 @@ outside the checkout. Baseline rejects the Core environment and sibling checkout
 Tracked source bytes (including locks, even with misleading index flags) and
 installed dependency file bytes/symlink targets are checked before and after the
 phases. Only a successful baseline admits the host phase for the same source.
-Host environment variables are scoped to that step. The current candidate is Core
-`ae4de158e3ae02d99162b9b8d0babdc9269a36da`, qualifying Provider API14 / workflow V3
-under Core #167. It supersedes the pilot's historical API13 host
+Host environment variables are scoped to that step. The current source host is immutable Core `v1.0.0-beta.31`
+`8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf`, qualifying Provider API14 / workflow V3.
+It replaces recovery candidate `ae4de158e3ae02d99162b9b8d0babdc9269a36da` and supersedes the pilot's historical API13 host
 `a53d35f18d226bf37f8485f351a5d0decdac6066`; the provisioning boundaries are unchanged.
 See [the current recovery evidence](beta31-recovery-qualification.md).
 PHPUnit/PHPStan caches are outside vendor and remain

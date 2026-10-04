@@ -19,22 +19,25 @@ Use these focused commands:
 | `composer standards` | Shared PHPCS/WPCS/PHPCompatibility rules |
 | `composer standards:fix` | PHPCBF with the same rules and source paths |
 | `composer test` | Host-independent foundation and release-control tests |
-| `composer check:host` | Host contract, blocking level-1 analysis and implementation PHPUnit |
+| `composer check:host` | Host contract, blocking level-5 analysis and implementation PHPUnit |
 
 After `composer check`, run the required host-backed aggregate using the exact
-candidate Booster checkout pinned in [CI](.github/workflows/ci.yml):
+certified Booster checkout pinned in [CI](.github/workflows/ci.yml):
 
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
-# Match the candidate host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = ae4de158e3ae02d99162b9b8d0babdc9269a36da &&
+# Match the certified host pinned in .github/workflows/ci.yml.
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf &&
   composer check:host
 ```
 
-This is candidate-only Provider API 14 / workflow V3 qualification, not
-certification against a released Core host. The SHA above mirrors the existing
-CI configuration; update the example when that authoritative tuple changes,
-not the certification pin to match prose.
+This exact host is the immutable Core `v1.0.0-beta.31` tag target, supplying
+Provider API 14 / workflow V3. PHPStan blocks at level 5 over `src/` and
+`tests/foundation-contract.php`, with unchanged WordPress extension, bootstrap
+files and PHPDoc certainty setting. No baseline or ignore list is introduced.
+Levels 6–8 remain separately scoped. Source-host qualification does not establish
+installed-site or UI acceptance. Update the SHA example when the authoritative
+CI tuple changes.
 
 `composer analyze`, `composer test:host-contract` and
 `composer test:implementation` remain available for focused host-backed checks.
@@ -42,7 +45,7 @@ The old `lint:php` command is now `standards`; `format` / `format:php` are now
 `standards:fix`. Rerun `composer check` after formatting.
 
 CI retains its separate host-contract and implementation lanes, verifies the
-exact candidate host revision, and requires both through terminal `quality`.
+exact certified host revision, and requires both through terminal `quality`.
 The implementation matrix invokes the same `composer check:host` as local
 contributors; PR release classification remains separately required.
 

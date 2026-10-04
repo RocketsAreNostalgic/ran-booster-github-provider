@@ -49,8 +49,8 @@ test("Provider pilot preserves phase ordering, runtime matrix and fail-closed te
   assert.equal(implementation.match(/uses: shivammathur\/setup-php@/g)?.length, 1);
   assert.equal(implementation.match(/run: bash scripts\/ci-quality-phase.sh baseline/g)?.length, 1);
   assert.equal(implementation.match(/run: bash scripts\/ci-quality-phase.sh host/g)?.length, 1);
-  assert.ok(implementation.indexOf("ci-quality-phase.sh baseline") < implementation.indexOf("Check out candidate Booster host"));
-  assert.ok(implementation.indexOf("Check out candidate Booster host") < implementation.indexOf("ci-quality-phase.sh host"));
+  assert.ok(implementation.indexOf("ci-quality-phase.sh baseline") < implementation.indexOf("Check out certified Booster host"));
+  assert.ok(implementation.indexOf("Check out certified Booster host") < implementation.indexOf("ci-quality-phase.sh host"));
   assert.doesNotMatch(implementation, /continue-on-error|secrets: inherit|actions\/cache@|contents: write/);
   assert.match(ciWorkflow, /host-contract:[\s\S]*run: php tests\/host-contract.php/);
   const terminal = ciWorkflow.slice(ciWorkflow.indexOf("  quality:"));

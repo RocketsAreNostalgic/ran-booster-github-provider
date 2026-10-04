@@ -9,9 +9,9 @@ use the corresponding snake_case API14 declarations; no old-name aliases or mixe
 API13/API14 tuple compatibility are provided. Workflow V3, persisted/template keys,
 credentials, webhook behavior and updater runtime protocol 5 are unchanged.
 
-The exact candidate Core is
-`ae4de158e3ae02d99162b9b8d0babdc9269a36da`, matching the immutable host pin in
-[CI](../.github/workflows/ci.yml). Host-contract and implementation qualification
+The historical recovery candidate Core was
+`ae4de158e3ae02d99162b9b8d0babdc9269a36da`, used for the evidence below. Current host qualification uses the immutable
+Core beta.31 revision in [CI](../.github/workflows/ci.yml). Host-contract and implementation qualification
 cover 432 tests / 3,354 assertions, including interface parameter-name conformance.
 See [the current recovery qualification](beta31-recovery-qualification.md) for
 exact source identities and remaining release, composition and installed gates.
