@@ -1,4 +1,11 @@
-# Beta.31 consumer recovery — 2 October 2026
+# Historical beta.31 consumer recovery — 2 October 2026
+
+This dated record preserves pre-release candidate evidence. Core beta.31 and
+Provider beta.13 are now published; current Provider source-host CI pins Core
+`8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf` and passes level-5 analysis plus
+434 tests / 3,362 assertions. See [CONTRIBUTING.md](../CONTRIBUTING.md) for the
+operative tuple. The candidate identities, counts and outstanding-release wording
+below describe 2 October only; they are not current release instructions.
 
 The original published recovery branch is preserved. This receiver completes exact
 boundary guards and consumer fixtures for Provider 14 / Add-on 17 / Admin Interaction 3.
