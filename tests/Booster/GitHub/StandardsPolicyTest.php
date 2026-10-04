@@ -27,17 +27,36 @@ final class StandardsPolicyTest extends TestCase {
 				continue;
 			}
 			$expected[] = substr( $file->getPathname(), strlen( $root ) + 1 );
-			foreach ( token_get_all( $contents ) as $token ) {
-				if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
-					self::assertDoesNotMatchRegularExpression( '/phpcs:ignoreFile|phpcs:(?:disable|ignore)\s*(?:--|$)|@codingStandardsIgnore/i', $token[1], $file->getPathname() );
-				}
-			}
+			self::assertNull( $this->blanket_annotation( $contents ), $file->getPathname() );
 		}
 		$report = $this->check_source();
 		$actual = array_keys( $report['files'] );
 		sort( $expected );
 		sort( $actual );
 		self::assertSame( $expected, $actual, 'Actual PHPCS discovery must cover every maintained PHP file.' );
+	}
+
+	public function test_blanket_annotation_guard_covers_comment_forms_but_not_fixture_strings(): void {
+		foreach ( array( '// phpcs:disable', '/* phpcs:disable */', '/** phpcs:disable */', '/* phpcs:ignore*/', '/** phpcs:ignore -- unwanted waiver */', "/*\n phpcs:disable\n */", '// phpcs:ignoreFile', '/* @codingStandardsIgnoreStart */' ) as $comment ) {
+			self::assertNotNull( $this->blanket_annotation( '<?php ' . $comment ), $comment );
+		}
+		foreach ( array( '/* phpcs:disable WordPress.PHP.YodaConditions -- Precise synthetic contract. */', '// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Foreign signature.', '$fixture = "/* phpcs:disable */";' ) as $allowed ) {
+			self::assertNull( $this->blanket_annotation( '<?php ' . $allowed ), $allowed );
+		}
+	}
+
+	private function blanket_annotation( string $source ): ?string {
+		foreach ( token_get_all( $source ) as $token ) {
+			if ( ! is_array( $token ) || ! in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
+				continue;
+			}
+			// PHPCS accepts a bare directive immediately before a block-comment delimiter.
+			$comment = preg_replace( '/\*\/\s*$/', '', $token[1] );
+			if ( 1 === preg_match( '/phpcs:ignoreFile|phpcs:(?:disable|ignore)\s*(?:--|$)|@codingStandardsIgnore/i', $comment ) ) {
+				return $token[1];
+			}
+		}
+		return null;
 	}
 
 	public function test_effective_rules_reject_owned_inherited_methods_and_unused_helpers(): void {
