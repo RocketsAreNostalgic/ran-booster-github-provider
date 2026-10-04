@@ -1,7 +1,7 @@
 # Provider standards adoption checkpoint
 
 This implements the next-beta standards policy from organisation #128 on top of
-Provider #57's required PHPStan level 5. Runtime contracts, persisted state and dependency requirements are
+Provider #57's required PHPStan level 5. Runtime contracts, persisted state and production dependency requirements are
 unchanged; only private unused helper inputs/callers are removed.
 
 - Shared `ran/coding-standards` moves from 1.0.0 / `6af816a02b7d1108ad5c990e9d0fda0af0a13de7`

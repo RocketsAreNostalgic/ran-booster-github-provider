@@ -63,9 +63,17 @@ final class StandardsPolicyTest extends TestCase {
 		$source  = <<<'FIXTURE'
 <?php
 namespace RAN\BoosterGitHubProvider\V1;
+function helper_probe( $unused, $value ) { return $value; }
+interface ProbeContract {}
+class InterfaceProbe implements ProbeContract {
+	public function unused( $unused ) { $result = true; return $result; }
+	public function before( $unused, $value ) { $result = $value; return $result; }
+	public function after( $value, $unused ) { $result = $value; return $result; }
+}
 class StandardsProbe extends \stdClass {
 	public function badMethod( $unused ) { return true; }
 	private function helper( $unused, $value ) { return $value; }
+	private function after( $value, $unused ) { return $value; }
 	public function probe( $class ) { $camelCase = $class; return $camelCase === true; }
 }
 FIXTURE;
@@ -79,6 +87,11 @@ FIXTURE;
 		self::assertContains( 'RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase', $sources );
 		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClass', $sources );
 		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassBeforeLastUsed', $sources );
+		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed', $sources );
+		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed', $sources );
+		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterface', $sources );
+		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterfaceBeforeLastUsed', $sources );
+		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterfaceAfterLastUsed', $sources );
 		self::assertContains( 'Universal.NamingConventions.NoReservedKeywordParameterNames.classFound', $sources );
 		self::assertContains( 'WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase', $sources );
 		self::assertContains( 'WordPress.PHP.YodaConditions.NotYoda', $sources );
