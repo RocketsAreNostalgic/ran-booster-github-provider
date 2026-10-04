@@ -63,7 +63,7 @@ Release-significant changes under `src/` or to production Composer requirements 
 
 All first-party PHP under `src/` and `tests/` uses the shared `RANOwnedMethods`
 check and WPCS variable naming, including inherited/interface classes and newly
-added files. `ran/coding-standards` remains pinned to released 1.0.0; check and
+added files. `ran/coding-standards` is pinned to released 1.0.1; check and
 fix use the same scope. Upstream method-name diagnostics are replaced by the
 owned-method check so explicit public-contract deferrals work consistently.
 
@@ -82,3 +82,6 @@ The current API14 recovery completes public parameters, properties, promotions
 and connected callers with the matching Core declarations. Persisted/template keys,
 credentials and runtime protocols are unchanged. See [the migration ledger](docs/naming-migration.md) and
 [the proposed Core contract manifest](docs/naming-core-contract-manifest.md).
+
+See [standards coverage](docs/php-standards-coverage.md) for whole-tree enforcement
+and the retained foreign-signature and test-fixture exceptions.

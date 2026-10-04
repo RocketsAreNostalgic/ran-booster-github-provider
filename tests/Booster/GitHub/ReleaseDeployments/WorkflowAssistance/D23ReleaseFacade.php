@@ -36,15 +36,19 @@ final class D23ReleaseFacade implements ReleaseTrackingFacade {
 		$this->calls[] = array( 'assessment_preflight', $type, $identifier, $expected_source_revision, $channel, $nonce );
 		return $this->preflight_contract_unavailable ? null : ( $this->preflight_response ?? new ReleaseTrackingPreflight( $this->preflight_code, 'example-plugin' ) );
 	}
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterfaceAfterLastUsed -- Core release-tracking interface requires these parameters; this fixture returns a fixed unused-operation result.
 	public function enable( string $type, string $identifier, int $expected_source_revision, string $channel, string $nonce ): ReleaseTrackingResult {
 		return ReleaseTrackingResult::failed( 'unused', 'unused' );
 	}
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterfaceAfterLastUsed -- Core release-tracking interface requires these parameters; this fixture returns a fixed unused-operation result.
 	public function change_channel( string $type, string $identifier, int $expected_source_revision, string $channel, string $nonce ): ReleaseTrackingResult {
 		return ReleaseTrackingResult::failed( 'unused', 'unused' );
 	}
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterfaceAfterLastUsed -- Core release-tracking interface requires these parameters; this fixture returns a fixed unused-operation result.
 	public function refresh( string $type, string $identifier, int $expected_source_revision, string $nonce ): ReleaseTrackingResult {
 		return ReleaseTrackingResult::failed( 'unused', 'unused' );
 	}
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInImplementedInterfaceAfterLastUsed -- Core release-tracking interface requires these parameters; this fixture returns a fixed unused-operation result.
 	public function return_to_branch( string $type, string $identifier, int $expected_source_revision, string $nonce ): ReleaseTrackingResult {
 		return ReleaseTrackingResult::failed( 'unused', 'unused' );
 	}

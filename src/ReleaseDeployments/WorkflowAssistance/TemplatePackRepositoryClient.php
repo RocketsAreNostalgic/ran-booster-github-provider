@@ -352,7 +352,8 @@ final class TemplatePackRepositoryClient {
 		}
 		$redirect_scrubber = null;
 		if ( $redirects > 0 && '' !== $token ) {
-			$origin            = self::API_ROOT . $path;
+			$origin = self::API_ROOT . $path;
+			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- WordPress Requests redirect hook passes five positional arguments; only headers and original request are required.
 			$redirect_scrubber = static function ( mixed &$location, array &$headers, mixed $data, mixed $options, mixed $original ) use ( $origin ): void {
 				if ( ! is_object( $original ) || ! isset( $original->url ) || $origin !== $original->url ) {
 					return;

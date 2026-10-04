@@ -68,7 +68,7 @@ spl_autoload_register(
 		}
 
 		if ( str_starts_with( $class_name, 'RAN\\' ) || str_starts_with( $class_name, 'Tests\\' ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Test-only exception text is not rendered.
+			// Test-only exception text is not rendered.
 			throw new LogicException( 'The bounded GitHub module suite attempted to load an unrelated Core or test class: ' . $class_name );
 		}
 	},

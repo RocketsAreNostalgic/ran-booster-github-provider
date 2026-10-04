@@ -270,6 +270,7 @@ final class DiagnosticsTest extends TestCase {
 				return $this->credential_result;
 			}
 
+			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed -- Test override preserves the repository-client signature while recording only asserted inputs.
 			public function repository(
 				string $full_name,
 				?string $credential_id = null,

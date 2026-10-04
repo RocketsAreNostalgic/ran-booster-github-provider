@@ -193,7 +193,7 @@ class RepositoryBrowser {
 			throw new RuntimeException( 'GitHub rejected the selected credential while resolving the repository revision.', 401 );
 		}
 		if ( $this->is_rate_limited_response( $response, $status ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The retry type stores only a normalized integer delay and fixed message.
+			// The retry type stores only a normalized integer delay and fixed message.
 			throw new RuntimeException( 'GitHub API rate limit has been reached. Try again later.', 429 );
 		}
 		if ( 403 === $status ) {
@@ -260,7 +260,7 @@ class RepositoryBrowser {
 		}
 
 		if ( $this->is_rate_limited_response( $response, $status ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The retry type stores only a normalized integer delay and fixed message.
+			// The retry type stores only a normalized integer delay and fixed message.
 			throw new RuntimeException( 'GitHub API rate limit has been reached. Try again later.', 429 );
 		}
 
@@ -303,7 +303,7 @@ class RepositoryBrowser {
 		try {
 			$path = RepositoryRelativePath::normalize( $path );
 		} catch ( InvalidArgumentException $exception ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Chained for developers and never rendered.
+			// Chained for developers and never rendered.
 			throw new RuntimeException( 'The GitHub repository path check is invalid.', 400, $exception );
 		}
 		if ( 1 !== preg_match( '/^[0-9a-f]{40}$/i', $ref ) ) {
@@ -622,7 +622,7 @@ class RepositoryBrowser {
 	/** @param list<RepositoryDescriptor> $repositories */
 	private function partial_browse_result( array $repositories, int $status ): RepositoryBrowseResult {
 		if ( array() === $repositories ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Status is an internal fixed integer; the message is fixed and redacted.
+			// Status is an internal fixed integer; the message is fixed and redacted.
 			throw new RuntimeException( 'GitHub repository browsing could not continue safely.', $status );
 		}
 

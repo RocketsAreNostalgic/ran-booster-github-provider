@@ -12,12 +12,13 @@ use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\InitialRe
 
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 
-// phpcs:disable WordPress.WP.AlternativeFunctions -- Exact local producer evidence and isolated disposable build fixtures; no network or target writes.
 final class ProducerExchangeTest extends TestCase {
 	public function test_actual_qualified_producer_zip_and_all_ten_rendered_digests(): void {
-		$dir   = dirname( __DIR__, 4 ) . '/fixtures/api3-producer';
+		$dir = dirname( __DIR__, 4 ) . '/fixtures/api3-producer';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Read the committed producer ZIP/manifest bytes exactly for provenance and digest assertions.
 		$bytes = file_get_contents( $dir . '/ran-booster-release-bootstrap-templates.zip' );
-		$e     = json_decode( file_get_contents( $dir . '/producer-exchange.json' ), true, 512, JSON_THROW_ON_ERROR );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Read the committed producer ZIP/manifest bytes exactly for provenance and digest assertions.
+		$e = json_decode( file_get_contents( $dir . '/producer-exchange.json' ), true, 512, JSON_THROW_ON_ERROR );
 		if ( strlen( $bytes ) !== 10132 || hash( 'sha256', $bytes ) !== '2da459b63715660226b43914d3466f8b176bf645961dc0009fb51168c21ae7cf' ) {
 			throw new \RuntimeException( 'ZIP mismatch' );
 		}
@@ -65,6 +66,7 @@ final class ProducerExchangeTest extends TestCase {
 				'release-workflow'      => array( 'PACKAGE_SLUG' => 'example-package' ),
 				'release-please-config' => array(
 					'BASE_SHA'         => '0123456789abcdef0123456789abcdef01234567',
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Match producer EXTRA_FILES_JSON bytes with JSON_UNESCAPED_SLASHES for the recorded rendered digest.
 					'EXTRA_FILES_JSON' => json_encode(
 						array(
 							array(
@@ -123,6 +125,7 @@ final class ProducerExchangeTest extends TestCase {
 		$files = $result['bundle']->files();
 		self::assertSame( implode( "\n", $assessment->release_files() ) . "\n", $files['release-contents.txt']['content'] );
 		$root = sys_get_temp_dir() . '/ran-api3-build-' . bin2hex( random_bytes( 8 ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Build and remove only the disposable local Git fixture using native filesystem semantics.
 		mkdir( $root, 0700 );
 		try {
 			foreach ( $files as $path => $file ) {
@@ -130,8 +133,11 @@ final class ProducerExchangeTest extends TestCase {
 				self::assertSame( '100644', $file['mode'] ); }
 			foreach ( $documents as $path => $bytes ) {
 				if ( ! is_dir( dirname( $root . '/' . $path ) ) ) {
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Build and remove only the disposable local Git fixture using native filesystem semantics.
 					mkdir( dirname( $root . '/' . $path ), 0700, true ); }
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Build and remove only the disposable local Git fixture using native filesystem semantics.
 				file_put_contents( $root . '/' . $path, $bytes );
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Set exact disposable fixture modes for reproducible local Git archives.
 				chmod( $root . '/' . $path, 0644 );
 			}
 			$this->command( array( 'git', 'init', '-q' ), $root );
@@ -150,7 +156,9 @@ final class ProducerExchangeTest extends TestCase {
 		} finally {
 			$iterator = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::CHILD_FIRST );
 			foreach ( $iterator as $file ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir, WordPress.WP.AlternativeFunctions.unlink_unlink -- Build and remove only the disposable local Git fixture using native filesystem semantics.
 				$file->isDir() ? rmdir( $file->getPathname() ) : unlink( $file->getPathname() ); }
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Build and remove only the disposable local Git fixture using native filesystem semantics.
 			rmdir( $root );
 		}
 	}
@@ -169,10 +177,13 @@ final class ProducerExchangeTest extends TestCase {
 			$directory
 		);
 		self::assertIsResource( $process );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the owned subprocess pipe; WordPress filesystem APIs do not manage process streams.
 		fclose( $pipes[0] );
 		$output = stream_get_contents( $pipes[1] );
 		$error  = stream_get_contents( $pipes[2] );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the owned subprocess pipe; WordPress filesystem APIs do not manage process streams.
 		fclose( $pipes[1] );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the owned subprocess pipe; WordPress filesystem APIs do not manage process streams.
 		fclose( $pipes[2] );
 		self::assertSame( 0, proc_close( $process ), $output . $error );
 		return $output;

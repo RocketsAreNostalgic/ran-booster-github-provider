@@ -19,7 +19,7 @@ $required = array(
 );
 foreach ( $required as $key => $expected ) {
 	if ( ( $composer[ $key ] ?? null ) !== $expected ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
+		// Dependency-free CLI contract failure only.
 		throw new RuntimeException( "Unexpected Composer {$key}." );
 	}
 }
@@ -55,7 +55,7 @@ if ( ! is_array( $require_dev ) ) {
 }
 foreach ( $required_dev_dependencies as $dependency ) {
 	if ( ! array_key_exists( $dependency, $require_dev ) ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
+		// Dependency-free CLI contract failure only.
 		throw new RuntimeException( "Required quality dependency is missing: {$dependency}." );
 	}
 }
@@ -66,14 +66,14 @@ if ( ! is_array( $scripts ) ) {
 }
 foreach ( array( 'check', 'standards', 'standards:fix', 'lint:syntax', 'analyze', 'test', 'test:foundation', 'test:host-contract', 'check:host' ) as $script ) {
 	if ( ! array_key_exists( $script, $scripts ) ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
+		// Dependency-free CLI contract failure only.
 		throw new RuntimeException( "Required Composer script is missing: {$script}." );
 	}
 }
 
 foreach ( array( '.editorconfig', '.phpcs.xml', 'phpstan.neon', '.github/workflows/ci.yml', 'composer.lock' ) as $required_path ) {
 	if ( ! is_file( $root . '/' . $required_path ) ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Dependency-free CLI contract failure only.
+		// Dependency-free CLI contract failure only.
 		throw new RuntimeException( "Required package-foundation file is missing: {$required_path}." );
 	}
 }

@@ -40,10 +40,10 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 		}
 
 		if ( 'owner' === $scope && ! $this->is_owner( $target ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Closed reason maps to fixed administrator-safe copy.
+			// Closed reason maps to fixed administrator-safe copy.
 			throw new InvalidWebhookInput( InvalidWebhookInput::INVALID_TARGET );
 		} elseif ( 'repository' === $scope && ! $this->is_repository( $target ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Closed reason maps to fixed administrator-safe copy.
+			// Closed reason maps to fixed administrator-safe copy.
 			throw new InvalidWebhookInput( InvalidWebhookInput::INVALID_TARGET );
 		}
 		if ( 'owner' === $scope ) {
@@ -101,14 +101,14 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 
 	private function assert_secret( string $secret ): void {
 		if ( strlen( $secret ) < 32 || strlen( $secret ) > 512 || 1 === preg_match( '/[\x00-\x1F\x7F]/', $secret ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Closed reason maps to fixed administrator-safe copy.
+			// Closed reason maps to fixed administrator-safe copy.
 			throw new InvalidWebhookInput( InvalidWebhookInput::INVALID_SECRET );
 		}
 	}
 
 	private function required_secret( mixed $secret ): string {
 		if ( ! is_string( $secret ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Closed reason maps to fixed administrator-safe copy.
+			// Closed reason maps to fixed administrator-safe copy.
 			throw new InvalidWebhookInput( InvalidWebhookInput::INVALID_SECRET );
 		}
 
@@ -119,7 +119,7 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 
 	private function required_string( mixed $value, string $name ): string {
 		if ( ! is_string( $value ) || '' === trim( $value ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Provider policy errors are mapped at the admin boundary.
+			// Provider policy errors are mapped at the admin boundary.
 			throw new RuntimeException( $name . ' must be a non-empty string.' );
 		}
 

@@ -185,6 +185,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\update_option' ) ) {
 }
 
 if ( ! function_exists( __NAMESPACE__ . '\\add_option' ) ) {
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- WordPress add_option retains its deprecated positional parameter.
 	function add_option( string $option, mixed $value = '', string $deprecated = '', bool|string $autoload = true ): bool {
 		if ( array_key_exists( $option, $GLOBALS['ran_booster_release_deployments_test_options'] ) ) {
 			return false;
