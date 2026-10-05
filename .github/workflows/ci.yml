@@ -18,7 +18,7 @@ permissions:
 jobs:
   release-classification:
     name: Release classification
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Check out exact source revision
@@ -85,7 +85,7 @@ jobs:
 
   host-contract:
     name: Booster host contract
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Check out exact package revision
@@ -128,7 +128,7 @@ jobs:
 
   implementation:
     name: Implementation PHP ${{ matrix.php }}
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -218,7 +218,7 @@ jobs:
       - release-classification
       - host-contract
       - implementation
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - name: Require all quality lanes
         env:
