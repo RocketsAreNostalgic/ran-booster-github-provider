@@ -1,0 +1,22 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	# Complement isolated production analysis: all other maintained PHP enters automatically.
+	level: 5
+	treatPhpDocTypesAsCertain: false
+	paths:
+		- .
+	# Discover exact certified host contracts statically; do not execute the bounded runtime loader.
+	scanDirectories:
+		- %env.RAN_BOOSTER_CORE_PATH%/RAN
+	excludePaths:
+		# src is directly checked by the isolated production profile, and still scanned here.
+		analyse:
+			- src/*
+		analyseAndScan:
+			- vendor/*
+			- node_modules/*
+			- .git/*
+			- .phpstan/*
+			- .phpunit.cache/*

@@ -54,8 +54,12 @@ CI pins and verifies the certified Booster revision before running those host-ba
 
 The certified source host is the immutable Core `v1.0.0-beta.31` tag target
 `8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf`, with Provider API 14 / workflow V3.
-PHPStan blocks at level 5 over default-inclusive production and the foundation contract;
-bootstrap/symbol discovery does not extend that analysis coverage. Levels 6–8
+PHPStan blocks at level 5 over both default-inclusive production and development profiles.
+The original production profile keeps test declarations isolated; the complementary
+development profile discovers the root and excludes only src (analyzed by production),
+dependencies and caches. The union covers every maintained PHP file, including tests
+and maintenance scripts. Certified Core is scanned for development types without
+executing the bounded runtime loader; bootstrap/symbol discovery alone is not analysis. Levels 6–8
 remain separate work. This source-host proof does not claim installed-site or
 UI acceptance. Preserve the full PHP 8.2/8.5 matrix and all terminal gates.
 
@@ -90,3 +94,18 @@ must match locked FileFinder plus CLI stub-file removal. The host aggregate
 proves new root/nested/split/moved sources, src/tests collisions, unsupported
 extensions, production-stub rejection and excluded-fixture scan isolation.
 No existing production omission or analysis-level change is claimed.
+
+`analyze` runs both profiles; `check:host` retains the certified-host contract first.
+The effective-selection guard compares each profile with independent discovery,
+rejects level/scope/command reductions, and proves new root, test and script files
+produce real diagnostics. Only three exact source-local locked-PHPStan API warning
+annotations are retained in the coverage helper; moving, duplicating or broadening
+them fails the existing guard, and an adjacent API call remains diagnosed. They do
+not suppress semantic errors. One declaration-local `return.unusedType` exception
+preserves the success-only `wp_http_validate_url` fixture's native `string|false`
+signature, matching the locked WordPress stub return contract; an unexcepted
+neighbouring union declaration must still be diagnosed. Changes to these
+exceptions require explicit review.
+Runtime negative fixtures and foreign contracts must remain tested. When type
+analysis exposes stale helper docs or mutable external state, correct those types
+or impurity metadata rather than removing the behavioral assertion.

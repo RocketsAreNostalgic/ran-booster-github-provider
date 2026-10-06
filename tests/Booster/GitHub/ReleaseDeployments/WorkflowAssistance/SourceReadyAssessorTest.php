@@ -462,7 +462,7 @@ final class SourceReadyAssessorTest extends TestCase {
 			SourceReadyAssessment::refused( 'open_ended_result' );
 			self::fail( 'Unknown refusal codes must be closed.' );
 		} catch ( InvalidArgumentException ) {
-			self::assertTrue( true );
+			self::addToAssertionCount( 1 );
 		}
 		$this->expectException( InvalidArgumentException::class );
 		SourceReadyAssessment::ready(

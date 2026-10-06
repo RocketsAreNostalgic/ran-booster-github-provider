@@ -9,14 +9,14 @@ namespace RAN\BoosterGitHubProvider\V1;
 require_once __DIR__ . '/RepositoryResolverWpError.php';
 
 /**
- * @param array<string, mixed> $response
+ * @param array<string, mixed>|RepositoryResolverWpError $response
  */
 function repository_resolver_http_reset( mixed $response ): void {
 	$GLOBALS['ran_booster_repository_resolver_responses'] = array( $response );
 	$GLOBALS['ran_booster_repository_resolver_requests']  = array();
 }
 
-/** @param list<array<string, mixed>> $responses */
+/** @param list<array<string, mixed>|RepositoryResolverWpError> $responses */
 function repository_resolver_http_queue( array $responses ): void {
 	$GLOBALS['ran_booster_repository_resolver_responses'] = $responses;
 	$GLOBALS['ran_booster_repository_resolver_requests']  = array();

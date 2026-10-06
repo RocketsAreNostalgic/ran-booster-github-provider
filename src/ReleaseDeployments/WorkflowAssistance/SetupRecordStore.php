@@ -69,7 +69,12 @@ final class SetupRecordStore {
 		$all = get_option( self::OPTION, array() );
 		return is_array( $all ) && array_key_exists( $repository_id, $all );
 	}
-	/** Serialize setup and the shared record write before any provider mutation. @return string|null Opaque exact-owner claim. */
+	/**
+	 * Serialize setup and the shared record write before any provider mutation.
+	 *
+	 * @return string|null Opaque exact-owner claim.
+	 * @phpstan-impure Reads and mutates shared connection-backed lock state.
+	 */
 	public function claim( string $repository_id, string $type, string $identifier, int $revision ): ?string {
 		$this->has_active_claim();
 		if ( ! $this->number( $repository_id ) || ! in_array( $type, array( 'plugin', 'theme' ), true )
@@ -155,7 +160,12 @@ final class SetupRecordStore {
 	private static function claim_lock_name(): string {
 		return WorkflowAssistanceState::claim_lock_name();
 	}
-	/** Refresh only the monotonic Core source revision for the same exact package record. @return array<string,mixed>|null */
+	/**
+	 * Refresh only the monotonic Core source revision for the same exact package record.
+	 *
+	 * @return array<string,mixed>|null
+	 * @phpstan-impure Reads and mutates shared connection-backed record state.
+	 */
 	public function refresh_source_revision( string $repository_id, string $type, string $identifier, int $revision ): ?array {
 		$acquired = ! $this->has_active_claim();
 		if ( $acquired && ! $this->acquire_claim_lock() ) {

@@ -102,6 +102,7 @@ final class GitHubProviderWebhookManagementTest extends TestCase {
 		return $provider;
 	}
 
+	/** @param 'setup'|'check'|'reconfigure'|'remove'|'test' $operation */
 	private function operate( GitHubProvider $provider, string $operation, ?string $profile ): RepositoryWebhookOperationResult {
 		return match ( $operation ) {
 			'setup' => $provider->setup( '101', 'owner/example', 'https://site.example/hook', $profile, self::SECRET ),
@@ -112,7 +113,10 @@ final class GitHubProviderWebhookManagementTest extends TestCase {
 		};
 	}
 
-	/** @return list<array<string, mixed>> */
+	/**
+	 * @param 'setup'|'check'|'reconfigure'|'remove'|'test' $operation
+	 * @return list<array<string, mixed>>
+	 */
 	private function responses_for( string $operation ): array {
 		$hook            = $this->hook();
 		$ping_deliveries = array(
@@ -137,7 +141,10 @@ final class GitHubProviderWebhookManagementTest extends TestCase {
 		};
 	}
 
-	/** @return array{code:string,methods:list<string>,mutation?:int} */
+	/**
+	 * @param 'setup'|'check'|'reconfigure'|'remove'|'test' $operation
+	 * @return array{code:string,methods:list<string>,mutation?:int}
+	 */
 	private function operation_expectation( string $operation ): array {
 		return match ( $operation ) {
 			'setup' => array(

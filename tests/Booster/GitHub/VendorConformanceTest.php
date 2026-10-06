@@ -166,8 +166,10 @@ final class VendorConformanceTest extends TestCase {
 		self::assertSame( 'GitHub', $metadata->label );
 		self::assertSame( 'https://github.com/', $metadata->repository_url_base );
 		self::assertSame( 'Owner', $metadata->owner_label );
-		self::assertSame( 'git-host', $metadata->admin?->navigation?->group );
-		self::assertSame( 100, $metadata->admin?->navigation?->slot );
+		self::assertNotNull( $metadata->admin );
+		self::assertNotNull( $metadata->admin->navigation );
+		self::assertSame( 'git-host', $metadata->admin->navigation->group );
+		self::assertSame( 100, $metadata->admin->navigation->slot );
 		self::assertSame( 'gh', $registry->administration_metadata()[0]->code->value );
 
 		foreach (
@@ -187,7 +189,7 @@ final class VendorConformanceTest extends TestCase {
 				RepositoryReleaseNativeTargets::class,
 			) as $capability
 		) {
-			self::assertTrue( is_a( $capability, ProviderCapability::class, true ) );
+			self::assertTrue( ( new \ReflectionClass( $capability ) )->isSubclassOf( ProviderCapability::class ) );
 			self::assertSame( $provider, $registry->require_capability( 'gh', $capability ) );
 		}
 		$release_metadata = $registry->require_capability( 'gh', RepositoryReleaseMetadata::class );

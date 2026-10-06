@@ -517,7 +517,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertSame( $before, serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_failure_history'] ) );
 	}
 
-	/** @return array<string,int|string> */
+	/** @return array<string,int|string|list<array<string,string>>> */
 	private function record(): array {
 		return array(
 			'schema_version'        => 3,

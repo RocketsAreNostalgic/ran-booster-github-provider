@@ -130,9 +130,9 @@ foreach ( $contracts as $interface_name => $methods ) {
 	}
 }
 
-if ( 3 !== RepositoryReleaseWorkflowManagementV3::RELEASE_WORKFLOW_API_VERSION ) {
+if ( 3 !== ( new ReflectionClass( RepositoryReleaseWorkflowManagementV3::class ) )->getConstant( 'RELEASE_WORKFLOW_API_VERSION' ) ) {
 	throw new RuntimeException( 'Unexpected release-workflow API generation.' );
 }
-if ( ! is_subclass_of( RepositoryReleaseWorkflowManagementV3::class, ProviderCapability::class ) ) {
+if ( ! ( new ReflectionClass( RepositoryReleaseWorkflowManagementV3::class ) )->isSubclassOf( ProviderCapability::class ) ) {
 	throw new RuntimeException( 'Release workflow V3 must remain a provider capability.' );
 }

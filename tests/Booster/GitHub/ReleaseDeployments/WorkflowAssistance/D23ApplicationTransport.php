@@ -81,7 +81,6 @@ final class D23ApplicationTransport {
 	public function remove_default_document( string $path ): void {
 		unset( $this->base_entries[ $path ], $this->head_entries[ $path ] );
 	}
-	/** @param callable(array<string,mixed>):array<string,mixed> $mutate */
 	public function seed_pull_scenario( string $scenario ): void {
 		$this->pull_scenario = $scenario;
 	}
@@ -370,7 +369,7 @@ final class D23ApplicationTransport {
 			),
 		);
 	}
-	/** @param array<string,mixed> $body */
+	/** @param array<array-key,mixed> $body */
 	private function json( int $status, array $body ): array {
 		return array(
 			'response' => array( 'code' => $status ),

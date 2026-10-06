@@ -104,7 +104,7 @@ if ( ! function_exists( 'wp_remote_retrieve_body' ) ) {
 }
 
 if ( ! function_exists( 'wp_http_validate_url' ) ) {
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test. @phpstan-ignore return.unusedType (Success-only fixture retains the locked WordPress string|false return contract.)
 	function wp_http_validate_url( string $url ): string|false {
 		return $url;
 	}

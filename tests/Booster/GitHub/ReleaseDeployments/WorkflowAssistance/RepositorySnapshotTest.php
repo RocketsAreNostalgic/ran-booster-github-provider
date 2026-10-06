@@ -53,7 +53,7 @@ final class RepositorySnapshotTest extends TestCase {
 			new RepositorySnapshot( '101', 'owner/repository', 'main', str_repeat( 'a', 40 ), array( 'a.php' => $entry ), array( 'a.php' => '<?php' ) );
 			self::fail( 'A blob with a tree mode must refuse.' );
 		} catch ( InvalidArgumentException ) {
-			self::assertTrue( true );
+			self::addToAssertionCount( 1 );
 		}
 		$entry['mode'] = '100644';
 		$entry['size'] = 4;
@@ -73,7 +73,7 @@ final class RepositorySnapshotTest extends TestCase {
 			new RepositorySnapshot( '101', 'owner/repository', 'main', str_repeat( 'a', 40 ), $entries, array() );
 			self::fail( 'Entry overflow must refuse.' );
 		} catch ( InvalidArgumentException ) {
-			self::assertTrue( true );
+			self::addToAssertionCount( 1 );
 		}
 		$documents = array_fill_keys( array_map( static fn ( int $index ): string => "files/{$index}.php", range( 0, 256 ) ), '' );
 		$entries   = array_fill_keys( array_keys( $documents ), $entry );

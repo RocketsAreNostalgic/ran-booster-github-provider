@@ -93,6 +93,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	/** @var array<string, GitHubReleaseNativeTarget> */
 	private array $native_targets = array();
 
+	/** @return self The factory constructs this concrete first-party provider. */
 	public static function create(
 		ProviderCredentialStore $credentials,
 		AuthenticatedWebhookDeliveryEvidenceReader $delivery_evidence,

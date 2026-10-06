@@ -137,8 +137,8 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 
 		self::assertSame( 'workflow_invalid_request', $workflow->outcome( $status, 'eligible' )->workflow_code() );
 		self::assertSame( array(), $credentials->material_reads );
-		self::assertFalse( method_exists( $workflow, 'inspectUpdate' ) );
-		self::assertFalse( method_exists( $workflow, 'setupUpdate' ) );
+		self::assertFalse( ( new \ReflectionObject( $workflow ) )->hasMethod( 'inspectUpdate' ) );
+		self::assertFalse( ( new \ReflectionObject( $workflow ) )->hasMethod( 'setupUpdate' ) );
 	}
 
 	public function test_unavailable_selected_credential_refuses_current_read_operations_before_transport(): void {
