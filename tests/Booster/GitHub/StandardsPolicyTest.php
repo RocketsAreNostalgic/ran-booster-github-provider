@@ -52,7 +52,7 @@ final class StandardsPolicyTest extends TestCase {
 			}
 			// PHPCS accepts a bare directive immediately before a block-comment delimiter.
 			$comment = trim( preg_replace( '/[\s*\/]+/', ' ', $token[1] ) );
-			if ( 1 === preg_match( '/phpcs:set\b|phpcs:(?:disable|ignore)\s+(?:[A-Za-z0-9_.]+\s*,\s*)*(?:[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)?)(?=\s|,|$)/i', $comment ) || 1 === preg_match( '/phpcs:(?:disable|ignore)\b[^\r\n]*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $comment ) || 1 === preg_match( '/phpcs:ignoreFile|phpcs:(?:disable|ignore)\s*(?:--|$)|@codingStandardsIgnore/i', $comment ) ) {
+			if ( 1 === preg_match( '/phpcs:set\b|phpcs:(?:disable|ignore)\s+(?:[A-Za-z0-9_.]+\s*,\s*)*(?:[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)?)(?=\s|,|$)/i', $comment ) || 1 === preg_match( '/phpcs:(?:disable|ignore)\b[^\r\n]*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $comment ) || 1 === preg_match( '/phpcs:ignoreFile|phpcs:(?:disable|ignore)\s*(?:--|$)|@codingStandards(?:Ignore|ChangeSetting)/i', $comment ) ) {
 				return $token[1];
 			}
 		}
@@ -104,6 +104,17 @@ FIXTURE;
 			$report = $this->check_source( $source );
 			foreach ( $report['files'] as $file ) {
 				self::assertNotContains( $diagnostic, array_column( $file['messages'], 'source' ) );
+			}
+			self::assertNotNull( $this->blanket_annotation( $source ) );
+		}
+	}
+
+	public function test_inline_prefix_configuration_is_rejected_despite_suppressing_the_checker(): void {
+		foreach ( array( 'phpcs:set', '@codingStandardsChangeSetting' ) as $directive ) {
+			$source = "<?php\n// " . $directive . " WordPress.NamingConventions.PrefixAllGlobals prefixes unowned\nfunction unowned_probe() {}";
+			$report = $this->check_source( $source );
+			foreach ( $report['files'] as $file ) {
+				self::assertNotContains( 'WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound', array_column( $file['messages'], 'source' ) );
 			}
 			self::assertNotNull( $this->blanket_annotation( $source ) );
 		}
