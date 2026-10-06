@@ -2,8 +2,7 @@
 
 declare(strict_types=1);
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
-namespace Tests\Booster\GitHub;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 // phpcs:disable Generic.Files.OneObjectStructurePerFile -- Narrow structural public-source fixtures belong with mapping cases.
 
@@ -14,9 +13,9 @@ use RAN\BoosterGitHubProvider\V1\GitHubProvider;
 use RAN\RepositoryProvider\RepositoryReference;
 use RAN\RepositoryProvider\RepositoryReleaseAcquisitionRejected;
 use RAN\RepositoryProvider\RepositoryReleaseReadUnavailable;
-use Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
-use Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
-use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 final class PublicReleaseResultMappingTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.

@@ -2,8 +2,7 @@
 
 declare(strict_types=1);
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
-namespace Tests\Booster\GitHub;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 use PHPUnit\Framework\TestCase;
 
@@ -105,6 +104,14 @@ FIXTURE;
 			foreach ( array( 'Function', 'Class', 'Constant', 'Variable' ) as $kind ) {
 				self::assertContains( 'WordPress.NamingConventions.PrefixAllGlobals.NonPrefixed' . $kind . 'Found', array_column( $messages, 'source' ), $path );
 			}
+		}
+	}
+
+	public function test_owned_test_namespaces_require_the_package_prefix(): void {
+		foreach ( array( 'tests/StandardsProbe.php', 'tests/Booster/GitHub/StandardsProbe.php' ) as $path ) {
+			$report   = $this->check_source( '<?php namespace Tests\\Booster\\GitHub;', $path );
+			$messages = array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) );
+			self::assertContains( 'WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound', array_column( $messages, 'source' ), $path );
 		}
 	}
 

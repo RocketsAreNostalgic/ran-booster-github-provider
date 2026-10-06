@@ -4,8 +4,7 @@
 
 declare(strict_types=1);
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
-namespace Tests\Booster\GitHub;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 require_once __DIR__ . '/Support/RepositoryResolverWordPressFunctions.php';
 
@@ -18,8 +17,8 @@ use RAN\RepositoryProvider\RepositoryBrowseRequest;
 use RAN\RepositoryProvider\RepositoryBrowseResult;
 use RAN\RepositoryProvider\RepositoryLookupRequest;
 use RuntimeException;
-use Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
-use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 final class RepositoryResolverTest extends TestCase {
 

@@ -4,8 +4,7 @@
 
 declare(strict_types=1);
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
-namespace Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
 use PHPUnit\Framework\TestCase;
 use RAN\AddOn\ReleaseTracking\ReleaseTrackingEligibility;
@@ -20,8 +19,8 @@ use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowA
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowTarget;
 use ReflectionMethod;
-use Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi3Fixture;
-use Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\WorkflowProviderFixtures;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi3Fixture;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\WorkflowProviderFixtures;
 use function RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\wp_json_encode;
 
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';

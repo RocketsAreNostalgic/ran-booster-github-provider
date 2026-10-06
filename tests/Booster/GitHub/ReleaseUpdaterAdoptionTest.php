@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
-namespace Tests\Booster\GitHub;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
-use Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
 
 #[RunTestsInSeparateProcesses]
 #[PreserveGlobalState( false )]

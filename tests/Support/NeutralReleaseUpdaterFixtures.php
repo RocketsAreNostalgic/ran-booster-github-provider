@@ -4,8 +4,7 @@
 
 declare(strict_types=1);
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
-namespace Tests\Booster\GitHub\Support;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support;
 
 final class NeutralReleaseUpdaterFixtures {
 	private static bool $booted = false;

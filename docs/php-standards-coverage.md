@@ -45,11 +45,12 @@ No new release authority or installed/UI acceptance is claimed.
 
 The former tests-wide `PrefixAllGlobals` exclusion also admitted arbitrary new
 global declarations. Fifteen existing files now locally except only `NonPrefixedVariableFound`; isolated
-runner locals and WordPress test globals retain their existing bytes. Forty-four
-namespace occurrences preserve the Composer test autoloader and one exact Core
-interception namespace. Eighteen other occurrence-local annotations preserve
-genuine WordPress functions/classes, constants and the lifecycle hook. No test
-declarations are renamed and executable fixture tokens remain unchanged.
+runner locals and WordPress test globals retain their existing bytes. Forty-three owned
+namespace occurrences now use the owned `RAN\BoosterGitHubProvider\V1\Tests`
+prefix, with matching Composer and bounded test-loader mappings. Only the exact
+Core interception namespace retains its local namespace exemption. Eighteen other
+occurrence-local annotations preserve genuine WordPress functions/classes,
+constants and the lifecycle hook. Production code and dependency versions are unchanged.
 
 The existing standards policy test probes unprefixed functions, classes and
 constants at current/future test, production and new root paths through the

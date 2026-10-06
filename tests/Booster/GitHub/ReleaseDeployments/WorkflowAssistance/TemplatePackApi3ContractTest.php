@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
-namespace Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplatePack;
-use Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi3Fixture as Fixture;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi3Fixture as Fixture;
 
 require_once dirname( __DIR__, 5 ) . '/src/ReleaseDeployments/WorkflowAssistance/TemplatePack.php';
 require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';

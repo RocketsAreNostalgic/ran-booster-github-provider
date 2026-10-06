@@ -39,7 +39,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Tests\\": "tests/"
+      "RAN\\BoosterGitHubProvider\\V1\\Tests\\": "tests/"
     }
   },
   "scripts": {
