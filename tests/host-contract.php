@@ -1,4 +1,6 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
+
 
 declare(strict_types=1);
 
@@ -27,6 +29,7 @@ if ( '' === $core_root || ! is_file( $core_root . '/autoload.php' ) ) {
 }
 
 if ( ! defined( 'ABSPATH' ) ) {
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 	define( 'ABSPATH', __DIR__ . '/' );
 }
 require $core_root . '/autoload.php';

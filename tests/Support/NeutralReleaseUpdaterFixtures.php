@@ -1,7 +1,10 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
+
 
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
 namespace Tests\Booster\GitHub\Support;
 
 final class NeutralReleaseUpdaterFixtures {
@@ -21,6 +24,7 @@ final class NeutralReleaseUpdaterFixtures {
 		unset( $GLOBALS['wp_filesystem'] );
 		$GLOBALS['wp_version'] = '6.8.0'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Deterministic updater runtime fixture.
 		if ( function_exists( 'do_action' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Exercise the genuine WordPress lifecycle hook required by the selected runtime.
 			do_action( 'after_setup_theme' );
 		} else {
 			foreach ( $GLOBALS['ran_booster_release_actions']['after_setup_theme'] ?? array() as $ran_booster_release_action ) {

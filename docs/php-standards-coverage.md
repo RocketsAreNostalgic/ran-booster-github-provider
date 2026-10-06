@@ -10,8 +10,7 @@ unchanged; only private unused helper inputs/callers are removed.
   decision that exception payloads are diagnostic data, escaped at actual output
   boundaries; redundant local annotations become ordinary explanatory comments.
 - PHPCS and PHPCBF share `.phpcs.xml`, covering the maintained PHP tree except
-  vendor and generated analyzer/test caches. Prefix rules retain the test-fixture
-  exception; owned method/variable, Yoda, unused-parameter and reserved-parameter
+  vendor and generated analyzer/test caches. Prefix rules except only request-local test variables; owned method/variable, Yoda, unused-parameter and reserved-parameter
   checks cover the whole maintained tree. Upstream inherited-method naming is
   replaced by the existing RANOwnedMethods sniff, not omitted.
 - Two file-wide unused-parameter exclusions are removed. The initial exposed
@@ -28,8 +27,8 @@ entrypoints and rejects unscoped PHPCS/legacy suppression comments while ignorin
 fixture strings. Negative controls run the locked checker and require inherited
 owned-method, unused-helper, variable, reserved-parameter and Yoda diagnostics.
 
-Retained local exceptions are scoped to their actual boundaries: the test prefix
-namespace, WordPress and Core interface signatures, native request callbacks,
+Retained local exceptions are scoped to their actual boundaries: exact test
+namespace declarations, WordPress and Core interface signatures, native request callbacks,
 structural test doubles, and exact fixture filesystem/JSON bytes. The producer
 exchange fixture no longer disables the complete alternative-functions category;
 its call-site exceptions name byte provenance, reproducible local Git archives,
@@ -41,3 +40,24 @@ Required PHPStan level 5 and the exact immutable Core beta.31 source-host identi
 remain unchanged. Local PHP 8.3 qualification complements the native PHP 8.2/8.5
 matrix and Node 24.11.0 checks; PR evidence records their exact revisions/results.
 No new release authority or installed/UI acceptance is claimed.
+
+## Prefix exemption narrowing
+
+The former tests-wide `PrefixAllGlobals` exclusion also admitted arbitrary new
+global declarations. Fifteen existing files now locally except only `NonPrefixedVariableFound`; isolated
+runner locals and WordPress test globals retain their existing bytes. Forty-four
+namespace occurrences preserve the Composer test autoloader and one exact Core
+interception namespace. Eighteen other occurrence-local annotations preserve
+genuine WordPress functions/classes, constants and the lifecycle hook. No test
+declarations are renamed and executable fixture tokens remain unchanged.
+
+The existing standards policy test probes unprefixed functions, classes and
+constants at current/future test, production and new root paths through the
+locked checker. Its comment guard rejects the whole PrefixAllGlobals category
+while retaining exact diagnostic annotations and separately accepted named ranges.
+Other exception families and test-global variable acceptance remain explicit
+boundaries; this patch does not certify the entire retained-exception inventory.
+
+Variable exceptions are confined to existing source files with a reasoned
+`NonPrefixedVariableFound` annotation. No path-wide prefix exception remains;
+new test/view files and nested production `tests`/`views` paths are checked.

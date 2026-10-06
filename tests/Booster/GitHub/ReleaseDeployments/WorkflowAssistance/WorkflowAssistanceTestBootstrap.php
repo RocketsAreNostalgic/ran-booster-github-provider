@@ -1,4 +1,6 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
+
 
 declare(strict_types=1);
 
@@ -69,6 +71,7 @@ final class SetupClaimDatabase {
 }
 
 if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 	define( 'MINUTE_IN_SECONDS', 60 );
 }
 

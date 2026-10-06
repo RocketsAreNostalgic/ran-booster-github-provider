@@ -1,7 +1,10 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
+
 
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- This fixture must occupy the exact Core namespace to intercept the existing host contract.
 namespace RAN\Deployment;
 
 function random_bytes( int $length ): string {

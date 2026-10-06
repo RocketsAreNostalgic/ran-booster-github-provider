@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
 namespace Tests\Booster\GitHub;
 
 use PHPUnit\Framework\TestCase;
@@ -37,7 +38,7 @@ final class StandardsPolicyTest extends TestCase {
 	}
 
 	public function test_blanket_annotation_guard_covers_comment_forms_but_not_fixture_strings(): void {
-		foreach ( array( '// phpcs:disable', '/* phpcs:disable */', '/** phpcs:disable */', '/* phpcs:ignore*/', '/** phpcs:ignore -- unwanted waiver */', "/*\n phpcs:disable\n */", '// phpcs:ignoreFile', '/* @codingStandardsIgnoreStart */' ) as $comment ) {
+		foreach ( array( '// phpcs:disable', '/* phpcs:disable */', '/** phpcs:disable */', '/* phpcs:ignore*/', '/** phpcs:ignore -- unwanted waiver */', "/*\n phpcs:disable\n */", '// phpcs:ignoreFile', '/* @codingStandardsIgnoreStart */', '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals', '/* phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals */' ) as $comment ) {
 			self::assertNotNull( $this->blanket_annotation( '<?php ' . $comment ), $comment );
 		}
 		foreach ( array( '/* phpcs:disable WordPress.PHP.YodaConditions -- Precise synthetic contract. */', '// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Foreign signature.', '$fixture = "/* phpcs:disable */";' ) as $allowed ) {
@@ -52,7 +53,7 @@ final class StandardsPolicyTest extends TestCase {
 			}
 			// PHPCS accepts a bare directive immediately before a block-comment delimiter.
 			$comment = preg_replace( '/\*\/\s*$/', '', $token[1] );
-			if ( 1 === preg_match( '/phpcs:ignoreFile|phpcs:(?:disable|ignore)\s*(?:--|$)|@codingStandardsIgnore/i', $comment ) ) {
+			if ( 1 === preg_match( '/phpcs:(?:disable|ignore)\b[^\r\n]*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $comment ) || 1 === preg_match( '/phpcs:ignoreFile|phpcs:(?:disable|ignore)\s*(?:--|$)|@codingStandardsIgnore/i', $comment ) ) {
 				return $token[1];
 			}
 		}
@@ -97,11 +98,21 @@ FIXTURE;
 		self::assertContains( 'WordPress.PHP.YodaConditions.NotYoda', $sources );
 	}
 
-	private function check_source( ?string $source = null ): array {
+	public function test_prefix_exceptions_do_not_hide_new_global_declarations(): void {
+		foreach ( array( 'tests/FuturePrefix.php', 'tests/Support/WPError.php', 'src/FuturePrefix.php', 'src/tests/FuturePrefix.php', 'src/views/FuturePrefix.php', 'future-prefix.php' ) as $path ) {
+			$report   = $this->check_source( '<?php function unowned_probe() {} class UnownedProbe {} const UNOWNED_PROBE = 1; $local_value = 1;', $path );
+			$messages = array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) );
+			foreach ( array( 'Function', 'Class', 'Constant', 'Variable' ) as $kind ) {
+				self::assertContains( 'WordPress.NamingConventions.PrefixAllGlobals.NonPrefixed' . $kind . 'Found', array_column( $messages, 'source' ), $path );
+			}
+		}
+	}
+
+	private function check_source( ?string $source = null, string $path = 'tests/StandardsProbe.php' ): array {
 		$root    = dirname( __DIR__, 3 );
 		$command = array( PHP_BINARY, $root . '/vendor/bin/phpcs', '--standard=' . $root . '/.phpcs.xml', '--report=json', '-q' );
 		if ( null !== $source ) {
-			$command[] = '--stdin-path=' . $root . '/tests/StandardsProbe.php';
+			$command[] = '--stdin-path=' . $root . '/' . $path;
 			$command[] = '-';
 		}
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Execute the locked local checker against an in-memory negative fixture.
