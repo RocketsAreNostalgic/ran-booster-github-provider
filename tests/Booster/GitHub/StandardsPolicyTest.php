@@ -206,13 +206,52 @@ FIXTURE;
 		}
 	}
 
+	public function test_rule_path_and_command_selectors_cannot_hide_real_diagnostics(): void {
+		$root = dirname( __DIR__, 3 );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Read the canonical rules and actual fixture as inert local test inputs.
+		$xml = file_get_contents( $root . '/.phpcs.xml' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Preserve the real occurrence allowances while probing immediately outside them.
+		$fixture = file_get_contents( $root . '/tests/foundation-contract.php' );
+		self::assertIsString( $xml );
+		self::assertIsString( $fixture );
+		$source     = $fixture . "\n\$unrelated_future_binding = true;\n";
+		$diagnostic = 'WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound';
+		$report     = $this->check_source( $source, 'tests/foundation-contract.php' );
+		self::assertContains( $diagnostic, array_column( array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) ), 'source' ) );
+		$cases = array();
+		foreach ( array( '', ' type="absolute"', ' type="relative"' ) as $attributes ) {
+			$cases[] = array( str_replace( '</ruleset>', '<rule ref="' . $diagnostic . '"><include-pattern' . $attributes . '>*/unrelated-only.php</include-pattern></rule></ruleset>', $xml ), $source, 'tests/foundation-contract.php', $diagnostic );
+		}
+		$cases[]           = array( str_replace( '</ruleset>', '<rule ref="' . $diagnostic . '"><exclude-pattern type="relative">*foundation-contract.php</exclude-pattern></rule></ruleset>', $xml ), $source, 'tests/foundation-contract.php', $diagnostic );
+		$method_source     = '<?php namespace RAN\\BoosterGitHubProvider\\V1; class Probe extends \\stdClass { public function badMethod(): void {} }';
+		$method_diagnostic = 'RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase';
+		$report            = $this->check_source( $method_source );
+		self::assertContains( $method_diagnostic, array_column( array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) ), 'source' ) );
+		foreach ( array( 'phpcbf-only="true"', 'phpcs-only="false"' ) as $attribute ) {
+			$cases[] = array( str_replace( '<rule ref="RANOwnedMethods"/>', '<rule ref="RANOwnedMethods" ' . $attribute . '/>', $xml ), $method_source, 'tests/StandardsProbe.php', $method_diagnostic );
+		}
+		foreach ( $cases as list( $mutant, $probe, $probe_path, $expected ) ) {
+			self::assertTrue( $this->weakened_ruleset( $mutant ) );
+			$path = sys_get_temp_dir() . '/ran-provider-scope-' . bin2hex( random_bytes( 8 ) ) . '.xml';
+			try {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Write only the unique private scope mutation, never the canonical ruleset.
+				file_put_contents( $path, $mutant );
+				$report = $this->check_source( $probe, $probe_path, null, $path );
+				self::assertNotContains( $expected, array_column( array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) ), 'source' ) );
+			} finally {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Remove only the unique private scope mutation.
+				unlink( $path );
+			}
+		}
+	}
+
 	private function weakened_ruleset( string $xml ): bool {
 		$document = new \DOMDocument();
 		if ( ! $document->loadXML( $xml, LIBXML_NONET ) ) {
 			return true;
 		}
 		$xpath = new \DOMXPath( $document );
-		if ( 0 !== $xpath->query( '//rule/exclude | //rule/exclude-pattern' )->length ) {
+		if ( 0 !== $xpath->query( '//rule/exclude | //rule/exclude-pattern | //rule/include-pattern | //@phpcs-only | //@phpcbf-only' )->length ) {
 			return true;
 		}
 		foreach ( $xpath->query( '//rule/severity' ) as $severity ) {

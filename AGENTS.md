@@ -123,6 +123,7 @@ three existing exact annotation fingerprints to include the new inline PHPCS
 comments; it does not relax the accepted PHPStan annotation identities.
 The redundant MethodNameInvalid severity-zero override is removed: both WPCS and
 RANOwnedMethods now remain active. The guard rejects lower severity, narrowed
-checker arguments, rule exclusions and changed prefix properties. These changes
+checker arguments, rule include/exclude patterns, command-only selectors and
+changed prefix properties. These changes
 are candidates for independent review; passing checks do not establish exception
 acceptance or permission to merge.
