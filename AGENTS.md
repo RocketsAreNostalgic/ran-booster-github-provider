@@ -54,7 +54,7 @@ CI pins and verifies the certified Booster revision before running those host-ba
 
 The certified source host is the immutable Core `v1.0.0-beta.31` tag target
 `8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf`, with Provider API 14 / workflow V3.
-PHPStan blocks at level 5 over `src/` and `tests/foundation-contract.php`;
+PHPStan blocks at level 5 over default-inclusive production and the foundation contract;
 bootstrap/symbol discovery does not extend that analysis coverage. Levels 6–8
 remain separate work. This source-host proof does not claim installed-site or
 UI acceptance. Preserve the full PHP 8.2/8.5 matrix and all terminal gates.
@@ -81,3 +81,12 @@ then compares two generated ZIPs byte-for-byte. Host-backed tests therefore need
 Bash, Git, jq, zip, unzip and shasum alongside PHP/ZipArchive. No remote repository
 or installed site is modified by these tests. The runtime allowlist contains only
 sorted explicit paths; human guidance lives in RELEASE-STARTER.md.
+
+Production analysis starts at the repository root. Reviewed root fixture roles
+(`tests/Booster`, `tests/Support`, `tests/fixtures`, host-contract and discovery
+helper), scripts, dependencies and caches are excluded from analysis and scanning.
+The foundation contract stays directly analyzed. Independent recursive discovery
+must match locked FileFinder plus CLI stub-file removal. The host aggregate
+proves new root/nested/split/moved sources, src/tests collisions, unsupported
+extensions, production-stub rejection and excluded-fixture scan isolation.
+No existing production omission or analysis-level change is claimed.

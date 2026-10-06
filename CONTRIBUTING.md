@@ -32,7 +32,7 @@ test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 8a3ed5a8acdb3875f498e
 ```
 
 This exact host is the immutable Core `v1.0.0-beta.31` tag target, supplying
-Provider API 14 / workflow V3. PHPStan blocks at level 5 over `src/` and
+Provider API 14 / workflow V3. PHPStan blocks at level 5 over default-inclusive production and
 `tests/foundation-contract.php`, with unchanged WordPress extension, bootstrap
 files and PHPDoc certainty setting. No baseline or ignore list is introduced.
 Levels 6–8 remain separately scoped. Source-host qualification does not establish
@@ -85,3 +85,12 @@ credentials and runtime protocols are unchanged. See [the migration ledger](docs
 
 See [standards coverage](docs/php-standards-coverage.md) for whole-tree enforcement
 and the retained foreign-signature and test-fixture exceptions.
+
+Production analysis starts at the repository root. Reviewed root fixture roles
+(`tests/Booster`, `tests/Support`, `tests/fixtures`, host-contract and discovery
+helper), scripts, dependencies and caches are excluded from analysis and scanning.
+The foundation contract stays directly analyzed. Independent recursive discovery
+must match locked FileFinder plus CLI stub-file removal. The host aggregate
+proves new root/nested/split/moved sources, src/tests collisions, unsupported
+extensions, production-stub rejection and excluded-fixture scan isolation.
+No existing production omission or analysis-level change is claimed.

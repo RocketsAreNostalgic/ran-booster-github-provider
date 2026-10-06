@@ -65,8 +65,10 @@
     "check:host": [
       "@test:host-contract",
       "@analyze",
+      "@test:analysis-coverage",
       "@test:implementation"
-    ]
+    ],
+    "test:analysis-coverage": "bash tests/analysis-coverage.sh"
   },
   "config": {
     "platform": {
