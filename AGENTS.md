@@ -109,3 +109,20 @@ exceptions require explicit review.
 Runtime negative fixtures and foreign contracts must remain tested. When type
 analysis exposes stale helper docs or mutable external state, correct those types
 or impurity metadata rather than removing the behavioral assertion.
+
+
+WPCS suppression guards require exact diagnostic identifiers and non-empty reasons.
+Every block disable is rejected. Existing host-fixture global identities and
+process-local CLI gate variables retain only occurrence-local allowances; new
+variables, functions, classes, methods and constants remain checked. The five filesystem/bootstrap, public-artifact and hostile-JSON fixture
+cohorts use occurrence-local allowances, with actual-fixture outside controls.
+Removing the prior spans exposed 12 structural/foreign-function/JSON diagnostics
+and 142 global-variable diagnostics; these are exposure counts, not defect counts.
+Fixture executable tokens remain unchanged. The coverage helper changes only its
+three existing exact annotation fingerprints to include the new inline PHPCS
+comments; it does not relax the accepted PHPStan annotation identities.
+The redundant MethodNameInvalid severity-zero override is removed: both WPCS and
+RANOwnedMethods now remain active. The guard rejects lower severity, narrowed
+checker arguments, rule exclusions and changed prefix properties. These changes
+are candidates for independent review; passing checks do not establish exception
+acceptance or permission to merge.

@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
@@ -22,7 +21,9 @@ use RAN\RepositoryProvider\RepositoryReleaseWorkflowResult;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowStatus;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowTarget;
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 $core_root = getenv( 'RAN_BOOSTER_CORE_PATH' );
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 $core_root = false === $core_root ? '' : rtrim( $core_root, '/\\' );
 if ( '' === $core_root || ! is_file( $core_root . '/autoload.php' ) ) {
 	throw new RuntimeException( 'RAN_BOOSTER_CORE_PATH must point at the exact certified Booster checkout.' );
@@ -34,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 require $core_root . '/autoload.php';
 
-$core_plugin = file_get_contents( $core_root . '/ran-booster.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Exact certified source contract.
+$core_plugin = file_get_contents( $core_root . '/ran-booster.php' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Exact certified source contract. Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 if ( ! is_string( $core_plugin )
 	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 14 \);/", $core_plugin )
 ) {
@@ -80,6 +81,7 @@ function ran_booster_github_provider_assert_method( string $interface_name, stri
 	}
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 $contracts = array(
 	RepositoryProvider::class                    => array(
 		'get_metadata'             => array( array(), ProviderMetadata::class ),
@@ -112,12 +114,15 @@ $contracts = array(
 	),
 );
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 foreach ( $contracts as $interface_name => $methods ) {
 	if ( ! interface_exists( $interface_name ) ) {
 		throw new RuntimeException( "Required Booster host contract is unavailable: {$interface_name}" ); // Dependency-free CI contract failure only.
 	}
 
-	$actual_methods   = get_class_methods( $interface_name );
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
+	$actual_methods = get_class_methods( $interface_name );
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 	$expected_methods = array_keys( $methods );
 	sort( $actual_methods );
 	sort( $expected_methods );
@@ -125,6 +130,7 @@ foreach ( $contracts as $interface_name => $methods ) {
 		throw new RuntimeException( "Unexpected method set for {$interface_name}." ); // Dependency-free CI contract failure only.
 	}
 
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 	foreach ( $methods as $method => $signature ) {
 		ran_booster_github_provider_assert_method( $interface_name, $method, $signature[0], $signature[1] );
 	}

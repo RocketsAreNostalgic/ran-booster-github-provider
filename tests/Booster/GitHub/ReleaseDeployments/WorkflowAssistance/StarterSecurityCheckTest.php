@@ -13,7 +13,6 @@ use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\Workflo
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 
-// phpcs:disable WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Exact hostile JSON fixture bytes.
 final class StarterSecurityCheckTest extends TestCase {
 	private function origin(): string {
 		$bytes = TemplatePackApi3Fixture::archive();
@@ -76,6 +75,7 @@ final class StarterSecurityCheckTest extends TestCase {
 					}
 					return array(
 						'response' => array( 'code' => $status ),
+						// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Native JSON encoding preserves the exact hostile fixture bytes exercised by this security test.
 						'body'     => is_string( $data ) ? $data : json_encode( $data ),
 					);
 			}
@@ -155,7 +155,8 @@ final class StarterSecurityCheckTest extends TestCase {
 			}
 		);
 		$origin  = json_decode( $this->origin(), true );
-		$cases   = array( '', '{}', str_repeat( ' ', 8193 ), json_encode( $origin + array( 'writes' => true ) ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Native JSON encoding preserves the exact hostile fixture bytes exercised by this security test.
+		$cases = array( '', '{}', str_repeat( ' ', 8193 ), json_encode( $origin + array( 'writes' => true ) ) );
 		foreach ( array(
 			'repository'    => 'attacker/fork',
 			'repository_id' => '1',
@@ -165,7 +166,8 @@ final class StarterSecurityCheckTest extends TestCase {
 		) as $field => $value ) {
 			$bad                   = $origin;
 			$bad['pack'][ $field ] = $value;
-			$cases[]               = json_encode( $bad );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Native JSON encoding preserves the exact hostile fixture bytes exercised by this security test.
+			$cases[] = json_encode( $bad );
 		}
 		foreach ( $cases as $case ) {
 			self::assertSame( 'unknown', $checker->check( $case )['status'] );

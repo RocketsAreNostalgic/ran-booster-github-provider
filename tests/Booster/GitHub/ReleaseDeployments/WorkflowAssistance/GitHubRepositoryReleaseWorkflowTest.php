@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
@@ -23,7 +22,9 @@ require_once __DIR__ . '/Support/WorkflowProviderFixtures.php';
 final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function setUp(): void {
-		$GLOBALS['ran_booster_release_deployments_test_options']    = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_transients'] = array();
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The workflow record fixture requires the same connection-local advisory-lock double as its persistence tests.
@@ -114,6 +115,7 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 			),
 			array( 'head_sha' => 'invalid' ),
 		) as $overrides ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['101'] = $this->record( $overrides );
 			$before      = $GLOBALS['ran_booster_release_deployments_test_options'];
 			$credentials = new WorkflowCredentialStore();

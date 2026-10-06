@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
@@ -113,7 +112,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function setUp(): void {
-		$GLOBALS['ran_booster_release_deployments_test_options']    = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_transients'] = array();
 		unset( $GLOBALS['ran_booster_release_deployments_test_transient_delete_callback'] );
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_acquired_callback'] );
@@ -195,6 +196,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertSame( 'workflow_setup_open', $established->setup( $status, $preview['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'selected-token' )['code'] );
 		$transport->merge_pull();
 		$writes = $transport->write_counts;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
 
 		$result = $this->coordinator( $facade, $transport, new SetupRecordStore() )->inspect( $status, 'stable', $this->ready_preflight(), 'selected-token' );
@@ -208,7 +210,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 
 	public function test_incomplete_starter_still_requires_manual_integration(): void {
 		foreach ( array( '.github/workflows/quality.yml', '.github/workflows/release-please.yml', '.ran-booster-release-starter.json', '.release-please-manifest.json', 'release-please-config.json', 'version.txt', 'release-contents.txt', 'scripts/build-release.sh', 'scripts/verify-release.sh', 'RELEASE-STARTER.md' ) as $missing_path ) {
-			$GLOBALS['ran_booster_release_deployments_test_options']    = array();
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+			$GLOBALS['ran_booster_release_deployments_test_options'] = array();
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_transients'] = array();
 			$transport   = new D23ApplicationTransport();
 			$facade      = new D23ReleaseFacade();
@@ -219,6 +223,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			$transport->merge_pull();
 			$transport->remove_default_document( $missing_path );
 			$writes = $transport->write_counts;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_options'] = array();
 
 			$result = $this->coordinator( $facade, $transport, new SetupRecordStore() )->inspect( $status, 'stable', $this->ready_preflight(), 'selected-token' );
@@ -241,6 +246,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$transport->merge_pull();
 		$transport->remove_default_document( 'example-plugin.php' );
 		$writes = $transport->write_counts;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
 
 		$result = $this->coordinator( $facade, $transport, new SetupRecordStore() )->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
@@ -261,6 +267,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$transport->merge_pull();
 		$transport->mutate_default_document( '.github/workflows/publish-release.yml', "steps:\n  - uses: softprops/action-gh-release@v2\n" );
 		$writes = $transport->write_counts;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
 
 		$result = $this->coordinator( $facade, $transport, new SetupRecordStore() )->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
@@ -476,6 +483,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$case['changes']                             = array_reverse( $case['changes'] );
 		$cases[]                                     = $case;
 		foreach ( $cases as $case ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_transients'][ $transient ] = $case;
 			self::assertNull( $coordinator->preview( $inspect['preview_key'], $status ) );
 		}
@@ -513,6 +521,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$status      = WorkflowProviderFixtures::target();
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_lock_release_result'] = false;
 		$result = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
 
@@ -531,6 +540,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$status      = WorkflowProviderFixtures::target();
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_lock_release_result'] = false;
 		$result = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
 
@@ -543,7 +553,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 
 	public function test_closed_wrong_base_and_duplicate_deterministic_pulls_stop_before_object_writes(): void {
 		foreach ( array( 'closed', 'wrong_base', 'duplicate' ) as $scenario ) {
-			$GLOBALS['ran_booster_release_deployments_test_options']    = array();
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+			$GLOBALS['ran_booster_release_deployments_test_options'] = array();
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_transients'] = array();
 			$transport = new D23ApplicationTransport();
 			$transport->seed_pull_scenario( $scenario );
@@ -570,7 +582,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 
 	public function test_uncertain_blob_tree_and_commit_writes_consume_preview_and_cannot_replay(): void {
 		foreach ( array( 'blob', 'tree', 'commit' ) as $operation ) {
-			$GLOBALS['ran_booster_release_deployments_test_options']    = array();
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+			$GLOBALS['ran_booster_release_deployments_test_options'] = array();
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_transients'] = array();
 			$transport = new D23ApplicationTransport();
 			$transport->fail_write_acknowledgement( $operation );
@@ -599,6 +613,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$coordinator = $this->coordinator( $facade, $transport, $records );
 		$status      = WorkflowProviderFixtures::target();
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_transient_delete_callback'] = static function (): void {
 			throw new \RuntimeException( 'expected test failure' );
 		};
@@ -632,6 +647,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			'unknown'   => array( 'future_schema' => 3 ),
 			'non_array' => 'occupied',
 		) as $name => $existing ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] = array( '101' => $existing );
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact raw scalar value bytes are the compatibility subject under test.
 			$before      = serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
@@ -658,6 +674,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$competing   = null;
 		$connection  = $GLOBALS['wpdb'];
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_lock_acquired_callback'] = static function () use ( &$competing, $coordinator, $status, $inspect, $transport, $connection, $preflight ): void {
 			unset( $GLOBALS['ran_booster_release_deployments_test_lock_acquired_callback'] );
 			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The callback models a competing request with a distinct database connection.
@@ -695,6 +712,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$preview     = $GLOBALS['ran_booster_release_deployments_test_transients'][ $new_key ];
 
 		unset( $GLOBALS['ran_booster_release_deployments_test_transients'][ $new_key ] );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_transients'][ 'ran_booster_release_workflow_preview_' . $key ] = $preview;
 
 		self::assertNull( $coordinator->preview( $key, $status ) );

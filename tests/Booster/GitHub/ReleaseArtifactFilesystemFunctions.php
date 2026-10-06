@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
@@ -41,6 +40,7 @@ function fopen( string $filename, string $mode, bool $use_include_path = false, 
 function fclose( $stream ): bool {
 	$false_results = (int) ( $GLOBALS['ran_booster_custody_fclose_false_results'] ?? 0 );
 	if ( $false_results > 0 ) {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_custody_fclose_false_results'] = $false_results - 1;
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Test-only seam must close the real stream while reporting a false result.
 		\fclose( $stream );
@@ -50,6 +50,7 @@ function fclose( $stream ): bool {
 
 	$remaining = (int) ( $GLOBALS['ran_booster_custody_fclose_failures'] ?? 0 );
 	if ( $remaining > 0 ) {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_custody_fclose_failures'] = $remaining - 1;
 		throw new \RuntimeException( 'Test-only stream close failure.' );
 	}

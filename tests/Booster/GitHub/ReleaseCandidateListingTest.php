@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
@@ -105,6 +104,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 	}
 
 	public function test_listing_rejects_a_non_direct_filesystem_before_credentials_or_http(): void {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_filesystem_method'] = 'ftpext';
 		$credentials                                      = new RepositoryResolverSecretsStub( array( 'private-release' => 'secret-token' ) );
 

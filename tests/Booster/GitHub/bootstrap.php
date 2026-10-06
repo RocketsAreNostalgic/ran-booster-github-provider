@@ -1,14 +1,16 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 $ran_provider_root = dirname( __DIR__, 3 );
-$ran_booster_root  = getenv( 'RAN_BOOSTER_CORE_PATH' );
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+$ran_booster_root = getenv( 'RAN_BOOSTER_CORE_PATH' );
 if ( ! is_string( $ran_booster_root ) || '' === trim( $ran_booster_root ) ) {
 	throw new LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for the extracted GitHub suite.' );
 }
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 $ran_booster_root = rtrim( $ran_booster_root, '/\\' );
 
 spl_autoload_register(

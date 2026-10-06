@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
@@ -31,8 +30,9 @@ final class RepositoryResolverTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->had_webhook_transients                   = array_key_exists( 'ran_booster_webhook_test_transients', $GLOBALS );
-		$this->previous_webhook_transients              = $GLOBALS['ran_booster_webhook_test_transients'] ?? null;
+		$this->had_webhook_transients      = array_key_exists( 'ran_booster_webhook_test_transients', $GLOBALS );
+		$this->previous_webhook_transients = $GLOBALS['ran_booster_webhook_test_transients'] ?? null;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_webhook_test_transients'] = array();
 
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
@@ -51,6 +51,7 @@ final class RepositoryResolverTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function tearDown(): void {
 		if ( $this->had_webhook_transients ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_webhook_test_transients'] = $this->previous_webhook_transients;
 		} else {
 			unset( $GLOBALS['ran_booster_webhook_test_transients'] );

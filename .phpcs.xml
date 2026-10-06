@@ -20,9 +20,6 @@
 
 	<!-- Owned declarations, including inherited methods, are checked across the maintained tree. -->
 	<rule ref="RANOwnedMethods"/>
-	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
-		<severity>0</severity>
-	</rule>
 	<rule ref="WordPress.NamingConventions.ValidVariableName"/>
 	<rule ref="WordPress.PHP.YodaConditions"/>
 	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">

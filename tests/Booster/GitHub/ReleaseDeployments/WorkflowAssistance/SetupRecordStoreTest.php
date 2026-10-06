@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
@@ -14,7 +13,9 @@ use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupReco
 final class SetupRecordStoreTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function setUp(): void {
-		$GLOBALS['ran_booster_release_deployments_test_options']        = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_option_updates'] = array();
 		unset( $GLOBALS['ran_booster_release_deployments_test_option_override'] );
 		unset( $GLOBALS['ran_booster_release_deployments_test_option_update_result'] );
@@ -55,6 +56,7 @@ final class SetupRecordStoreTest extends TestCase {
 		);
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact obsolete bytes must remain untouched.
 		$before = serialize( $legacy_value );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options'][ $legacy_option ] = $legacy_value;
 		$store  = new SetupRecordStore();
 		$record = $this->record();
@@ -93,7 +95,9 @@ final class SetupRecordStoreTest extends TestCase {
 			'non_array' => 'opaque-row',
 			'null_row'  => null,
 		) as $name => $existing ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] = array( '123456789' => $existing );
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_option_updates'] = array();
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact raw scalar value bytes are the compatibility subject under test.
 			$before = serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
@@ -120,6 +124,7 @@ final class SetupRecordStoreTest extends TestCase {
 		$connection = $GLOBALS['wpdb'];
 		$claim      = $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
 		self::assertNotNull( $claim );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_lock_release_result'] = false;
 		self::assertFalse( $store->release_claim( '123456789', $claim ) );
 		$failure = array(
@@ -148,6 +153,7 @@ final class SetupRecordStoreTest extends TestCase {
 		$connection = $GLOBALS['wpdb'];
 		$claim      = $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
 		self::assertNotNull( $claim );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_lock_release_result'] = false;
 		self::assertFalse( $store->release_claim( '123456789', $claim ) );
 		$connection->disconnect();
@@ -282,6 +288,7 @@ final class SetupRecordStoreTest extends TestCase {
 	public function test_schema_one_record_is_occupied_but_never_interpreted_as_current_state(): void {
 		$legacy                 = array_intersect_key( $this->record(), array_flip( array( 'repo_id', 'repository', 'package_type', 'package_identifier', 'source_revision', 'default_branch', 'setup_branch', 'head_sha', 'pr_number' ) ) );
 		$legacy['setup_branch'] = 'ran-booster/release-setup-v1-aaaaaaaaaaaa-deadbeef';
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['123456789'] = $legacy;
 		$store = new SetupRecordStore();
 
@@ -302,6 +309,7 @@ final class SetupRecordStoreTest extends TestCase {
 	}
 
 	public function test_readback_and_record_cap_fail_closed(): void {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_option_override'] = array();
 		self::assertFalse( ( new SetupRecordStore() )->save( $this->record() ) );
 		unset( $GLOBALS['ran_booster_release_deployments_test_option_override'] );
@@ -310,6 +318,7 @@ final class SetupRecordStoreTest extends TestCase {
 			$record                     = array_replace( $this->record(), array( 'repo_id' => (string) $index ) );
 			$records[ (string) $index ] = $record;
 		}
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] = $records;
 		self::assertTrue( ( new SetupRecordStore() )->occupied( '100' ) );
 		self::assertFalse( ( new SetupRecordStore() )->save( array_replace( $this->record(), array( 'repo_id' => '101' ) ) ) );
@@ -360,6 +369,7 @@ final class SetupRecordStoreTest extends TestCase {
 	}
 	public function test_malformed_assessment_observation_option_fails_closed(): void {
 		$observation = $this->observation();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_assessment_observations'] = array( $observation, $observation );
 		$store = new SetupRecordStore();
 		self::assertNull( $store->assessment_observation( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
@@ -448,6 +458,7 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertLessThanOrEqual( 12, count( $history ) );
 		self::assertContains( sprintf( '%032x', 20 ), array_column( $history, 'correlation_reference' ) );
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_option_update_result'] = false;
 		self::assertFalse( $store->record_failure( array_replace( $failure, array( 'correlation_reference' => str_repeat( 'b', 32 ) ) ) ) );
 		unset( $GLOBALS['ran_booster_release_deployments_test_option_update_result'] );
@@ -497,6 +508,7 @@ final class SetupRecordStoreTest extends TestCase {
 			'correlation_reference' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
 			'recorded_at'           => '2026-08-27T12:34:56Z',
 		);
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_failure_history'] = array( $legacy );
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Exact prerelease bytes must remain untouched when rejected.
 		$before = serialize( $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_failure_history'] );

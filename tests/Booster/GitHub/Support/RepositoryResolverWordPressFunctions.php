@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
@@ -12,14 +11,18 @@ require_once __DIR__ . '/RepositoryResolverWpError.php';
  * @param array<string, mixed>|RepositoryResolverWpError $response
  */
 function repository_resolver_http_reset( mixed $response ): void {
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 	$GLOBALS['ran_booster_repository_resolver_responses'] = array( $response );
-	$GLOBALS['ran_booster_repository_resolver_requests']  = array();
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+	$GLOBALS['ran_booster_repository_resolver_requests'] = array();
 }
 
 /** @param list<array<string, mixed>|RepositoryResolverWpError> $responses */
 function repository_resolver_http_queue( array $responses ): void {
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 	$GLOBALS['ran_booster_repository_resolver_responses'] = $responses;
-	$GLOBALS['ran_booster_repository_resolver_requests']  = array();
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+	$GLOBALS['ran_booster_repository_resolver_requests'] = array();
 }
 
 /**
@@ -34,6 +37,7 @@ function repository_resolver_http_requests(): array {
  * @return array<string, mixed>
  */
 function wp_remote_get( string $url, array $arguments ): mixed {
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 	$GLOBALS['ran_booster_repository_resolver_requests'][] = array(
 		'url'       => $url,
 		'arguments' => $arguments,
@@ -54,6 +58,7 @@ function wp_remote_get( string $url, array $arguments ): mixed {
 
 /** @param array<string,mixed> $arguments */
 function wp_remote_request( string $url, array $arguments ): mixed {
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 	$GLOBALS['ran_booster_repository_resolver_requests'][] = array(
 		'url'       => $url,
 		'arguments' => $arguments,

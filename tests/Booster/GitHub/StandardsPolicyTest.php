@@ -37,10 +37,10 @@ final class StandardsPolicyTest extends TestCase {
 	}
 
 	public function test_blanket_annotation_guard_covers_comment_forms_but_not_fixture_strings(): void {
-		foreach ( array( '// phpcs:disable RANOwnedMethods', '// phpcs:disable Generic.Files.LineLength, WordPress', '// PHPCS:IGNORE WordPress.NamingConventions', '// phpcs:set WordPress.NamingConventions.PrefixAllGlobals prefixes probe', '// phpcs:disable', '/* phpcs:disable */', '/** phpcs:disable */', '/* phpcs:ignore*/', '/** phpcs:ignore -- unwanted waiver */', "/*\n phpcs:disable\n */", '// phpcs:ignoreFile', '/* @codingStandardsIgnoreStart */', '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals', '/* phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals */' ) as $comment ) {
+		foreach ( array( '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Process bindings still need occurrence scope.', '// phpcs:disable WordPress.PHP.YodaConditions.NotYoda -- Future-wide.', '// phpcs:ignore WordPress.WP.AlternativeFunctions -- Whole sniff.', '// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped', "/* phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Process bindings.\nphpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Piggyback. */", '// phpcs:disable RANOwnedMethods', '// phpcs:disable Generic.Files.LineLength, WordPress', '// PHPCS:IGNORE WordPress.NamingConventions', '// phpcs:set WordPress.NamingConventions.PrefixAllGlobals prefixes probe', '// phpcs:disable', '/* phpcs:disable */', '/** phpcs:disable */', '/* phpcs:ignore*/', '/** phpcs:ignore -- unwanted waiver */', "/*\n phpcs:disable\n */", '// phpcs:ignoreFile', '/* @codingStandardsIgnoreStart */', '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals', '/* phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals */' ) as $comment ) {
 			self::assertNotNull( $this->blanket_annotation( '<?php ' . $comment ), $comment );
 		}
-		foreach ( array( '/* phpcs:disable WordPress.PHP.YodaConditions -- Precise synthetic contract. */', '// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Foreign signature.', '$fixture = "/* phpcs:disable */";' ) as $allowed ) {
+		foreach ( array( '// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Foreign signature.', '$fixture = "/* phpcs:disable */";' ) as $allowed ) {
 			self::assertNull( $this->blanket_annotation( '<?php ' . $allowed ), $allowed );
 		}
 	}
@@ -50,10 +50,25 @@ final class StandardsPolicyTest extends TestCase {
 			if ( ! is_array( $token ) || ! in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
 				continue;
 			}
-			// PHPCS accepts a bare directive immediately before a block-comment delimiter.
-			$comment = trim( preg_replace( '/[\s*\/]+/', ' ', $token[1] ) );
-			if ( 1 === preg_match( '/phpcs:set\b|phpcs:(?:disable|ignore)\s+(?:[A-Za-z0-9_.]+\s*,\s*)*(?:[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)?)(?=\s|,|$)/i', $comment ) || 1 === preg_match( '/phpcs:(?:disable|ignore)\b[^\r\n]*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $comment ) || 1 === preg_match( '/phpcs:ignoreFile|phpcs:(?:disable|ignore)\s*(?:--|$)|@codingStandards(?:Ignore|ChangeSetting)/i', $comment ) ) {
+			if ( preg_match( '/phpcs:(?:set\b|ignoreFile)|@codingStandards(?:Ignore|ChangeSetting)/i', $token[1] ) ) {
 				return $token[1];
+			}
+			if ( preg_match_all( '/phpcs:(disable|ignore)\b([^\r\n]*)/i', $token[1], $directives, PREG_SET_ORDER ) ) {
+				foreach ( $directives as $directive ) {
+					$parts = explode( '--', trim( $directive[2], " \t*/" ), 2 );
+					if ( 2 !== count( $parts ) || '' === trim( $parts[1] ) ) {
+						return $token[1];
+					}
+					$selectors = array_map( 'trim', explode( ',', $parts[0] ) );
+					if ( 'disable' === strtolower( $directive[1] ) ) {
+						return $token[1];
+					}
+					foreach ( $selectors as $selector ) {
+						if ( ! preg_match( '/^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+){3}$/D', $selector ) ) {
+							return $token[1];
+						}
+					}
+				}
 			}
 		}
 		return null;
@@ -65,6 +80,7 @@ final class StandardsPolicyTest extends TestCase {
 namespace RAN\BoosterGitHubProvider\V1;
 function helper_probe( $unused, $value ) { return $value; }
 interface ProbeContract {}
+class OwnedMethodProbe { public function badOwnedMethod(): void {} }
 class InterfaceProbe implements ProbeContract {
 	public function unused( $unused ) { $result = true; return $result; }
 	public function before( $unused, $value ) { $result = $value; return $result; }
@@ -85,6 +101,7 @@ FIXTURE;
 			}
 		}
 		self::assertContains( 'RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase', $sources );
+		self::assertContains( 'WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid', $sources );
 		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClass', $sources );
 		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassBeforeLastUsed', $sources );
 		self::assertContains( 'Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed', $sources );
@@ -138,9 +155,102 @@ FIXTURE;
 		}
 	}
 
-	private function check_source( ?string $source = null, string $path = 'tests/StandardsProbe.php' ): array {
+	public function test_narrowed_real_fixtures_reject_adjacent_declarations_and_json(): void {
+		foreach ( array(
+			array( 'tests/analysis-coverage.php', 'WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound', "\$unrelated_future_binding = true;\n" ),
+			array( 'tests/Support/NeutralReleaseUpdaterWordPressFunctions.php', 'WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid', "function ran_booster_github_provider_unrelatedFutureFunction(): void {}\n" ),
+			array( 'tests/Booster/GitHub/PublicReleaseResultMappingTest.php', 'Generic.Files.OneObjectStructurePerFile.MultipleFound', "class ExtraQualityProbe {}\n" ),
+			array( 'tests/Booster/GitHub/ReleaseArtifactClaimLifetimeTest.php', 'Generic.Files.OneObjectStructurePerFile.MultipleFound', "class ExtraQualityProbe {}\n" ),
+			array( 'tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/StarterSecurityCheckTest.php', 'WordPress.WP.AlternativeFunctions.json_encode_json_encode', "json_encode( array() );\n" ),
+		) as list( $path, $diagnostic, $probe ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect the actual narrowed fixture bytes without executing them.
+			$source = file_get_contents( dirname( __DIR__, 3 ) . '/' . $path );
+			self::assertIsString( $source );
+			self::assertStringContainsString( $diagnostic, $source );
+			$this->check_source( $source, $path, true );
+			$report   = $this->check_source( $source . "\n" . $probe, $path );
+			$messages = array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) );
+			self::assertContains( $diagnostic, array_column( $messages, 'source' ), $path );
+		}
+	}
+
+	public function test_ruleset_weakening_is_rejected_with_real_checker_controls(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect the canonical XML as inert local configuration.
+		$xml = file_get_contents( dirname( __DIR__, 3 ) . '/.phpcs.xml' );
+		self::assertIsString( $xml );
+		self::assertFalse( $this->weakened_ruleset( $xml ) );
+		self::assertTrue( $this->weakened_ruleset( str_replace( 'value="ran_booster_github_provider"', 'value="rogue"', $xml ) ) );
+		self::assertTrue( $this->weakened_ruleset( str_replace( '</ruleset>', '<rule ref="WordPress"><exclude name="WordPress.Security.EscapeOutput"/></rule></ruleset>', $xml ) ) );
+		$diagnostic = 'WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase';
+		$source     = '<?php namespace RAN\\BoosterGitHubProvider\\V1; function probe( $camelCase ) { return $camelCase; }';
+		$report     = $this->check_source( $source );
+		self::assertContains( $diagnostic, array_column( array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) ), 'source' ) );
+		foreach ( array(
+			'<rule ref="WordPress.NamingConventions.ValidVariableName"><severity>0</severity></rule>',
+			'<rule ref="WordPress.NamingConventions.ValidVariableName"><severity>4</severity></rule>',
+			'<arg name="sniffs" value="Generic.PHP.Syntax"/>',
+			'<arg name="exclude" value="WordPress.NamingConventions.ValidVariableName"/>',
+		) as $weakening ) {
+			$mutant = str_replace( '</ruleset>', $weakening . '</ruleset>', $xml );
+			self::assertTrue( $this->weakened_ruleset( $mutant ) );
+			$path = sys_get_temp_dir() . '/ran-provider-rules-' . bin2hex( random_bytes( 8 ) ) . '.xml';
+			try {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Write only a unique private checker configuration.
+				file_put_contents( $path, $mutant );
+				$report = $this->check_source( $source, 'tests/StandardsProbe.php', null, $path );
+				self::assertNotContains( $diagnostic, array_column( array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) ), 'source' ) );
+			} finally {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Remove only the unique private checker configuration.
+				unlink( $path );
+			}
+		}
+	}
+
+	private function weakened_ruleset( string $xml ): bool {
+		$document = new \DOMDocument();
+		if ( ! $document->loadXML( $xml, LIBXML_NONET ) ) {
+			return true;
+		}
+		$xpath = new \DOMXPath( $document );
+		if ( 0 !== $xpath->query( '//rule/exclude | //rule/exclude-pattern' )->length ) {
+			return true;
+		}
+		foreach ( $xpath->query( '//rule/severity' ) as $severity ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOM owns the textContent property.
+			$value = trim( $severity->textContent );
+			if ( ! preg_match( '/^[1-9][0-9]*$/D', $value ) || (int) $value < 5 ) {
+				return true;
+			}
+		}
+		$properties = $xpath->query( '//rule/properties/property' );
+		$prefixes   = $xpath->query( '//rule[@ref="WordPress.NamingConventions.PrefixAllGlobals"]/properties/property[@name="prefixes"]' );
+		if ( 1 !== $properties->length || 1 !== $prefixes->length ) {
+			return true;
+		}
+		$property = $prefixes->item( 0 );
+		if ( ! $property instanceof \DOMElement || 'array' !== $property->getAttribute( 'type' ) || $property->hasAttribute( 'value' ) ) {
+			return true;
+		}
+		$values = array();
+		foreach ( $xpath->query( './element', $property ) as $element ) {
+			self::assertInstanceOf( \DOMElement::class, $element );
+			$values[] = $element->getAttribute( 'value' );
+		}
+		if ( array( 'ran_booster_github_provider', 'RAN\\BoosterGitHubProvider\\V1' ) !== $values ) {
+			return true;
+		}
+		$arguments = array();
+		foreach ( $xpath->query( '//arg' ) as $argument ) {
+			self::assertInstanceOf( \DOMElement::class, $argument );
+			$arguments[] = $argument->getAttribute( 'name' ) . ':' . $argument->getAttribute( 'value' );
+		}
+		sort( $arguments );
+		return array( ':sp', 'basepath:.', 'colors:', 'extensions:php', 'parallel:4' ) !== $arguments;
+	}
+
+	private function check_source( ?string $source = null, string $path = 'tests/StandardsProbe.php', ?bool $accept_clean = false, ?string $standard = null ): array {
 		$root    = dirname( __DIR__, 3 );
-		$command = array( PHP_BINARY, $root . '/vendor/bin/phpcs', '--standard=' . $root . '/.phpcs.xml', '--report=json', '-q' );
+		$command = array( PHP_BINARY, $root . '/vendor/bin/phpcs', '--standard=' . ( $standard ?? $root . '/.phpcs.xml' ), '--report=json', '-q' );
 		if ( null !== $source ) {
 			$command[] = '--stdin-path=' . $root . '/' . $path;
 			$command[] = '-';
@@ -164,9 +274,9 @@ FIXTURE;
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the owned subprocess error pipe.
 		fclose( $pipes[2] );
 		$status = proc_close( $process );
-		if ( null === $source ) {
+		if ( null === $source || $accept_clean ) {
 			self::assertSame( 0, $status, $output . $error );
-		} else {
+		} elseif ( false === $accept_clean ) {
 			self::assertNotSame( 0, $status, $error );
 		}
 		self::assertIsString( $output );
