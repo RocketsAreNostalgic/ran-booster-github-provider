@@ -37,7 +37,7 @@ final class StandardsPolicyTest extends TestCase {
 	}
 
 	public function test_blanket_annotation_guard_covers_comment_forms_but_not_fixture_strings(): void {
-		foreach ( array( '// phpcs:disable', '/* phpcs:disable */', '/** phpcs:disable */', '/* phpcs:ignore*/', '/** phpcs:ignore -- unwanted waiver */', "/*\n phpcs:disable\n */", '// phpcs:ignoreFile', '/* @codingStandardsIgnoreStart */', '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals', '/* phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals */' ) as $comment ) {
+		foreach ( array( '// phpcs:disable RANOwnedMethods', '// phpcs:disable Generic.Files.LineLength, WordPress', '// PHPCS:IGNORE WordPress.NamingConventions', '// phpcs:set WordPress.NamingConventions.PrefixAllGlobals prefixes probe', '// phpcs:disable', '/* phpcs:disable */', '/** phpcs:disable */', '/* phpcs:ignore*/', '/** phpcs:ignore -- unwanted waiver */', "/*\n phpcs:disable\n */", '// phpcs:ignoreFile', '/* @codingStandardsIgnoreStart */', '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals', '/* phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals */' ) as $comment ) {
 			self::assertNotNull( $this->blanket_annotation( '<?php ' . $comment ), $comment );
 		}
 		foreach ( array( '/* phpcs:disable WordPress.PHP.YodaConditions -- Precise synthetic contract. */', '// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Foreign signature.', '$fixture = "/* phpcs:disable */";' ) as $allowed ) {
@@ -51,8 +51,8 @@ final class StandardsPolicyTest extends TestCase {
 				continue;
 			}
 			// PHPCS accepts a bare directive immediately before a block-comment delimiter.
-			$comment = preg_replace( '/\*\/\s*$/', '', $token[1] );
-			if ( 1 === preg_match( '/phpcs:(?:disable|ignore)\b[^\r\n]*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $comment ) || 1 === preg_match( '/phpcs:ignoreFile|phpcs:(?:disable|ignore)\s*(?:--|$)|@codingStandardsIgnore/i', $comment ) ) {
+			$comment = trim( preg_replace( '/[\s*\/]+/', ' ', $token[1] ) );
+			if ( 1 === preg_match( '/phpcs:set\b|phpcs:(?:disable|ignore)\s+(?:[A-Za-z0-9_.]+\s*,\s*)*(?:[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)?)(?=\s|,|$)/i', $comment ) || 1 === preg_match( '/phpcs:(?:disable|ignore)\b[^\r\n]*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $comment ) || 1 === preg_match( '/phpcs:ignoreFile|phpcs:(?:disable|ignore)\s*(?:--|$)|@codingStandardsIgnore/i', $comment ) ) {
 				return $token[1];
 			}
 		}
@@ -95,6 +95,18 @@ FIXTURE;
 		self::assertContains( 'Universal.NamingConventions.NoReservedKeywordParameterNames.classFound', $sources );
 		self::assertContains( 'WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase', $sources );
 		self::assertContains( 'WordPress.PHP.YodaConditions.NotYoda', $sources );
+	}
+
+	public function test_ancestor_suppression_hides_real_diagnostic_but_is_rejected(): void {
+		$diagnostic = 'RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase';
+		foreach ( array( 'RANOwnedMethods', 'RANOwnedMethods.NamingConventions' ) as $selector ) {
+			$source = "<?php\n// phpcs:disable " . $selector . "\nnamespace RAN\\BoosterGitHubProvider\\V1; class Probe { public function badMethod() {} }";
+			$report = $this->check_source( $source );
+			foreach ( $report['files'] as $file ) {
+				self::assertNotContains( $diagnostic, array_column( $file['messages'], 'source' ) );
+			}
+			self::assertNotNull( $this->blanket_annotation( $source ) );
+		}
 	}
 
 	public function test_prefix_exceptions_do_not_hide_new_global_declarations(): void {

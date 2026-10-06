@@ -62,3 +62,9 @@ boundaries; this patch does not certify the entire retained-exception inventory.
 Variable exceptions are confined to existing source files with a reasoned
 `NonPrefixedVariableFound` annotation. No path-wide prefix exception remains;
 new test/view files and nested production `tests`/`views` paths are checked.
+
+Standard/category suppression selectors and inline `phpcs:set` changes are rejected
+by the maintained-source token guard, including comma-list and case variants.
+Existing sniff-specific exemptions remain unchanged and require separate reviewed
+disposition; this guard tightening does not establish full exception acceptance
+or PHPStan coverage of development files.
