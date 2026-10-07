@@ -113,6 +113,11 @@ foreach ( new RecursiveIteratorIterator( $iterator ) as $entry ) {
 		if ( false === $header ) {
 			throw new RuntimeException( 'Cannot inspect maintained source for PHP coverage.' );
 		}
+		// This immutable producer-exchange archive is fixture data, not directly executable PHP.
+		if ( $root . '/tests/fixtures/api3-producer/ran-booster-release-bootstrap-templates.zip' === $entry->getPathname()
+			&& '2da459b63715660226b43914d3466f8b176bf645961dc0009fb51168c21ae7cf' === hash( 'sha256', $header ) ) {
+			continue;
+		}
 		if ( 'phtml' === strtolower( $entry->getExtension() ) || preg_match(
 			in_array( strtolower( $entry->getExtension() ), array( 'md', 'json', 'mjs' ), true )
 				|| ( 'sh' === strtolower( $entry->getExtension() ) && ( str_starts_with( $header, "#!/usr/bin/env bash\n" ) || str_starts_with( $header, "#!/bin/bash\n" ) ) )

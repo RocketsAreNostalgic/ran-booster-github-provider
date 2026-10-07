@@ -97,6 +97,18 @@ for mode in production development; do
 done
 echo 'PASS executable bare short tags under both INI settings and genuine XML boundaries.'
 
+# The one immutable archive allowance must not admit changed bytes or a sibling.
+archive=tests/fixtures/api3-producer/ran-booster-release-bootstrap-templates.zip
+mkdir -p "$fixture/.git"
+cp "$fixture/$archive" "$fixture/.git/archive-original"
+printf '<? echo "changed"; ?>' >> "$fixture/$archive"
+if php "$root/tests/analysis-coverage.php" "$fixture" --development > "$fixture/guard.log" 2>&1; then exit 1; fi
+grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+mv "$fixture/.git/archive-original" "$fixture/$archive"
+cp "$fixture/$archive" "$fixture/tests/fixtures/api3-producer/sibling.zip"
+if php "$root/tests/analysis-coverage.php" "$fixture" --development > "$fixture/guard.log" 2>&1; then exit 1; fi
+grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+rm "$fixture/tests/fixtures/api3-producer/sibling.zip"
 # Actual documentation, data and Node/Bash fixture code may quote PHP examples.
 printf '# Example\n<main><? example(); ?></main>\n' > "$fixture/example.md"
 printf '{"example":"<main><? example(); ?></main>"}\n' > "$fixture/example.json"
