@@ -106,9 +106,20 @@ foreach ( new RecursiveIteratorIterator( $iterator ) as $entry ) {
 			$found_annotations[] = $token[1];
 		}
 	} else {
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect only the local nonstandard-extension file header, never execute it. Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
-		$header = file_get_contents( $entry->getPathname(), false, null, 0, 512 );
-		if ( preg_match( '/^(?:#![^\n]*\n)?\s*<\?(?:php\b|=)/i', $header ) ) {
+		// Unknown suffixes may contain PHP includes after HTML or long preambles.
+		// Documentation/data and Node/Bash fixture examples retain header inspection.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect local nonstandard-extension contents without executing them. Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
+		$header = file_get_contents( $entry->getPathname() );
+		if ( false === $header ) {
+			throw new RuntimeException( 'Cannot inspect maintained source for PHP coverage.' );
+		}
+		if ( 'phtml' === strtolower( $entry->getExtension() ) || preg_match(
+			in_array( strtolower( $entry->getExtension() ), array( 'md', 'json', 'mjs' ), true )
+				|| ( 'sh' === strtolower( $entry->getExtension() ) && ( str_starts_with( $header, "#!/usr/bin/env bash\n" ) || str_starts_with( $header, "#!/bin/bash\n" ) ) )
+				? '/^(?:\xEF\xBB\xBF)?(?:#![^\n]*\n)?\s*<\?(?:php\b|=)/i'
+				: '/<\?(?:php\b|=)/i',
+			$header
+		) ) {
 			throw new RuntimeException( 'Nonstandard-extension PHP needs an explicit reviewed analysis decision.' );
 		}
 	}
