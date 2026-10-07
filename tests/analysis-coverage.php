@@ -116,9 +116,14 @@ foreach ( new RecursiveIteratorIterator( $iterator ) as $entry ) {
 		if ( 'phtml' === strtolower( $entry->getExtension() ) || preg_match(
 			in_array( strtolower( $entry->getExtension() ), array( 'md', 'json', 'mjs' ), true )
 				|| ( 'sh' === strtolower( $entry->getExtension() ) && ( str_starts_with( $header, "#!/usr/bin/env bash\n" ) || str_starts_with( $header, "#!/bin/bash\n" ) ) )
-				? '/^(?:\xEF\xBB\xBF)?(?:#![^\n]*\n)?\s*<\?(?:php\b|=)/i'
-				: '/<\?(?:php\b|=)/i',
-			$header
+				? '/^(?:\xEF\xBB\xBF)?(?:#![^\n]*\n)?\s*<\?/'
+				: '/<\?/',
+			// Strip only a genuine leading XML declaration; later opening tags remain visible.
+			preg_replace(
+				'~\A(?:\xEF\xBB\xBF)?<\?xml[ \t\r\n]+version[ \t\r\n]*=[ \t\r\n]*(?:"1\.[01]"|\'1\.[01]\')(?:[ \t\r\n]+encoding[ \t\r\n]*=[ \t\r\n]*(?:"[A-Za-z][A-Za-z0-9._-]*"|\'[A-Za-z][A-Za-z0-9._-]*\'))?(?:[ \t\r\n]+standalone[ \t\r\n]*=[ \t\r\n]*(?:"(?:yes|no)"|\'(?:yes|no)\'))?[ \t\r\n]*\?>~',
+				'',
+				$header
+			) ?? $header
 		) ) {
 			throw new RuntimeException( 'Nonstandard-extension PHP needs an explicit reviewed analysis decision.' );
 		}
