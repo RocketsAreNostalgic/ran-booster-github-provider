@@ -245,12 +245,71 @@ FIXTURE;
 		}
 	}
 
+	public function test_base_standard_cannot_be_replaced_by_only_the_probed_rules(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect the canonical XML as inert local configuration.
+		$xml = file_get_contents( dirname( __DIR__, 3 ) . '/.phpcs.xml' );
+		self::assertIsString( $xml );
+		$source     = '<?php namespace RAN\\BoosterGitHubProvider\\V1; function probe() { eval( "return true;" ); }';
+		$diagnostic = 'Squiz.PHP.Eval.Discouraged';
+		$report     = $this->check_source( $source );
+		self::assertContains( $diagnostic, array_column( array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) ), 'source' ) );
+		foreach ( array( '', '<rule ref="WordPress.NamingConventions.ValidFunctionName"/><rule ref="Generic.Files.OneObjectStructurePerFile"/><rule ref="WordPress.WP.AlternativeFunctions"/>' ) as $replacement ) {
+			$mutant = str_replace( '<rule ref="RANWordPressLibrary"/>', $replacement, $xml );
+			self::assertTrue( $this->weakened_ruleset( $mutant ) );
+			$path = sys_get_temp_dir() . '/ran-provider-base-' . bin2hex( random_bytes( 8 ) ) . '.xml';
+			try {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Write only a unique private checker configuration.
+				file_put_contents( $path, $mutant );
+				$report = $this->check_source( $source, 'tests/StandardsProbe.php', null, $path );
+				self::assertNotContains( $diagnostic, array_column( array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) ), 'source' ) );
+			} finally {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Remove only the unique private checker configuration.
+				unlink( $path );
+			}
+		}
+	}
+
+	public function test_compatibility_floor_cannot_hide_a_newer_php_feature(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect the canonical XML as inert local configuration.
+		$xml = file_get_contents( dirname( __DIR__, 3 ) . '/.phpcs.xml' );
+		self::assertIsString( $xml );
+		$source     = '<?php namespace RAN\\BoosterGitHubProvider\\V1; class Probe { public const string VALUE = "value"; }';
+		$diagnostic = 'PHPCompatibility.Classes.NewTypedConstants.Found';
+		$report     = $this->check_source( $source );
+		self::assertContains( $diagnostic, array_column( array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) ), 'source' ) );
+		$mutant = str_replace( 'name="testVersion" value="8.2-"', 'name="testVersion" value="8.5-"', $xml );
+		self::assertTrue( $this->weakened_ruleset( $mutant ) );
+		self::assertTrue( $this->weakened_ruleset( str_replace( 'name="minimum_wp_version" value="7.0"', 'name="minimum_wp_version" value="99.0"', $xml ) ) );
+		$path = sys_get_temp_dir() . '/ran-provider-floor-' . bin2hex( random_bytes( 8 ) ) . '.xml';
+		try {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Write only a unique private checker configuration.
+			file_put_contents( $path, $mutant );
+			$report = $this->check_source( $source, 'tests/StandardsProbe.php', null, $path );
+			self::assertNotContains( $diagnostic, array_column( array_merge( ...array_column( array_values( $report['files'] ), 'messages' ) ), 'source' ) );
+		} finally {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Remove only the unique private checker configuration.
+			unlink( $path );
+		}
+	}
+
 	private function weakened_ruleset( string $xml ): bool {
 		$document = new \DOMDocument();
 		if ( ! $document->loadXML( $xml, LIBXML_NONET ) ) {
 			return true;
 		}
 		$xpath = new \DOMXPath( $document );
+		if ( 1 !== $xpath->query( '/ruleset/rule[@ref="RANWordPressLibrary"]' )->length ) {
+			return true;
+		}
+		$configurations = array();
+		foreach ( $xpath->query( '//config' ) as $configuration ) {
+			self::assertInstanceOf( \DOMElement::class, $configuration );
+			$configurations[] = $configuration->getAttribute( 'name' ) . ':' . $configuration->getAttribute( 'value' );
+		}
+		sort( $configurations );
+		if ( array( 'minimum_wp_version:7.0', 'testVersion:8.2-' ) !== $configurations ) {
+			return true;
+		}
 		if ( 0 !== $xpath->query( '//rule/exclude | //rule/exclude-pattern | //rule/include-pattern | //@phpcs-only | //@phpcbf-only' )->length ) {
 			return true;
 		}
