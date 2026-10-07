@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0-beta.14](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.13...v1.0.0-beta.14) (2026-10-07)
+
+
+### Bug Fixes
+
+* enforce Provider standards across maintained PHP ([#58](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/58)) ([13386bd](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/13386bd44fe0bb97830028c92f44d4ca4d76ba1d))
+* **quality:** integrate maintained PHP quality stack ([#65](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/65)) ([db90f3c](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/db90f3c470bd4149b5931b119aa62e43c7ff59ec))
+
 ## [1.0.0-beta.13](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.12...v1.0.0-beta.13) (2026-10-03)
 
 
