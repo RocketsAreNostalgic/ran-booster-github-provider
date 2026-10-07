@@ -68,15 +68,56 @@ for profile in production development; do
     grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
     rm "$fixture/$directory/template.phtml"
 done
+# Discovery must not inherit the current PHP process's short_open_tag setting.
+printf '<? echo "short-tag-executed"; ?>' > "$fixture/short-execution.tpl"
+test "$(php -d short_open_tag=1 "$fixture/short-execution.tpl")" = short-tag-executed
+test "$(php -d short_open_tag=0 "$fixture/short-execution.tpl")" = '<? echo "short-tag-executed"; ?>'
+rm "$fixture/short-execution.tpl"
+for mode in production development; do
+    args=()
+    prefix=src/
+    if [[ "$mode" == development ]]; then args=(--development); prefix=tests/Support/; fi
+    for suffix in tpl inc phtml custom html htm; do
+        printf '<main><? echo "executed"; ?>' > "$fixture/$prefix"short.$suffix
+        for enabled in 0 1; do
+            if php -d short_open_tag="$enabled" "$root/tests/analysis-coverage.php" "$fixture" "${args[@]}" > "$fixture/guard.log" 2>&1; then exit 1; fi
+            grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+        done
+        rm "$fixture/$prefix"short.$suffix
+    done
+    printf '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><root/>' > "$fixture/$prefix"example.xml
+    php "$root/tests/analysis-coverage.php" "$fixture" "${args[@]}"
+    printf '<? echo "executed"; ?>' >> "$fixture/$prefix"example.xml
+    if php "$root/tests/analysis-coverage.php" "$fixture" "${args[@]}" > "$fixture/guard.log" 2>&1; then exit 1; fi
+    grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+    printf '<?xmlfake payload?><root/>' > "$fixture/$prefix"example.xml
+    if php "$root/tests/analysis-coverage.php" "$fixture" "${args[@]}" > "$fixture/guard.log" 2>&1; then exit 1; fi
+    grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+    rm "$fixture/$prefix"example.xml
+done
+echo 'PASS executable bare short tags under both INI settings and genuine XML boundaries.'
+
+# The one immutable archive allowance must not admit changed bytes or a sibling.
+archive=tests/fixtures/api3-producer/ran-booster-release-bootstrap-templates.zip
+mkdir -p "$fixture/.git"
+cp "$fixture/$archive" "$fixture/.git/archive-original"
+printf '<? echo "changed"; ?>' >> "$fixture/$archive"
+if php "$root/tests/analysis-coverage.php" "$fixture" --development > "$fixture/guard.log" 2>&1; then exit 1; fi
+grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+mv "$fixture/.git/archive-original" "$fixture/$archive"
+cp "$fixture/$archive" "$fixture/tests/fixtures/api3-producer/sibling.zip"
+if php "$root/tests/analysis-coverage.php" "$fixture" --development > "$fixture/guard.log" 2>&1; then exit 1; fi
+grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+rm "$fixture/tests/fixtures/api3-producer/sibling.zip"
 # Actual documentation, data and Node/Bash fixture code may quote PHP examples.
-printf '# Example\n<main><?php example(); ?></main>\n' > "$fixture/example.md"
-printf '{"example":"<main><?php example(); ?></main>"}\n' > "$fixture/example.json"
-printf 'const example = "<main><?php example(); ?></main>";\n' > "$fixture/example.mjs"
-printf '#!/usr/bin/env bash\nprintf '\''<main><?php fixture(); ?></main>'\''\n' > "$fixture/example.sh"
+printf '# Example\n<main><? example(); ?></main>\n' > "$fixture/example.md"
+printf '{"example":"<main><? example(); ?></main>"}\n' > "$fixture/example.json"
+printf 'const example = "<main><? example(); ?></main>";\n' > "$fixture/example.mjs"
+printf '#!/usr/bin/env bash\nprintf '\''<main><? fixture(); ?></main>'\''\n' > "$fixture/example.sh"
 php "$root/tests/analysis-coverage.php" "$fixture"
 php "$root/tests/analysis-coverage.php" "$fixture" --development
 for suffix in md json mjs sh; do
-    printf '\357\273\277<?php ran_provider_missing_template();\n' > "$fixture/example.$suffix"
+    printf '\357\273\277<? ran_provider_missing_template();\n' > "$fixture/example.$suffix"
     if php "$root/tests/analysis-coverage.php" "$fixture" > "$fixture/guard.log" 2>&1; then exit 1; fi
     grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
     rm "$fixture/example.$suffix"
