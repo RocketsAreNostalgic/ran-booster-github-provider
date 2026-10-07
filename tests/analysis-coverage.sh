@@ -40,6 +40,55 @@ for header in '<?PHP' '<?='; do
         rm "$fixture/$path"
     done
 done
+# The same HTML-prefixed source really carries a PHPStan diagnostic as .php.
+printf '<main>template</main><?php function ran_provider_template(): int { return "invalid"; }\n' > "$fixture/src/template.php"
+if analyze > "$fixture/template.json" 2> "$fixture/template.log"; then exit 1; fi
+grep -q 'return.type' "$fixture/template.json"
+mv "$fixture/src/template.php" "$fixture/src/template.tpl"
+if php "$root/tests/analysis-coverage.php" "$fixture" > "$fixture/guard.log" 2>&1; then exit 1; fi
+grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+rm "$fixture/src/template.tpl"
+# Unsupported templates must be rejected even when PHP follows a long HTML body.
+for profile in production development; do
+    profile_args=()
+    directory=src
+    if [[ "$profile" == development ]]; then profile_args=(--development); directory=tests/Support; fi
+    for suffix in phtml inc html htm tpl custom none; do
+        path="$directory/template.$suffix"
+        if [[ "$suffix" == none ]]; then path="$directory/template-command"; fi
+        for shape in html bom-long-echo; do
+            php -r '$body=$argv[2]==="html"?"<main>template</main><?php function ran_provider_template(): int { return \"invalid\"; }":"\xEF\xBB\xBF<main>".str_repeat("x",8192)."</main><?= ran_provider_missing_template(); ?>";file_put_contents($argv[1],$body);' "$fixture/$path" "$shape"
+            if php "$root/tests/analysis-coverage.php" "$fixture" "${profile_args[@]}" > "$fixture/guard.log" 2>&1; then echo "Template escaped: $profile/$path/$shape" >&2; exit 1; fi
+            grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+            rm "$fixture/$path"
+        done
+    done
+    printf '<main>future template</main>\n' > "$fixture/$directory/template.phtml"
+    if php "$root/tests/analysis-coverage.php" "$fixture" "${profile_args[@]}" > "$fixture/guard.log" 2>&1; then exit 1; fi
+    grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+    rm "$fixture/$directory/template.phtml"
+done
+# Actual documentation, data and Node/Bash fixture code may quote PHP examples.
+printf '# Example\n<main><?php example(); ?></main>\n' > "$fixture/example.md"
+printf '{"example":"<main><?php example(); ?></main>"}\n' > "$fixture/example.json"
+printf 'const example = "<main><?php example(); ?></main>";\n' > "$fixture/example.mjs"
+printf '#!/usr/bin/env bash\nprintf '\''<main><?php fixture(); ?></main>'\''\n' > "$fixture/example.sh"
+php "$root/tests/analysis-coverage.php" "$fixture"
+php "$root/tests/analysis-coverage.php" "$fixture" --development
+for suffix in md json mjs sh; do
+    printf '\357\273\277<?php ran_provider_missing_template();\n' > "$fixture/example.$suffix"
+    if php "$root/tests/analysis-coverage.php" "$fixture" > "$fixture/guard.log" 2>&1; then exit 1; fi
+    grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+    rm "$fixture/example.$suffix"
+done
+printf '#!/usr/bin/env bash\n<?php ran_provider_missing_template();\n' > "$fixture/example.sh"
+if php "$root/tests/analysis-coverage.php" "$fixture" > "$fixture/guard.log" 2>&1; then exit 1; fi
+grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+printf '<main><?php ran_provider_missing_template();\n' > "$fixture/example.sh"
+if php "$root/tests/analysis-coverage.php" "$fixture" > "$fixture/guard.log" 2>&1; then exit 1; fi
+grep -q 'Nonstandard-extension PHP' "$fixture/guard.log"
+rm "$fixture/example.sh"
+echo 'PASS executable templates: product/development bodies, unknown suffixes and immediate inert-format boundaries.'
 # CLI removes production registered as a stub after FileFinder selection.
 printf '\tstubFiles:\n\t\t- moved-contract.php\n' >> "$fixture/phpstan.neon"
 if php "$root/tests/analysis-coverage.php" "$fixture" > "$fixture/guard.log" 2>&1; then exit 1; fi
