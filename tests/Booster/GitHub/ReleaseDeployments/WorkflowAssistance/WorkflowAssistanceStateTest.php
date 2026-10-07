@@ -1,8 +1,9 @@
 <?php
 
+
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 
@@ -12,6 +13,7 @@ use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowA
 final class WorkflowAssistanceStateTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function setUp(): void {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array_fill_keys(
 			array(
 				WorkflowAssistanceState::SETUP_OPTION,
@@ -28,8 +30,10 @@ final class WorkflowAssistanceStateTest extends TestCase {
 				'ran_booster_release_deployments_failure_history',
 			) as $legacy_option
 		) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_options'][ $legacy_option ] = array( 'legacy' => true );
 		}
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options']['unrelated_option'] = 'preserved';
 
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Focused state-owner test requires the WordPress options-table identity.

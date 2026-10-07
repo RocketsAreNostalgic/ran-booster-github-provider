@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 
@@ -462,7 +462,7 @@ final class SourceReadyAssessorTest extends TestCase {
 			SourceReadyAssessment::refused( 'open_ended_result' );
 			self::fail( 'Unknown refusal codes must be closed.' );
 		} catch ( InvalidArgumentException ) {
-			self::assertTrue( true );
+			self::addToAssertionCount( 1 );
 		}
 		$this->expectException( InvalidArgumentException::class );
 		SourceReadyAssessment::ready(

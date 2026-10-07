@@ -1,8 +1,9 @@
 <?php
 
+
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 require_once __DIR__ . '/Support/RepositoryResolverWordPressFunctions.php';
 
@@ -15,8 +16,8 @@ use RAN\RepositoryProvider\RepositoryBrowseRequest;
 use RAN\RepositoryProvider\RepositoryBrowseResult;
 use RAN\RepositoryProvider\RepositoryLookupRequest;
 use RuntimeException;
-use Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
-use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 final class RepositoryResolverTest extends TestCase {
 
@@ -29,8 +30,9 @@ final class RepositoryResolverTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->had_webhook_transients                   = array_key_exists( 'ran_booster_webhook_test_transients', $GLOBALS );
-		$this->previous_webhook_transients              = $GLOBALS['ran_booster_webhook_test_transients'] ?? null;
+		$this->had_webhook_transients      = array_key_exists( 'ran_booster_webhook_test_transients', $GLOBALS );
+		$this->previous_webhook_transients = $GLOBALS['ran_booster_webhook_test_transients'] ?? null;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_webhook_test_transients'] = array();
 
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
@@ -49,6 +51,7 @@ final class RepositoryResolverTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function tearDown(): void {
 		if ( $this->had_webhook_transients ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_webhook_test_transients'] = $this->previous_webhook_transients;
 		} else {
 			unset( $GLOBALS['ran_booster_webhook_test_transients'] );

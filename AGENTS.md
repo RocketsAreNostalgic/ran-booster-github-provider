@@ -54,8 +54,12 @@ CI pins and verifies the certified Booster revision before running those host-ba
 
 The certified source host is the immutable Core `v1.0.0-beta.31` tag target
 `8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf`, with Provider API 14 / workflow V3.
-PHPStan blocks at level 5 over `src/` and `tests/foundation-contract.php`;
-bootstrap/symbol discovery does not extend that analysis coverage. Levels 6–8
+PHPStan blocks at level 5 over both default-inclusive production and development profiles.
+The original production profile keeps test declarations isolated; the complementary
+development profile discovers the root and excludes only src (analyzed by production),
+dependencies and caches. The union covers every maintained PHP file, including tests
+and maintenance scripts. Certified Core is scanned for development types without
+executing the bounded runtime loader; bootstrap/symbol discovery alone is not analysis. Levels 6–8
 remain separate work. This source-host proof does not claim installed-site or
 UI acceptance. Preserve the full PHP 8.2/8.5 matrix and all terminal gates.
 
@@ -81,3 +85,45 @@ then compares two generated ZIPs byte-for-byte. Host-backed tests therefore need
 Bash, Git, jq, zip, unzip and shasum alongside PHP/ZipArchive. No remote repository
 or installed site is modified by these tests. The runtime allowlist contains only
 sorted explicit paths; human guidance lives in RELEASE-STARTER.md.
+
+Production analysis starts at the repository root. Reviewed root fixture roles
+(`tests/Booster`, `tests/Support`, `tests/fixtures`, host-contract and discovery
+helper), scripts, dependencies and caches are excluded from analysis and scanning.
+The foundation contract stays directly analyzed. Independent recursive discovery
+must match locked FileFinder plus CLI stub-file removal. The host aggregate
+proves new root/nested/split/moved sources, src/tests collisions, unsupported
+extensions, production-stub rejection and excluded-fixture scan isolation.
+No existing production omission or analysis-level change is claimed.
+
+`analyze` runs both profiles; `check:host` retains the certified-host contract first.
+The effective-selection guard compares each profile with independent discovery,
+rejects level/scope/command reductions, and proves new root, test and script files
+produce real diagnostics. Only three exact source-local locked-PHPStan API warning
+annotations are retained in the coverage helper; moving, duplicating or broadening
+them fails the existing guard, and an adjacent API call remains diagnosed. They do
+not suppress semantic errors. One declaration-local `return.unusedType` exception
+preserves the success-only `wp_http_validate_url` fixture's native `string|false`
+signature, matching the locked WordPress stub return contract; an unexcepted
+neighbouring union declaration must still be diagnosed. Changes to these
+exceptions require explicit review.
+Runtime negative fixtures and foreign contracts must remain tested. When type
+analysis exposes stale helper docs or mutable external state, correct those types
+or impurity metadata rather than removing the behavioral assertion.
+
+
+WPCS suppression guards require exact diagnostic identifiers and non-empty reasons.
+Every block disable is rejected. Existing host-fixture global identities and
+process-local CLI gate variables retain only occurrence-local allowances; new
+variables, functions, classes, methods and constants remain checked. The five filesystem/bootstrap, public-artifact and hostile-JSON fixture
+cohorts use occurrence-local allowances, with actual-fixture outside controls.
+Removing the prior spans exposed 12 structural/foreign-function/JSON diagnostics
+and 142 global-variable diagnostics; these are exposure counts, not defect counts.
+Fixture executable tokens remain unchanged. The coverage helper changes only its
+three existing exact annotation fingerprints to include the new inline PHPCS
+comments; it does not relax the accepted PHPStan annotation identities.
+The redundant MethodNameInvalid severity-zero override is removed: both WPCS and
+RANOwnedMethods now remain active. The guard rejects lower severity, narrowed
+checker arguments, rule include/exclude patterns, command-only selectors and
+changed prefix properties. These changes
+are candidates for independent review; passing checks do not establish exception
+acceptance or permission to merge.

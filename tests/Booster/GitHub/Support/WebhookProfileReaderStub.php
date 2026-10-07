@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub\Support;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support;
 
 use RAN\RepositoryProvider\ProviderWebhookProfileReader;
 

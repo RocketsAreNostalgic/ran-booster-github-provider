@@ -1,8 +1,9 @@
 <?php
 
+
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub\Support;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support;
 
 final class NeutralReleaseUpdaterFixtures {
 	private static bool $booted = false;
@@ -14,13 +15,18 @@ final class NeutralReleaseUpdaterFixtures {
 	}
 	public static function reset(): void {
 		self::boot();
-		$GLOBALS['ran_booster_release_requests']          = array();
-		$GLOBALS['ran_booster_release_responses']         = array();
-		$GLOBALS['ran_booster_release_temp_paths']        = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+		$GLOBALS['ran_booster_release_requests'] = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+		$GLOBALS['ran_booster_release_responses'] = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+		$GLOBALS['ran_booster_release_temp_paths'] = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_filesystem_method'] = 'direct';
 		unset( $GLOBALS['wp_filesystem'] );
 		$GLOBALS['wp_version'] = '6.8.0'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Deterministic updater runtime fixture.
 		if ( function_exists( 'do_action' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Exercise the genuine WordPress lifecycle hook required by the selected runtime.
 			do_action( 'after_setup_theme' );
 		} else {
 			foreach ( $GLOBALS['ran_booster_release_actions']['after_setup_theme'] ?? array() as $ran_booster_release_action ) {
@@ -38,6 +44,7 @@ final class NeutralReleaseUpdaterFixtures {
 		if ( ! is_string( $root ) || '' === $root ) {
 			$root = dirname( __DIR__, 2 ) . '/vendor/ran/wp-release-updater';
 		}
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_registrar'] = require $root . '/bootstrap.php';
 		self::$booted                             = true;
 	}
@@ -53,6 +60,7 @@ final class NeutralReleaseUpdaterFixtures {
 
 	/** @param list<array<string, mixed>|\WP_Error> $responses */
 	public static function queue( array $responses ): void {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_responses'] = $responses;
 	}
 

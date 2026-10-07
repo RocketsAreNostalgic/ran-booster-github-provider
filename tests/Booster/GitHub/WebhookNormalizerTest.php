@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -15,8 +15,8 @@ use RAN\RepositoryProvider\SignedWebhookVerification;
 use RAN\RepositoryProvider\WebhookEnvelope;
 use RAN\RepositoryProvider\WebhookRejected;
 use RAN\RepositoryProvider\WebhookRequest;
-use Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
-use Tests\Booster\GitHub\Support\WebhookProfileReaderStub;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\WebhookProfileReaderStub;
 
 final class WebhookNormalizerTest extends TestCase {
 

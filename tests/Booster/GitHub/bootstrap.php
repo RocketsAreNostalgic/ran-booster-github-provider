@@ -1,23 +1,27 @@
 <?php
 
+
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 $ran_provider_root = dirname( __DIR__, 3 );
-$ran_booster_root  = getenv( 'RAN_BOOSTER_CORE_PATH' );
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+$ran_booster_root = getenv( 'RAN_BOOSTER_CORE_PATH' );
 if ( ! is_string( $ran_booster_root ) || '' === trim( $ran_booster_root ) ) {
 	throw new LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for the extracted GitHub suite.' );
 }
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 $ran_booster_root = rtrim( $ran_booster_root, '/\\' );
 
 spl_autoload_register(
 	static function ( string $class_name ) use ( $ran_provider_root, $ran_booster_root ): void {
 		$prefixes = array(
+			'RAN\\BoosterGitHubProvider\\V1\\Tests\\Booster\\GitHub\\' => __DIR__ . '/',
 			'RAN\\BoosterGitHubProvider\\V1\\' => $ran_provider_root . '/src/',
 			'RAN\\RepositoryProvider\\'        => $ran_booster_root . '/RAN/RepositoryProvider/',
 			'RAN\\AddOn\\WebhookAssistance\\'  => $ran_booster_root . '/RAN/AddOn/WebhookAssistance/',
 			'RAN\\Admin\\Interaction\\'        => $ran_booster_root . '/RAN/Admin/Interaction/',
 			'RAN\\UpdaterSupport\\V1\\'        => $ran_provider_root . '/vendor/ran/updater-support/src/',
-			'Tests\\Booster\\GitHub\\'         => __DIR__ . '/',
 		);
 
 		foreach ( $prefixes as $prefix => $directory ) {
@@ -67,7 +71,7 @@ spl_autoload_register(
 			return;
 		}
 
-		if ( str_starts_with( $class_name, 'RAN\\' ) || str_starts_with( $class_name, 'Tests\\' ) ) {
+		if ( str_starts_with( $class_name, 'RAN\\' ) ) {
 			// Test-only exception text is not rendered.
 			throw new LogicException( 'The bounded GitHub module suite attempted to load an unrelated Core or test class: ' . $class_name );
 		}

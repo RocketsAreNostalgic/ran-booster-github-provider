@@ -1,8 +1,9 @@
 <?php
 
+
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 require_once dirname( __DIR__, 2 ) . '/Support/NeutralReleaseUpdaterFixtures.php';
 
@@ -17,8 +18,8 @@ use RAN\RepositoryProvider\RepositoryReference;
 use RAN\RepositoryProvider\RepositoryReleaseCandidateListing;
 use RAN\RepositoryProvider\RepositoryReleaseReadUnavailable;
 use RuntimeException;
-use Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
-use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 #[RunTestsInSeparateProcesses]
 #[PreserveGlobalState( false )]
@@ -103,6 +104,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 	}
 
 	public function test_listing_rejects_a_non_direct_filesystem_before_credentials_or_http(): void {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_filesystem_method'] = 'ftpext';
 		$credentials                                      = new RepositoryResolverSecretsStub( array( 'private-release' => 'secret-token' ) );
 

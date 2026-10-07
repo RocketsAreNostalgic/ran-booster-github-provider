@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
-use Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi3Fixture;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi3Fixture;
 use function RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\wp_json_encode;
 use function RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\wp_parse_url;
 
@@ -81,7 +81,6 @@ final class D23ApplicationTransport {
 	public function remove_default_document( string $path ): void {
 		unset( $this->base_entries[ $path ], $this->head_entries[ $path ] );
 	}
-	/** @param callable(array<string,mixed>):array<string,mixed> $mutate */
 	public function seed_pull_scenario( string $scenario ): void {
 		$this->pull_scenario = $scenario;
 	}
@@ -370,7 +369,7 @@ final class D23ApplicationTransport {
 			),
 		);
 	}
-	/** @param array<string,mixed> $body */
+	/** @param array<array-key,mixed> $body */
 	private function json( int $status, array $body ): array {
 		return array(
 			'response' => array( 'code' => $status ),

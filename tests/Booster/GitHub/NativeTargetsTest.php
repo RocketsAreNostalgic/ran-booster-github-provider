@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\GitHubReleaseNativeTarget;
@@ -58,7 +58,7 @@ final class NativeTargetsTest extends TestCase {
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
 			new class() {
-				/** @return array<string, int|string|null> */
+				/** @return array<string, bool|int|string|null|array<string, int|string|null>> */
 				public function status(): array {
 					return array(
 						'state'                => 'active',

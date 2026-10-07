@@ -1,10 +1,9 @@
 <?php
 
+
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub;
-
-// phpcs:disable Generic.Files.OneObjectStructurePerFile -- Structural public-artifact fixture belongs beside its custody cases.
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 require_once __DIR__ . '/ReleaseArtifactFilesystemFunctions.php';
 
@@ -54,6 +53,7 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		$path = '';
 
 		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_custody_random_bytes'] = $random;
 			[ $artifact, $path ]                         = $this->artifact();
 			$this->expect_handoff_failure( $artifact );
@@ -78,7 +78,9 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		$path      = '';
 
 		try {
-			$GLOBALS['ran_booster_custody_random_bytes']  = $random;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+			$GLOBALS['ran_booster_custody_random_bytes'] = $random;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_custody_mkdir_failure'] = true;
 			[ $artifact, $path ]                          = $this->artifact();
 			$this->expect_handoff_failure( $artifact );
@@ -102,7 +104,9 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		$provider_path = '';
 
 		try {
-			$GLOBALS['ran_booster_custody_random_bytes']      = $random;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+			$GLOBALS['ran_booster_custody_random_bytes'] = $random;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_custody_after_source_open'] = static function () use ( $directory, $quarantine, $sentinel ): void {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Test-only deterministic directory replacement.
 				rename( $directory, $quarantine );
@@ -137,7 +141,9 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		$provider_path = '';
 
 		try {
-			$GLOBALS['ran_booster_custody_random_bytes']           = $random;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+			$GLOBALS['ran_booster_custody_random_bytes'] = $random;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_custody_after_destination_open'] = static function () use ( $directory ): void {
 				chmod( $directory, 0755 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only identity drift.
 			};
@@ -166,7 +172,9 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		$provider_path = $this->archive_path();
 
 		try {
-			$GLOBALS['ran_booster_custody_random_bytes']    = $random;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+			$GLOBALS['ran_booster_custody_random_bytes'] = $random;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_custody_fclose_failures'] = 1;
 			$digest = hash_file( 'sha256', $provider_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_hash_file -- Test-only artifact identity.
 			self::assertIsString( $digest );
@@ -264,7 +272,9 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		$provider_path = $this->archive_path();
 
 		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_custody_random_bytes'] = $random;
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_custody_unlink_throw'] = true;
 			$digest                                      = hash_file( 'sha256', $provider_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_hash_file -- Test-only artifact identity.
 			self::assertIsString( $digest );
@@ -297,6 +307,7 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		$path = '';
 
 		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_custody_fclose_false_results'] = 1;
 			[ $artifact, $path ]                                 = $this->artifact();
 			$this->expect_handoff_failure( $artifact, true );
@@ -404,6 +415,7 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- This concrete public-artifact test double belongs beside the custody or mapping contract it exercises.
 final class StructuralReleaseArtifact {
 	public int $discard_calls = 0;
 
@@ -427,6 +439,7 @@ final class StructuralReleaseArtifact {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- This concrete public-artifact test double belongs beside the custody or mapping contract it exercises.
 final class FaultingStructuralReleaseArtifact {
 	public ?\RAN\Deployment\PreparedArtifact $prepared = null;
 
@@ -450,6 +463,7 @@ final class FaultingStructuralReleaseArtifact {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- This concrete public-artifact test double belongs beside the custody or mapping contract it exercises.
 final class ThrowingDiscardStructuralReleaseArtifact {
 	public int $discard_calls = 0;
 

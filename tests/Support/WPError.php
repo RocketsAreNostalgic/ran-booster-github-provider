@@ -6,6 +6,7 @@ if ( class_exists( 'WP_Error', false ) ) {
 	return;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- The fixture replaces this exact WordPress class name without loading WordPress.
 final class WP_Error {
 
 	public function __construct(

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 require_once dirname( __DIR__, 2 ) . '/Support/NeutralReleaseUpdaterFixtures.php';
 
@@ -11,9 +11,9 @@ use RAN\BoosterGitHubProvider\V1\GitHubProvider;
 use RAN\BoosterGitHubProvider\V1\GitHubReleaseNativeTarget;
 use RAN\RepositoryProvider\RepositoryReference;
 use RuntimeException;
-use Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
-use Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
-use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 /** Proves GitHub consumes host/updater archive policy without owning it. */
 final class ArchiveLimitBoundaryTest extends TestCase {

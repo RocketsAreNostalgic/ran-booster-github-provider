@@ -10,5 +10,18 @@ parameters:
 		- tests/Booster/GitHub/bootstrap.php
 		- tests/Booster/GitHub/ReleaseDeployments/WorkflowAssistance/WorkflowAssistanceTestBootstrap.php
 	paths:
-		- src
-		- tests/foundation-contract.php
+		- .
+	# Retain directly analyzed foundation contract; exclude only host/test-fixture roles.
+	excludePaths:
+		analyseAndScan:
+			- tests/Booster/*
+			- tests/Support/*
+			- tests/fixtures/*
+			- scripts/*
+			- vendor/*
+			- node_modules/*
+			- .git/*
+			- .phpstan/*
+			- .phpunit.cache/*
+			- tests/host-contract.php
+			- tests/analysis-coverage.php

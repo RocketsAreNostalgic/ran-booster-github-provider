@@ -1,10 +1,9 @@
 <?php
 
+
 declare(strict_types=1);
 
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
-
-// phpcs:disable Universal.Files.SeparateFunctionsFromOO -- This small bootstrap deliberately combines the WordPress function shims and their option-table double.
 
 final class SetupClaimDatabase {
 	public string $options        = 'wp_options';
@@ -36,6 +35,7 @@ final class SetupClaimDatabase {
 			if ( null !== $owner && $owner !== $this->connection_id ) {
 				return '0';
 			}
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_lock_owner'] = $this->connection_id;
 			$callback = $GLOBALS['ran_booster_release_deployments_test_lock_acquired_callback'] ?? null;
 			if ( is_callable( $callback ) ) {
@@ -69,13 +69,16 @@ final class SetupClaimDatabase {
 }
 
 if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 	define( 'MINUTE_IN_SECONDS', 60 );
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 $ran_booster_root = getenv( 'RAN_BOOSTER_CORE_PATH' );
 if ( ! is_string( $ran_booster_root ) || '' === trim( $ran_booster_root ) ) {
 	throw new \LogicException( 'RAN_BOOSTER_CORE_PATH must identify the certified Booster host for workflow-assistance tests.' );
 }
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 $ran_booster_root = rtrim( $ran_booster_root, '/\\' );
 foreach ( array(
 	'ReleaseTrackingEligibility.php',
@@ -83,11 +86,13 @@ foreach ( array(
 	'ReleaseTrackingResult.php',
 	'ReleaseTrackingStatus.php',
 	'ReleaseTrackingFacade.php',
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 ) as $release_tracking_file ) {
 	require_once $ran_booster_root . '/RAN/AddOn/ReleaseTracking/' . $release_tracking_file;
 }
 
 if ( ! function_exists( __NAMESPACE__ . '\\wp_json_encode' ) ) {
+	// phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- This exact WordPress function and adjacent filesystem or database double form one isolated host fixture.
 	function wp_json_encode( mixed $value, int $flags = 0, int $depth = 512 ): string|false {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Minimal test shim for WordPress's wrapper.
 		return json_encode( $value, $flags, $depth );
@@ -95,6 +100,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\wp_json_encode' ) ) {
 }
 
 function template_pack_repository_actions_reset(): void {
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 	$GLOBALS['ran_booster_template_pack_repository_actions'] = array();
 }
 
@@ -110,6 +116,7 @@ function template_pack_repository_actions( string $hook ): array {
 
 if ( ! function_exists( __NAMESPACE__ . '\\add_action' ) ) {
 	function add_action( string $hook, callable $callback, int $priority = 10, int $accepted_args = 1 ): bool {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_template_pack_repository_actions'][] = array(
 			'hook'          => $hook,
 			'callback'      => $callback,
@@ -174,11 +181,13 @@ if ( ! function_exists( __NAMESPACE__ . '\\get_option' ) ) {
 
 if ( ! function_exists( __NAMESPACE__ . '\\update_option' ) ) {
 	function update_option( string $option, mixed $value, mixed $autoload = null ): bool {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_option_updates'][] = array( $option, $value, $autoload );
 		if ( false === ( $GLOBALS['ran_booster_release_deployments_test_option_update_result'] ?? true ) ) {
 			return false;
 		}
 		$stored = $GLOBALS['ran_booster_release_deployments_test_option_override'] ?? $value;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options'][ $option ] = $stored;
 		return true;
 	}
@@ -190,6 +199,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\add_option' ) ) {
 		if ( array_key_exists( $option, $GLOBALS['ran_booster_release_deployments_test_options'] ) ) {
 			return false;
 		}
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_options'][ $option ] = $value;
 		$callback = $GLOBALS['ran_booster_release_deployments_test_option_add_callback'] ?? null;
 		if ( is_callable( $callback ) ) {
@@ -217,7 +227,9 @@ if ( ! function_exists( __NAMESPACE__ . '\\get_current_user_id' ) ) {
 
 if ( ! function_exists( __NAMESPACE__ . '\\set_transient' ) ) {
 	function set_transient( string $key, mixed $value, int $expiration ): bool {
-		$GLOBALS['ran_booster_release_deployments_test_transients'][ $key ]            = $value;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+		$GLOBALS['ran_booster_release_deployments_test_transients'][ $key ] = $value;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_transient_expirations'][ $key ] = $expiration;
 		return true;
 	}

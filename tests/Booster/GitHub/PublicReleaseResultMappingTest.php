@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub;
-
-// phpcs:disable Generic.Files.OneObjectStructurePerFile -- Narrow structural public-source fixtures belong with mapping cases.
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 require_once dirname( __DIR__, 2 ) . '/Support/NeutralReleaseUpdaterFixtures.php';
 
@@ -13,9 +11,9 @@ use RAN\BoosterGitHubProvider\V1\GitHubProvider;
 use RAN\RepositoryProvider\RepositoryReference;
 use RAN\RepositoryProvider\RepositoryReleaseAcquisitionRejected;
 use RAN\RepositoryProvider\RepositoryReleaseReadUnavailable;
-use Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
-use Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
-use Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 final class PublicReleaseResultMappingTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
@@ -220,12 +218,14 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		); }
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- This concrete public-artifact test double belongs beside the custody or mapping contract it exercises.
 final class PublicReleaseRegistrarFixture {
 	public function __construct( private PublicReleaseSourceFixture $source ) {}
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Structural release-registrar fixture accepts the real contract arguments.
 	public function releases( mixed ...$arguments ): object {
 		return $this->source; }
 }
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- This concrete public-artifact test double belongs beside the custody or mapping contract it exercises.
 final class PublicReleaseSourceFixture {
 	public int $inspect_calls = 0;
 	public int $acquire_calls = 0;
@@ -242,6 +242,7 @@ final class PublicReleaseSourceFixture {
 		++$this->acquire_calls;
 		return $this->acquire; }
 }
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- This concrete public-artifact test double belongs beside the custody or mapping contract it exercises.
 final class PublicReleaseArtifactFixture {
 	public function __construct( private string $path ) {} public function inspect( callable $reader ): mixed {
 		return $reader( $this->path );

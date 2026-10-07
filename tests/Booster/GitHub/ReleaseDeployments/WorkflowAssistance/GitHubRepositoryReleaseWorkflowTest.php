@@ -1,8 +1,9 @@
 <?php
 
+
 declare(strict_types=1);
 
-namespace Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
+namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\GitHubRepositoryClient;
@@ -12,7 +13,7 @@ use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SourceRea
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplatePackRepositoryClient;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowApplicationCoordinator;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight;
-use Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\WorkflowProviderFixtures;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\WorkflowProviderFixtures;
 
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 require_once __DIR__ . '/Support/WorkflowCredentialStore.php';
@@ -21,7 +22,9 @@ require_once __DIR__ . '/Support/WorkflowProviderFixtures.php';
 final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function setUp(): void {
-		$GLOBALS['ran_booster_release_deployments_test_options']    = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 		$GLOBALS['ran_booster_release_deployments_test_transients'] = array();
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The workflow record fixture requires the same connection-local advisory-lock double as its persistence tests.
@@ -112,6 +115,7 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 			),
 			array( 'head_sha' => 'invalid' ),
 		) as $overrides ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
 			$GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records']['101'] = $this->record( $overrides );
 			$before      = $GLOBALS['ran_booster_release_deployments_test_options'];
 			$credentials = new WorkflowCredentialStore();
@@ -135,8 +139,8 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 
 		self::assertSame( 'workflow_invalid_request', $workflow->outcome( $status, 'eligible' )->workflow_code() );
 		self::assertSame( array(), $credentials->material_reads );
-		self::assertFalse( method_exists( $workflow, 'inspectUpdate' ) );
-		self::assertFalse( method_exists( $workflow, 'setupUpdate' ) );
+		self::assertFalse( ( new \ReflectionObject( $workflow ) )->hasMethod( 'inspectUpdate' ) );
+		self::assertFalse( ( new \ReflectionObject( $workflow ) )->hasMethod( 'setupUpdate' ) );
 	}
 
 	public function test_unavailable_selected_credential_refuses_current_read_operations_before_transport(): void {
