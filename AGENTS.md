@@ -54,13 +54,12 @@ CI pins and verifies the certified Booster revision before running those host-ba
 
 The certified source host is the immutable Core `v1.0.0-beta.31` tag target
 `8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf`, with Provider API 14 / workflow V3.
-PHPStan blocks at level 5 over both default-inclusive production and development profiles.
+PHPStan blocks at level 8 over both default-inclusive production and development profiles.
 The original production profile keeps test declarations isolated; the complementary
 development profile discovers the root and excludes only src (analyzed by production),
 dependencies and caches. The union covers every maintained PHP file, including tests
 and maintenance scripts. Certified Core is scanned for development types without
-executing the bounded runtime loader; bootstrap/symbol discovery alone is not analysis. Levels 6–8
-remain separate work. This source-host proof does not claim installed-site or
+executing the bounded runtime loader; bootstrap/symbol discovery alone is not analysis. This source-host proof does not claim installed-site or
 UI acceptance. Preserve the full PHP 8.2/8.5 matrix and all terminal gates.
 
 ## Review and merge discipline

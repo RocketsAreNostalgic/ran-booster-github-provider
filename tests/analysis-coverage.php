@@ -32,7 +32,7 @@ ksort( $expected_paths );
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 $actual_paths = $config['parameters']['excludePaths'] ?? array();
 ksort( $actual_paths );
-if ( 5 !== ( $config['parameters']['level'] ?? null )
+if ( 8 !== ( $config['parameters']['level'] ?? null )
 	|| array( '.' ) !== ( $config['parameters']['paths'] ?? null )
 	|| $expected_paths !== $actual_paths
 	|| array( 'vendor/szepeviktor/phpstan-wordpress/extension.neon' ) !== ( $config['includes'] ?? array() )

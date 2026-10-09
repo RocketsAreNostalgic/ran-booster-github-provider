@@ -12,6 +12,33 @@ cp -R "$root/scripts" "$fixture/scripts"
 ln -s "$root/vendor" "$fixture/vendor"
 analyze() { composer --no-plugins --no-interaction --working-dir="$fixture" "${analysis_command:-analyze:production}" -- --error-format=json; }
 analyze > "$fixture/clean.json"
+# Prove the blocking target with an error introduced specifically at Level 8.
+for profile in production development; do
+    configuration=phpstan.neon
+    analysis_command=analyze:production
+    path=root-level-eight.php
+    profile_args=()
+    if [[ "$profile" == development ]]; then
+        configuration=phpstan-development.neon
+        analysis_command=analyze:development
+        path=tests/Support/level-eight.php
+        profile_args=(--development)
+    fi
+    printf '<?php\nfunction ran_provider_level_eight_probe(?DateTimeImmutable $value): void { echo $value->getTimestamp(); }\n' > "$fixture/$path"
+    php "$root/tests/analysis-coverage.php" "$fixture" "${profile_args[@]}"
+    (cd "$fixture" && vendor/bin/phpstan analyse --configuration="$configuration" --level=7 --no-progress --memory-limit=512M --error-format=json) > "$fixture/level-seven.json"
+    status=0
+    analyze > "$fixture/level-eight.json" 2> "$fixture/level-eight.log" || status=$?
+    test "$status" -eq 1
+    php -r '$r=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR);foreach($r["files"][realpath($argv[2])]["messages"]??[] as $m){if(($m["identifier"]??"")==="method.nonObject"){exit(0);}}exit(1);' "$fixture/level-eight.json" "$fixture/$path"
+    rm "$fixture/$path"
+    sed -i 's/level: 8/level: 7/' "$fixture/$configuration"
+    if php "$root/tests/analysis-coverage.php" "$fixture" "${profile_args[@]}" > "$fixture/guard.log" 2>&1; then exit 1; fi
+    grep -q 'Review inclusive analysis scope' "$fixture/guard.log"
+    cp "$root/$configuration" "$fixture/$configuration"
+done
+analysis_command=analyze:production
+echo 'PASS Level 8: production/development nullable failures, Level 7 controls and rejected gate downgrades.'
 mkdir -p "$fixture/new-product/contracts" "$fixture/src/tests" "$fixture/tests"
 for path in root-contract.php new-product/contracts/split.php src/tests/runtime-contract.php; do
     printf '<?php\nran_provider_missing_contract();\n' > "$fixture/$path"
@@ -170,7 +197,7 @@ done
 for change in level exclusion ignore; do
     cp "$root/phpstan-development.neon" "$fixture/phpstan-development.neon"
     case "$change" in
-        level) sed -i 's/level: 5/level: 4/' "$fixture/phpstan-development.neon" ;;
+        level) sed -i 's/level: 8/level: 7/' "$fixture/phpstan-development.neon" ;;
         exclusion) printf '\t\t\t- tests/*\n' >> "$fixture/phpstan-development.neon" ;;
         ignore) printf '\tignoreErrors: []\n' >> "$fixture/phpstan-development.neon" ;;
     esac

@@ -421,7 +421,7 @@ final class TemplatePackRepositoryClient {
 
 	/**
 	 * @param 'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed' $code
-	 * @return array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
+	 * @return array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'}
 	 */
 	private function error( string $code ): array {
 		return array( 'code' => $code );

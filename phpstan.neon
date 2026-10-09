@@ -2,9 +2,8 @@ includes:
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 
 parameters:
-	# Following-beta blocking target approved in organisation #127.
-	# Levels 6–8 remain separate diagnostic/typing work.
-	level: 5
+	# Blocking target for both maintained profiles under organisation #148.
+	level: 8
 	treatPhpDocTypesAsCertain: false
 	bootstrapFiles:
 		- tests/Booster/GitHub/bootstrap.php

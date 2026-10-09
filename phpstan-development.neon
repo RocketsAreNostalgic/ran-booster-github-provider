@@ -3,7 +3,7 @@ includes:
 
 parameters:
 	# Complement isolated production analysis: all other maintained PHP enters automatically.
-	level: 5
+	level: 8
 	treatPhpDocTypesAsCertain: false
 	paths:
 		- .
