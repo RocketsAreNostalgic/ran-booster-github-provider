@@ -167,6 +167,9 @@ final class PublicReleaseResultMappingTest extends TestCase {
 
 	private function provider( PublicReleaseSourceFixture $source ): GitHubProvider {
 		return GitHubProvider::create( new RepositoryResolverSecretsStub(), new EmptyAuthenticatedWebhookDeliveryEvidenceReader(), new PublicReleaseRegistrarFixture( $source ) ); }
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function envelope( bool $ok, string $code, mixed $value, string $cleanup = 'not_applicable' ): array {
 		return array(
 			'ok'             => $ok,
@@ -175,6 +178,9 @@ final class PublicReleaseResultMappingTest extends TestCase {
 			'retry_after'    => null,
 			'cleanup_status' => $cleanup,
 		); }
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function listing(): array {
 		return $this->envelope(
 			true,
@@ -198,6 +204,9 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		$path = tempnam( sys_get_temp_dir(), 'p3-mapping-' );
 		file_put_contents( $path, 'protocol3-bytes' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Exact temporary structural-artifact fixture.
 		return $path; }
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function facts(): array {
 		return array(
 			'release_identity'       => '42',
@@ -229,14 +238,29 @@ final class PublicReleaseRegistrarFixture {
 final class PublicReleaseSourceFixture {
 	public int $inspect_calls = 0;
 	public int $acquire_calls = 0;
-	public function __construct( private array $release_list, private array $inspect, private array $acquire ) {} public function list(): array {
+	/**
+	 * @param array<array-key,mixed> $acquire
+	 * @param array<array-key,mixed> $inspect
+	 * @param array<array-key,mixed> $release_list
+	 */
+	public function __construct( private array $release_list, private array $inspect, private array $acquire ) {}
+	/**
+	 * @return array<array-key,mixed>
+	 */
+	public function list(): array {
 		return $this->release_list;
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Structural release-source fixture preserves the public lookup signature.
 	public function inspect( string $id, string $tag ): array {
 		++$this->inspect_calls;
 		return $this->inspect;
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Structural release-source fixture preserves the public acquisition signature.
 	public function acquire( string $id, string $tag, string $fingerprint ): array {
 		++$this->acquire_calls;

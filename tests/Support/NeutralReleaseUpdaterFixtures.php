@@ -69,7 +69,10 @@ final class NeutralReleaseUpdaterFixtures {
 		return $GLOBALS['ran_booster_release_requests'] ?? array();
 	}
 
-	/** @param list<array<string, mixed>> $releases */
+	/**
+	 * @param list<array<string, mixed>> $releases
+	 * @return array<array-key,mixed>
+	 */
 	public static function listing( array $releases ): array {
 		return self::response( 200, $releases );
 	}
@@ -103,7 +106,10 @@ final class NeutralReleaseUpdaterFixtures {
 		);
 	}
 
-	/** @return array<string, mixed> */
+	/**
+	 * @return array<string, mixed>
+	 * @param array<array-key,mixed> $headers
+	 */
 	public static function response( int $code, mixed $json, array $headers = array(), ?string $file = null ): array {
 		$response = array(
 			'body'     => null === $json ? '' : json_encode( $json, JSON_THROW_ON_ERROR ), // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- WordPress is not loaded in this bounded fixture.

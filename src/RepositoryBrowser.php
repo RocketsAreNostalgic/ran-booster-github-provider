@@ -574,7 +574,10 @@ class RepositoryBrowser {
 		}
 	}
 
-	/** @param array<string, string> $headers */
+	/**
+	 * @param array<string, string> $headers
+	 * @return array<array-key,mixed>
+	 */
 	private function browse_request( string $url, array $headers, RepositoryBrowseRequest $request ): array {
 		$response = wp_remote_get(
 			$url,

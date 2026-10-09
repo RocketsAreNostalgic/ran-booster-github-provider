@@ -175,6 +175,9 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @param array<array-key,mixed> $manifest
+	 */
 	private function assert_invalid_manifest( array $manifest ): void {
 		$archive = Fixture::archive( $manifest );
 		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['code'] );

@@ -96,6 +96,9 @@ final class DiagnosticsTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @param array<array-key,mixed> $expected
+	 */
 	#[DataProvider( 'credential_results' )]
 	public function test_credential_results_keep_stable_status_code_and_operator_copy(
 		CredentialValidationResult $credential_result,
@@ -170,6 +173,9 @@ final class DiagnosticsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @param array<array-key,mixed> $expected
+	 */
 	#[DataProvider( 'repository_results' )]
 	public function test_repository_runtime_results_keep_stable_mapping_without_logging_raw_failure(
 		?int $exception_code,

@@ -19,6 +19,7 @@ final readonly class InitialReleaseBundle {
 
 	/**
 	 * @param array<string, array{path:string,mode:string,operation:string,content:string,sha256:string,git_sha:string}> $files
+	 * @param array<string,mixed> $pack_identity
 	 */
 	private function __construct(
 		private string $profile,

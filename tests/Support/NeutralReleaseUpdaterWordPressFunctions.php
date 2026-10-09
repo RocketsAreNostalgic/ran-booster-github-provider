@@ -55,6 +55,10 @@ if ( ! function_exists( 'did_action' ) ) {
 }
 
 if ( ! function_exists( 'wp_safe_remote_get' ) ) {
+	/**
+	 * @param array<string,mixed> $arguments
+	 * @return array<array-key,mixed>|WP_Error
+	 */
 	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 	function wp_safe_remote_get( string $url, array $arguments ): array|WP_Error {
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
@@ -83,6 +87,9 @@ if ( ! function_exists( 'is_wp_error' ) ) {
 }
 
 if ( ! function_exists( 'wp_remote_retrieve_response_code' ) ) {
+	/**
+	 * @param array<array-key,mixed> $response
+	 */
 	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 	function wp_remote_retrieve_response_code( array $response ): int|string {
 		return $response['response']['code'] ?? 0;
@@ -90,6 +97,9 @@ if ( ! function_exists( 'wp_remote_retrieve_response_code' ) ) {
 }
 
 if ( ! function_exists( 'wp_remote_retrieve_header' ) ) {
+	/**
+	 * @param array<array-key,mixed> $response
+	 */
 	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 	function wp_remote_retrieve_header( array $response, string $name ): mixed {
 		return $response['headers'][ strtolower( $name ) ] ?? null;
@@ -97,6 +107,9 @@ if ( ! function_exists( 'wp_remote_retrieve_header' ) ) {
 }
 
 if ( ! function_exists( 'wp_remote_retrieve_body' ) ) {
+	/**
+	 * @param array<array-key,mixed> $response
+	 */
 	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 	function wp_remote_retrieve_body( array $response ): string {
 		return is_string( $response['body'] ?? null ) ? $response['body'] : '';

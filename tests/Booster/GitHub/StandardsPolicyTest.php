@@ -346,6 +346,9 @@ FIXTURE;
 		return array( ':sp', 'basepath:.', 'colors:', 'extensions:php', 'parallel:4' ) !== $arguments;
 	}
 
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function check_source( ?string $source = null, string $path = 'tests/StandardsProbe.php', ?bool $accept_clean = false, ?string $standard = null ): array {
 		$root    = dirname( __DIR__, 3 );
 		$command = array( PHP_BINARY, $root . '/vendor/bin/phpcs', '--standard=' . ( $standard ?? $root . '/.phpcs.xml' ), '--report=json', '-q' );

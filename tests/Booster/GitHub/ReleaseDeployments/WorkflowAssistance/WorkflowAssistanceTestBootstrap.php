@@ -167,6 +167,9 @@ if ( ! function_exists( __NAMESPACE__ . '\\wp_remote_retrieve_header' ) ) {
 }
 
 if ( ! function_exists( __NAMESPACE__ . '\\wp_parse_url' ) ) {
+	/**
+	 * @return array<array-key,mixed>|int|string|null|false
+	 */
 	function wp_parse_url( string $url, int $component = -1 ): array|int|string|null|false {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Minimal test shim for WordPress's wrapper.
 		return parse_url( $url, $component );

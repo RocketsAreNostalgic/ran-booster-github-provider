@@ -189,7 +189,10 @@ final class RepositoryWebhookClient {
 		}
 		return new RepositoryWebhookFitnessResult( 'supported', 'unknown', 'unknown', 'unknown_by_design', 'fine_grained_authority_unknown', $now, 'Confirm the selected repository and Webhooks write permission before continuing.' );
 	}
-	/** @return array{status:int,body:string,response:mixed} */
+	/**
+	 * @return array{status:int,body:string,response:mixed}
+	 * @param array<string,mixed>|null $body
+	 */
 	private function request( string $method, string $path, string $token, ?array $body, int $limit, float $deadline ): array {
 		$remaining = $deadline - microtime( true );
 		if ( $remaining <= 0 ) {
@@ -271,7 +274,10 @@ final class RepositoryWebhookClient {
 		$id = is_int( $id ) || is_string( $id ) ? trim( (string) $id ) : '';
 		return 1 === preg_match( '/\A[1-9][0-9]{0,18}\z/D', $id ) ? $id : null;
 	}
-	/** @param array<string,mixed> $hook @return array{endpoint:string,events:string,content_type:string,active:string} */
+	/**
+	 * @param array<string,mixed> $hook
+	 * @return array{endpoint:string,events:string,content_type:string,active:string}
+	 */
 	private function configuration( array $hook, string $callback_url ): array {
 		$config = is_array( $hook['config'] ?? null ) ? $hook['config'] : array();
 		$events = is_array( $hook['events'] ?? null ) ? $hook['events'] : null;
@@ -296,7 +302,10 @@ final class RepositoryWebhookClient {
 			),
 		);
 	}
-	/** @param array<string,mixed> $hook @param array{endpoint:string,events:string,content_type:string,active:string} $configuration */
+	/**
+	 * @param array<string,mixed> $hook
+	 * @param array{endpoint:string,events:string,content_type:string,active:string} $configuration
+	 */
 	private function configured_result( array $hook, array $configuration ): RepositoryWebhookOperationResult {
 		$hook_id = $this->hook_id( $hook );
 		if ( null === $hook_id || in_array( 'unknown', $configuration, true ) ) {

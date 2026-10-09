@@ -76,7 +76,10 @@ final readonly class TemplatePack {
 		'workflow_events',
 	);
 
-	/** @param array<string, mixed> $identity @param array<string, array<string, array{content:string,sha256:string}>> $profiles */
+	/**
+	 * @param array<string, mixed> $identity
+	 * @param array<string, array<string, array{content:string,sha256:string}>> $profiles
+	 */
 	private function __construct(
 		private array $identity,
 		private string $pack_version,
@@ -261,7 +264,10 @@ final readonly class TemplatePack {
 		return $manifest;
 	}
 
-	/** @param array<string, mixed> $manifest @param array<string, mixed> $identity */
+	/**
+	 * @param array<string, mixed> $manifest
+	 * @param array<string, mixed> $identity
+	 */
 	private static function manifest_identity_matches( array $manifest, array $identity ): bool {
 		return is_string( $manifest['repository']['name'] ?? null )
 			&& is_string( $manifest['repository']['id'] ?? null )

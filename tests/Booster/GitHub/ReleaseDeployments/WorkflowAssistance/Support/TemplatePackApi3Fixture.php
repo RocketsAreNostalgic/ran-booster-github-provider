@@ -110,6 +110,7 @@ final class TemplatePackApi3Fixture {
 	 * @param array<string, mixed>|null $manifest
 	 * @param array<string, string>     $member_overrides
 	 * @param array<string, string>     $extra
+	 * @param array<array-key,mixed> $omit
 	 */
 	public static function archive(
 		?array $manifest = null,
@@ -183,7 +184,10 @@ final class TemplatePackApi3Fixture {
 		);
 	}
 
-	/** @param array<string, string> $placeholders @return array<string, mixed> */
+	/**
+	 * @param array<string, string> $placeholders
+	 * @return array<string, mixed>
+	 */
 	private static function entry( string $path, string $content, array $placeholders ): array {
 		return array(
 			'path'         => $path,

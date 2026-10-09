@@ -296,7 +296,10 @@ final class TemplatePackRepositoryClient {
 			&& ( $expected['asset_digest'] ?? null ) === 'sha256:' . $expected['asset_sha256'];
 	}
 
-	/** @param array<string, int|string> $candidate @param array<string, mixed> $expected */
+	/**
+	 * @param array<string, int|string> $candidate
+	 * @param array<string, mixed> $expected
+	 */
 	private function candidate_matches_expected( array $candidate, array $expected ): bool {
 		return $candidate['release_id'] === $expected['release_id']
 			&& hash_equals( $candidate['release_tag'], $expected['release_tag'] )
@@ -410,7 +413,10 @@ final class TemplatePackRepositoryClient {
 		return str_starts_with( $tag, 'v' ) && StarterOrigin::version( $version ) ? $version : null;
 	}
 
-	/** @param array<string, mixed> $values @return array<string, mixed> */
+	/**
+	 * @param array<string, mixed> $values
+	 * @return array<string, mixed>
+	 */
 	private function ok( array $values ): array {
 		return array_merge( array( 'code' => 'ok' ), $values );
 	}

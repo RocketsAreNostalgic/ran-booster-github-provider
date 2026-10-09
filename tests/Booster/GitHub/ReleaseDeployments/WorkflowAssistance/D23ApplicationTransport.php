@@ -19,29 +19,33 @@ final class D23ApplicationTransport {
 	/** @var list<array{method:string,url:string,args:array<string,mixed>}> */
 	public array $requests = array();
 	/** @var array<string,int> */
-	public array $write_counts           = array(
+	public array $write_counts = array(
 		'blob'   => 0,
 		'tree'   => 0,
 		'commit' => 0,
 		'ref'    => 0,
 		'pull'   => 0,
 	);
-	private array $blobs                 = array();
-	private array $base_entries          = array();
+	/** @var array<string,mixed> */
+	private array $blobs = array();
+	/** @var array<string,mixed> */
+	private array $base_entries = array();
+	/** @var array<string,mixed> */
 	private array $original_base_entries = array();
-	private array $head_entries          = array();
-	private bool $branch_exists          = false;
-	private bool $pull_exists            = false;
-	private string $base_sha             = self::BASE;
-	private string $pull_state           = 'open';
-	private ?string $merged_at           = null;
-	private string $pull_base_sha        = self::BASE;
-	private string $pull_scenario        = 'none';
-	private string $uncertain_at         = '';
-	private string $uncertain_blob       = '';
-	private string $branch_head          = '';
-	private string $created_tree         = self::HEAD_TREE;
-	private int $repository_status       = 200;
+	/** @var array<string,mixed> */
+	private array $head_entries    = array();
+	private bool $branch_exists    = false;
+	private bool $pull_exists      = false;
+	private string $base_sha       = self::BASE;
+	private string $pull_state     = 'open';
+	private ?string $merged_at     = null;
+	private string $pull_base_sha  = self::BASE;
+	private string $pull_scenario  = 'none';
+	private string $uncertain_at   = '';
+	private string $uncertain_blob = '';
+	private string $branch_head    = '';
+	private string $created_tree   = self::HEAD_TREE;
+	private int $repository_status = 200;
 	/** @var array<int,string> */
 	private array $archives     = array();
 	private int $latest_release = TemplatePackApi3Fixture::RELEASE_ID;
@@ -90,7 +94,10 @@ final class D23ApplicationTransport {
 	public function fail_repository_read( int $status ): void {
 		$this->repository_status = $status;
 	}
-	/** @param array<string,mixed> $args */
+	/**
+	 * @param array<string,mixed> $args
+	 * @return array<array-key,mixed>
+	 */
 	public function __invoke( string $method, string $url, array $args ): array {
 		$this->requests[] = compact( 'method', 'url', 'args' );
 		$path             = (string) wp_parse_url( $url, PHP_URL_PATH );
@@ -254,6 +261,9 @@ final class D23ApplicationTransport {
 		}
 		return $this->json( 500, array( 'unexpected' => $method . ' ' . $path . '?' . $query ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function template( string $path ): array {
 		$release_id = $this->latest_release;
 		if ( 1 === preg_match( '#/releases/([0-9]+)\z#', $path, $matches ) ) {
@@ -342,11 +352,17 @@ final class D23ApplicationTransport {
 			$this->head_entries = $this->base_entries;
 		}
 	}
-	/** @param array<string,mixed> $args @return array<string,mixed> */
+	/**
+	 * @param array<string,mixed> $args
+	 * @return array<array-key,mixed>
+	 */
 	private function body( array $args ): array {
 		$value = json_decode( (string) $args['body'], true );
 		return is_array( $value ) ? $value : array();
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function pull( string $name = '', string $state = '', string $base = 'main' ): array {
 		$branch   = array_values( array_filter( $this->requests, static fn ( array $request ): bool => str_ends_with( (string) wp_parse_url( $request['url'], PHP_URL_PATH ), '/git/refs' ) ) );
 		$ref_body = array() !== $branch ? $this->body( $branch[ array_key_last( $branch ) ]['args'] ) : array( 'ref' => 'refs/heads/ran-booster/release-setup-v2-aaaaaaaaaaaa-unknown' );
@@ -369,7 +385,10 @@ final class D23ApplicationTransport {
 			),
 		);
 	}
-	/** @param array<array-key,mixed> $body */
+	/**
+	 * @param array<array-key,mixed> $body
+	 * @return array<array-key,mixed>
+	 */
 	private function json( int $status, array $body ): array {
 		return array(
 			'response' => array( 'code' => $status ),

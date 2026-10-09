@@ -110,7 +110,11 @@ final class StarterOrigin {
 		return $data;
 	}
 
-	/** Bounded metadata JSON with duplicate/escaped-equivalent key rejection. @return array<string,mixed>|null */
+	/**
+	 * Bounded metadata JSON with duplicate/escaped-equivalent key rejection.
+	 *
+	 * @return array<array-key,mixed>|null
+	 */
 	public static function json( string $bytes, int $limit ): ?array {
 		if ( strlen( $bytes ) > $limit || str_contains( $bytes, "\0" ) ) {
 			return null;

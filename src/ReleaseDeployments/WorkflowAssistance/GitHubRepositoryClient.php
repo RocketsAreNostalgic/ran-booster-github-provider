@@ -26,6 +26,9 @@ final class GitHubRepositoryClient {
 			: Closure::fromCallable( $send );
 	}
 
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function repository( string $repository, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) ) {
 			return $this->error( 'invalid_request' );
@@ -44,6 +47,9 @@ final class GitHubRepositoryClient {
 		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Compact bounded transport shape.
 		return $this->ok( array( 'repository_id' => $repository_id, 'full_name' => $full_name, 'default_branch' => $default_branch ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function branch_ref( string $repository, string $branch, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_branch( $branch ) ) {
 			return $this->error( 'invalid_request' );
@@ -58,6 +64,9 @@ final class GitHubRepositoryClient {
 			? $this->ok( array( 'sha' => $sha ) )
 			: $this->error( 'invalid_response' );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function snapshot(
 		string $repository,
 		string $repository_id,
@@ -136,6 +145,9 @@ final class GitHubRepositoryClient {
 		}
 		return $this->ok( array( 'snapshot' => $snapshot ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function blob( string $repository, string $sha, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
@@ -158,6 +170,9 @@ final class GitHubRepositoryClient {
 		}
 		return $this->ok( array( 'content' => $content ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function git_commit( string $repository, string $sha, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
@@ -183,6 +198,9 @@ final class GitHubRepositoryClient {
 		// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Compact bounded transport shape.
 		return $this->ok( array( 'sha' => $sha, 'tree_sha' => $tree_sha, 'parents' => $parent_shas ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function create_blob( string $repository, string $content, string $token ): array {
 		if ( '' === $token || ! $this->valid_repository( $repository ) || strlen( $content ) > self::MAX_BODY
 			|| str_contains( $content, "\0" ) || 1 !== preg_match( '//u', $content ) ) {
@@ -200,7 +218,10 @@ final class GitHubRepositoryClient {
 		$sha      = $response['data']['sha'] ?? null;
 		return 'ok' !== $response['code'] ? $response : ( $this->valid_sha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
 	}
-	/** @param list<array{path:string,sha:string,mode:string}> $entries */
+	/**
+	 * @param list<array{path:string,sha:string,mode:string}> $entries
+	 * @return array<array-key,mixed>
+	 */
 	public function create_tree( string $repository, string $base_tree_sha, array $entries, string $token ): array {
 		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $base_tree_sha )
 			|| array() === $entries || count( $entries ) > self::MAX_CHANGES ) {
@@ -234,6 +255,9 @@ final class GitHubRepositoryClient {
 		$sha      = $response['data']['sha'] ?? null;
 		return 'ok' !== $response['code'] ? $response : ( $this->valid_sha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function create_commit( string $repository, string $tree_sha, string $parent_sha, string $message, string $token ): array {
 		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $tree_sha ) || ! $this->valid_sha( $parent_sha )
 			|| '' === trim( $message ) || strlen( $message ) > 200 ) {
@@ -252,6 +276,9 @@ final class GitHubRepositoryClient {
 		$sha      = $response['data']['sha'] ?? null;
 		return 'ok' !== $response['code'] ? $response : ( $this->valid_sha( $sha ) ? $this->ok( array( 'sha' => $sha ) ) : $this->error( 'invalid_response' ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function create_ref( string $repository, string $branch, string $default_branch, string $sha, string $token ): array {
 		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $default_branch ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
@@ -267,6 +294,9 @@ final class GitHubRepositoryClient {
 			? $this->ok( array( 'sha' => $created_sha ) )
 			: $this->error( 'invalid_response' );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function pull_requests( string $repository, string $branch, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_branch( $branch ) ) {
 			return $this->error( 'invalid_request' );
@@ -292,6 +322,9 @@ final class GitHubRepositoryClient {
 		}
 		return $this->ok( array( 'pulls' => $pulls ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function pull_request( string $repository, int $number, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || $number < 1 ) {
 			return $this->error( 'invalid_request' );
@@ -302,6 +335,9 @@ final class GitHubRepositoryClient {
 			? $this->error( 'invalid_response' )
 			: $this->ok( array( 'pull' => $pull ) ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function pull_request_file_set( string $repository, int $number, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || $number < 1 ) {
 			return $this->error( 'invalid_request' );
@@ -333,6 +369,9 @@ final class GitHubRepositoryClient {
 		usort( $normalized, static fn ( array $left, array $right ): int => strcmp( $left['path'], $right['path'] ) );
 		return $this->ok( array( 'files' => $normalized ) );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	public function create_draft_pull_request( string $repository, string $branch, string $default_branch, string $title, string $body, string $token ): array {
 		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $default_branch ) || '' === trim( $title )
 			|| strlen( $title ) > 120 || strlen( $body ) > 8000
@@ -346,7 +385,11 @@ final class GitHubRepositoryClient {
 			? $this->error( 'invalid_response' )
 			: $this->ok( array( 'pull' => $pull ) ) );
 	}
-	/** @param array<string,mixed>|null $body @param array<int,string> $special @return array<string,mixed> */
+	/**
+	 * @param array<string,mixed>|null $body
+	 * @param array<int,string> $special
+	 * @return array<string,mixed>
+	 */
 	private function request( string $method, string $path, string $token, ?array $body = null, array $special = array(), bool $raw_prefix = false ): array {
 		if ( ! $this->valid_token( $token ) || ! str_starts_with( $path, '/repos/' ) ) {
 			return $this->error( 'invalid_request' );
@@ -408,6 +451,9 @@ final class GitHubRepositoryClient {
 		}
 		return is_array( $data ) ? $this->ok( array( 'data' => $data ) ) : $this->error( 'invalid_response' );
 	}
+	/**
+	 * @return array<array-key,mixed>|null
+	 */
 	private function normalize_pull( string $repository, mixed $data ): ?array {
 		if ( ! is_array( $data ) || ! is_int( $data['number'] ?? null ) || $data['number'] < 1
 			|| ! in_array( $data['state'] ?? null, array( 'open', 'closed' ), true )
@@ -467,10 +513,16 @@ final class GitHubRepositoryClient {
 		$value = is_int( $value ) || is_string( $value ) ? (string) $value : '';
 		return strlen( $value ) <= 191 && 1 === preg_match( '/\A[1-9][0-9]*\z/D', $value ) ? $value : null;
 	}
-	/** @param array<string,mixed> $values @return array<string,mixed> */
+	/**
+	 * @param array<string,mixed> $values
+	 * @return array<string,mixed>
+	 */
 	private function ok( array $values ): array {
 		return array_merge( array( 'code' => 'ok' ), $values );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function error( string $code ): array {
 		return array( 'code' => $code );
 	}

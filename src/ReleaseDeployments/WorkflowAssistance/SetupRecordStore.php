@@ -383,7 +383,10 @@ final class SetupRecordStore {
 		$all = get_option( self::OPTION, array() );
 		return is_array( $all ) && count( $all ) <= self::MAX_RECORDS && is_array( $all[ $repository_id ] ?? null ) ? $all[ $repository_id ] : null;
 	}
-	/** @param array<string,mixed> $raw @return array<string,mixed>|null */
+	/**
+	 * @param array<string,mixed> $raw
+	 * @return array<string,mixed>|null
+	 */
 	private function normalize( array $raw ): ?array {
 		if ( array_keys( $raw ) !== self::FIELDS || 3 !== ( $raw['schema_version'] ?? null )
 			|| 'bootstrap' !== ( $raw['operation'] ?? null )
@@ -427,7 +430,10 @@ final class SetupRecordStore {
 		}
 		return $all;
 	}
-	/** @param array<string,mixed> $observation @return array<string,mixed>|null */
+	/**
+	 * @param array<string,mixed> $observation
+	 * @return array<string,mixed>|null
+	 */
 	private function normalize_observation( array $observation ): ?array {
 		if ( array_keys( $observation ) !== self::OBSERVATION_FIELDS || ! in_array( $observation['kind'] ?? null, self::OBSERVATION_STATUSES, true )
 			|| ! $this->number( $observation['repository_id'] ?? null )
@@ -439,12 +445,18 @@ final class SetupRecordStore {
 		/** @var array<string,mixed> $observation */
 		return $observation;
 	}
-	/** @param array<string,mixed> $first @param array<string,mixed> $second */
+	/**
+	 * @param array<string,mixed> $first
+	 * @param array<string,mixed> $second
+	 */
 	private function same_assessment_package( array $first, array $second ): bool {
 		return $first['repository_id'] === $second['repository_id'] && $first['package_type'] === $second['package_type']
 			&& $first['package_identifier'] === $second['package_identifier'];
 	}
-	/** @param array<string,mixed> $failure @return array<string,mixed>|null */
+	/**
+	 * @param array<string,mixed> $failure
+	 * @return array<string,mixed>|null
+	 */
 	private function normalize_failure( array $failure ): ?array {
 		if ( array_keys( $failure ) !== self::FAILURE_FIELDS
 			|| ! in_array( $failure['operation'] ?? null, array( 'inspect', 'setup', 'outcome' ), true )
