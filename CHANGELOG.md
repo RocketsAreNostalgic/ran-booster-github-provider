@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.15](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.14...v1.0.0-beta.15) (2026-10-09)
+
+
+### Bug Fixes
+
+* enforce PHPStan Level 8 across maintained Provider profiles ([#70](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/70)) ([59d02a4](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/59d02a41935518196f7a066748dfc9195eba27ec))
+
 ## [1.0.0-beta.14](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.13...v1.0.0-beta.14) (2026-10-07)
 
 
