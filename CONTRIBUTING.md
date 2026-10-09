@@ -93,4 +93,4 @@ The foundation contract stays directly analyzed. Independent recursive discovery
 must match locked FileFinder plus CLI stub-file removal. The host aggregate
 proves new root/nested/split/moved sources, src/tests collisions, unsupported
 extensions, production-stub rejection and excluded-fixture scan isolation.
-No existing production omission or analysis-level change is claimed.
+Production analysis coverage is unchanged.

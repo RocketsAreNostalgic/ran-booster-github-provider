@@ -1,6 +1,10 @@
 # Provider standards adoption checkpoint
 
-This implements the next-beta standards policy from organisation #128 on top of
+This page retains historical standards-adoption evidence from organisation #128.
+For current analysis gates and toolchain requirements, see [AGENTS.md](../AGENTS.md)
+and [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+The adoption implemented the next-beta standards policy from organisation #128 on top of
 Provider #57's required PHPStan level 5. Runtime contracts, persisted state and production dependency requirements are
 unchanged; only private unused helper inputs/callers are removed.
 
@@ -21,8 +25,8 @@ unchanged; only private unused helper inputs/callers are removed.
 - A negative fixture runs the actual local checker and proves inherited owned
   method naming and unused private/helper parameters remain blocking.
 
-The checker currently discovers all 75 maintained PHP files, matching an independent
-filesystem sweep. The regression also accounts for future extensionless PHP
+At that adoption checkpoint, the checker discovered all 75 maintained PHP files,
+matching an independent filesystem sweep. The regression also accounts for future extensionless PHP
 entrypoints and rejects unscoped PHPCS/legacy suppression comments while ignoring
 fixture strings. Negative controls run the locked checker and require inherited
 owned-method, unused-helper, variable, reserved-parameter and Yoda diagnostics.
@@ -37,8 +41,9 @@ and two-build tests establish these invariants.
 
 PHPCBF uses the same configuration and paths as PHPCS; repeated fixes are stable.
 Both production and development PHPStan profiles now require level 8 under
-organisation #148. The exact immutable Core beta.31 source-host identity is unchanged. Local PHP 8.3 qualification complements the native PHP 8.2/8.5
-matrix and Node 24.11.0 checks; PR evidence records their exact revisions/results.
+organisation #148. The exact immutable Core beta.31 source-host identity is
+unchanged. Local PHP 8.3 qualification complements the native PHP 8.2/8.5
+matrix and Node 24.21.0 checks; PR evidence records their exact revisions/results.
 No new release authority or installed/UI acceptance is claimed.
 
 ## Prefix exemption narrowing

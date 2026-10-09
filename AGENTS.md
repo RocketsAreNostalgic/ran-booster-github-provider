@@ -92,7 +92,7 @@ The foundation contract stays directly analyzed. Independent recursive discovery
 must match locked FileFinder plus CLI stub-file removal. The host aggregate
 proves new root/nested/split/moved sources, src/tests collisions, unsupported
 extensions, production-stub rejection and excluded-fixture scan isolation.
-No existing production omission or analysis-level change is claimed.
+Production analysis coverage is unchanged.
 
 `analyze` runs both profiles; `check:host` retains the certified-host contract first.
 The effective-selection guard compares each profile with independent discovery,
