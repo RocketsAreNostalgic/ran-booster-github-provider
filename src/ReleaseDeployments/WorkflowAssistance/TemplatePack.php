@@ -90,7 +90,7 @@ final readonly class TemplatePack {
 
 	/**
 	 * @param array<string, mixed> $identity
-	 * @return array{code:string, pack?:self}
+	 * @return array{code:'ok',pack:self}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_incompatible'}
 	 */
 	public static function from_archive( string $archive, array $identity ): array {
 		if ( ! self::valid_identity( $identity, $archive ) ) {
@@ -171,7 +171,7 @@ final readonly class TemplatePack {
 	 * Literal substitution only. Downloaded bytes are never evaluated.
 	 *
 	 * @param array<string, mixed> $values
-	 * @return array{code:string, content?:string, sha256?:string}
+	 * @return array{code:'ok',content:string,sha256:string}|array{code:'invalid_render'}
 	 */
 	public function render( string $profile, string $logical_id, array $values ): array {
 		if ( ! isset( $this->profiles[ $profile ][ $logical_id ], self::ENTRY_PLACEHOLDERS[ $logical_id ] ) ) {

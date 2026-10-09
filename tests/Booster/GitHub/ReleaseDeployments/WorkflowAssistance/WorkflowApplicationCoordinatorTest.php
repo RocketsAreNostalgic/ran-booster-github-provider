@@ -183,6 +183,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 		self::assertSame( 'workflow_inspected', $inspect['code'] );
 		$preview = $coordinator->preview( $inspect['preview_key'], $status );
+		self::assertNotNull( $preview );
 		self::assertSame( 'application/octet-stream', $preview['template_identity']['asset_content_type'] );
 		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code'] );
 	}
@@ -296,7 +297,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			'workflow_setup_open',
 			$coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code']
 		);
-		self::assertSame( 17, $records->find( '101' )['pr_number'] );
+		$record = $records->find( '101' );
+		self::assertNotNull( $record );
+		self::assertSame( 17, $record['pr_number'] );
 	}
 
 
@@ -333,11 +336,15 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 
 		$published = $this->status_at_revision( $status, 4 );
 		self::assertSame( 'workflow_pr_merged', $coordinator->outcome( $published, 'token' )['code'] );
-		self::assertSame( 4, $records->find( '101' )['source_revision'] );
+		$record = $records->find( '101' );
+		self::assertNotNull( $record );
+		self::assertSame( 4, $record['source_revision'] );
 
 		$older = $this->status_at_revision( $status, 3 );
 		self::assertSame( 'workflow_invalid_request', $coordinator->outcome( $older, 'token' )['code'] );
-		self::assertSame( 4, $records->find( '101' )['source_revision'] );
+		$record = $records->find( '101' );
+		self::assertNotNull( $record );
+		self::assertSame( 4, $record['source_revision'] );
 	}
 
 	public function test_theme_bootstrap_uses_the_theme_profile_and_complete_atomic_bundle(): void {
@@ -353,7 +360,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertNotNull( $preview );
 		self::assertSame( 'source-ready-wordpress-theme/3', $preview['profile_id'] );
 		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'theme-token' )['code'] );
-		self::assertSame( 'theme', $records->find( '101' )['package_type'] );
+		$record = $records->find( '101' );
+		self::assertNotNull( $record );
+		self::assertSame( 'theme', $record['package_type'] );
 		self::assertGreaterThanOrEqual( 5, $transport->write_counts['blob'] );
 	}
 
@@ -696,6 +705,7 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 
 		$winner = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $preflight, 'token' );
 
+		self::assertNotNull( $competing );
 		self::assertSame( 'workflow_invalid_request', $competing['code'] );
 		self::assertSame( 'workflow_setup_open', $winner['code'] );
 		self::assertNotNull( $records->find( '101' ) );

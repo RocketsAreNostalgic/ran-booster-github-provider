@@ -41,8 +41,13 @@ if ( 5 !== ( $config['parameters']['level'] ?? null )
 	|| ( $development && ( isset( $config['parameters']['bootstrapFiles'] ) || array( '%env.RAN_BOOSTER_CORE_PATH%/RAN' ) !== ( $config['parameters']['scanDirectories'] ?? null ) ) ) ) {
 	throw new RuntimeException( 'Review inclusive analysis scope and its explicit role exemptions.' );
 }
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Read the local canonical command, never runtime or remote state. Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
-$composer = json_decode( file_get_contents( $root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
+// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Read the local canonical command, never runtime or remote state.
+$ran_booster_github_provider_composer_source = file_get_contents( $root . '/composer.json' );
+if ( false === $ran_booster_github_provider_composer_source ) {
+	throw new RuntimeException( 'Cannot read the canonical Composer commands.' );
+}
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
+$composer = json_decode( $ran_booster_github_provider_composer_source, true, 512, JSON_THROW_ON_ERROR );
 if ( array( '@analyze:production', '@analyze:development' ) !== $composer['scripts']['analyze']
 	|| 'phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M' !== $composer['scripts']['analyze:production']
 	|| 'phpstan analyse --configuration=phpstan-development.neon --no-progress --memory-limit=512M' !== $composer['scripts']['analyze:development'] ) {
@@ -83,6 +88,9 @@ foreach ( new RecursiveIteratorIterator( $iterator ) as $entry ) {
 		$expected[] = $entry->getPathname();
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect maintained comments without executing the source. Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 		$source = file_get_contents( $entry->getPathname() );
+		if ( false === $source ) {
+			throw new RuntimeException( 'Cannot read maintained source for analysis coverage.' );
+		}
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 		foreach ( token_get_all( $source ) as $token ) {
 			if ( ! is_array( $token ) || ! in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) || ! preg_match( '/@phpstan-ignore/i', $token[1] ) ) {

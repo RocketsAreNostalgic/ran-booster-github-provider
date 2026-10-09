@@ -193,7 +193,9 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 					self::assertSame( 'RAN-Booster-Release-Deployments', $headers['User-Agent'] );
 				}
 
-				return array_shift( $responses );
+				$response = array_shift( $responses );
+				self::assertNotNull( $response );
+				return $response;
 			}
 		);
 

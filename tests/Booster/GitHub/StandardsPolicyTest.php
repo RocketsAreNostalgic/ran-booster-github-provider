@@ -297,12 +297,16 @@ FIXTURE;
 		if ( ! $document->loadXML( $xml, LIBXML_NONET ) ) {
 			return true;
 		}
-		$xpath = new \DOMXPath( $document );
-		if ( 1 !== $xpath->query( '/ruleset/rule[@ref="RANWordPressLibrary"]' )->length ) {
+		$xpath   = new \DOMXPath( $document );
+		$library = $xpath->query( '/ruleset/rule[@ref="RANWordPressLibrary"]' );
+		self::assertNotFalse( $library );
+		if ( 1 !== $library->length ) {
 			return true;
 		}
-		$configurations = array();
-		foreach ( $xpath->query( '//config' ) as $configuration ) {
+		$configurations      = array();
+		$configuration_nodes = $xpath->query( '//config' );
+		self::assertNotFalse( $configuration_nodes );
+		foreach ( $configuration_nodes as $configuration ) {
 			self::assertInstanceOf( \DOMElement::class, $configuration );
 			$configurations[] = $configuration->getAttribute( 'name' ) . ':' . $configuration->getAttribute( 'value' );
 		}
@@ -310,10 +314,15 @@ FIXTURE;
 		if ( array( 'minimum_wp_version:7.0', 'testVersion:8.2-' ) !== $configurations ) {
 			return true;
 		}
-		if ( 0 !== $xpath->query( '//rule/exclude | //rule/exclude-pattern | //rule/include-pattern | //@phpcs-only | //@phpcbf-only' )->length ) {
+		$exclusions = $xpath->query( '//rule/exclude | //rule/exclude-pattern | //rule/include-pattern | //@phpcs-only | //@phpcbf-only' );
+		self::assertNotFalse( $exclusions );
+		if ( 0 !== $exclusions->length ) {
 			return true;
 		}
-		foreach ( $xpath->query( '//rule/severity' ) as $severity ) {
+		$severity_nodes = $xpath->query( '//rule/severity' );
+		self::assertNotFalse( $severity_nodes );
+		foreach ( $severity_nodes as $severity ) {
+			self::assertInstanceOf( \DOMElement::class, $severity );
 			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOM owns the textContent property.
 			$value = trim( $severity->textContent );
 			if ( ! preg_match( '/^[1-9][0-9]*$/D', $value ) || (int) $value < 5 ) {
@@ -322,6 +331,8 @@ FIXTURE;
 		}
 		$properties = $xpath->query( '//rule/properties/property' );
 		$prefixes   = $xpath->query( '//rule[@ref="WordPress.NamingConventions.PrefixAllGlobals"]/properties/property[@name="prefixes"]' );
+		self::assertNotFalse( $properties );
+		self::assertNotFalse( $prefixes );
 		if ( 1 !== $properties->length || 1 !== $prefixes->length ) {
 			return true;
 		}
@@ -329,16 +340,20 @@ FIXTURE;
 		if ( ! $property instanceof \DOMElement || 'array' !== $property->getAttribute( 'type' ) || $property->hasAttribute( 'value' ) ) {
 			return true;
 		}
-		$values = array();
-		foreach ( $xpath->query( './element', $property ) as $element ) {
+		$values        = array();
+		$element_nodes = $xpath->query( './element', $property );
+		self::assertNotFalse( $element_nodes );
+		foreach ( $element_nodes as $element ) {
 			self::assertInstanceOf( \DOMElement::class, $element );
 			$values[] = $element->getAttribute( 'value' );
 		}
 		if ( array( 'ran_booster_github_provider', 'RAN\\BoosterGitHubProvider\\V1' ) !== $values ) {
 			return true;
 		}
-		$arguments = array();
-		foreach ( $xpath->query( '//arg' ) as $argument ) {
+		$arguments      = array();
+		$argument_nodes = $xpath->query( '//arg' );
+		self::assertNotFalse( $argument_nodes );
+		foreach ( $argument_nodes as $argument ) {
 			self::assertInstanceOf( \DOMElement::class, $argument );
 			$arguments[] = $argument->getAttribute( 'name' ) . ':' . $argument->getAttribute( 'value' );
 		}

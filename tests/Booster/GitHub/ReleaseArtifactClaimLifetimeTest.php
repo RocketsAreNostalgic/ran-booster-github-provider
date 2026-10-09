@@ -15,6 +15,69 @@ use RAN\Deployment\ReleaseArtifactCustodian;
 use RuntimeException;
 
 final class ReleaseArtifactClaimLifetimeTest extends TestCase {
+	public function test_inaccessible_artifact_methods_preserve_retry_and_handoff_failure_state(): void {
+		$source = new class() {
+			private function inspect(): mixed {
+				return null; }
+			protected function discard(): bool {
+				return false; }
+			/** @return list<\Closure> */
+			public function internal_methods(): array {
+				return array( $this->inspect( ... ), $this->discard( ... ) );
+			}
+		};
+		self::assertCount( 2, $source->internal_methods() );
+		$artifact = $this->artifact_from_source( $source );
+		for ( $attempt = 0; $attempt < 2; ++$attempt ) {
+			try {
+				$artifact->discard();
+				self::fail( 'Inaccessible discard must fail before handoff.' );
+			} catch ( RuntimeException $failure ) {
+				self::assertSame( 'The public release artifact cannot be discarded.', $failure->getMessage() );
+			}
+		}
+		$artifact->handoff_to_core();
+		$called = false;
+		try {
+			$artifact->inspect(
+				static function () use ( &$called ): void {
+					$called = true;
+				}
+			);
+			self::fail( 'Inaccessible inspection must fail.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( 'The public release artifact cannot be inspected.', $failure->getMessage() );
+		}
+		self::assertFalse( $called );
+		try {
+			$artifact->discard();
+			self::fail( 'The first failed discard after handoff must throw.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( 'The public release artifact cannot be discarded.', $failure->getMessage() );
+		}
+		self::assertFalse( $artifact->discard() );
+	}
+
+	public function test_magic_artifact_dispatch_remains_callable(): void {
+		$source   = new class() {
+			private function inspect( callable $reader ): mixed {
+				return $reader( 'fixture-path' ); }
+			private function discard(): bool {
+				return true; }
+			/** @param array<array-key,mixed> $arguments */
+			public function __call( string $method, array $arguments ): mixed {
+				if ( 'inspect' === $method ) {
+					return $this->inspect( ...$arguments );
+				}
+				return $this->discard();
+			}
+		};
+		$artifact = $this->artifact_from_source( $source );
+		$artifact->handoff_to_core();
+		self::assertSame( 'fixture-path', $artifact->inspect( static fn ( string $path ): string => $path ) );
+		self::assertTrue( $artifact->discard() );
+	}
+
 		#[RunInSeparateProcess]
 		#[PreserveGlobalState( false )]
 	public function test_provider_artifact_is_copied_into_core_custody_before_provider_cleanup(): void {
@@ -448,6 +511,7 @@ final class FaultingStructuralReleaseArtifact {
 	public function inspect( callable $reader ): mixed {
 		$this->prepared = $reader( $this->path );
 		if ( $this->break_prepared_copy ) {
+			TestCase::assertNotNull( $this->prepared );
 			chmod( $this->prepared->get_path(), 0644 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only prepared-copy identity drift.
 		}
 

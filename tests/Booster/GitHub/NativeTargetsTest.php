@@ -324,6 +324,19 @@ final class NativeTargetsTest extends TestCase {
 		self::assertSame( '', $status->candidate_code );
 	}
 
+	public function test_registration_rejects_missing_registrar_and_updater_methods(): void {
+		self::assertFalse( $this->target( null )->register() );
+		$registrar = new class() {
+			public function plugin( mixed ...$arguments ): object {
+				TestCase::assertCount( 7, $arguments );
+				return new \stdClass();
+			}
+		};
+		$target    = $this->target( null, $registrar );
+		self::assertFalse( $target->register() );
+		self::assertFalse( $target->register() );
+	}
+
 	private function target( string|callable|null $access_token, ?object $registrar = null ): GitHubReleaseNativeTarget {
 		return new GitHubReleaseNativeTarget(
 			$registrar ?? new \stdClass(),

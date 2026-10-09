@@ -114,7 +114,7 @@ final class WebhookNormalizerTest extends TestCase {
 	}
 
 	/**
-	 * @param array<array-key,mixed> $values
+	 * @param list<string> $values
 	 */
 	#[DataProvider( 'malformed_signature_form_provider' )]
 	public function test_malformed_signature_forms_are_rejected_before_secrets( array $values ): void {
@@ -175,7 +175,7 @@ final class WebhookNormalizerTest extends TestCase {
 	}
 
 	/**
-	 * @param string|array<array-key,mixed> $value
+	 * @param string|list<string> $value
 	 */
 	#[DataProvider( 'invalid_bounded_header_provider' )]
 	public function test_invalid_event_and_delivery_headers_are_rejected_before_secrets(
@@ -619,7 +619,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 	/**
 	 * @param list<array<string, mixed>>|null $profiles Secret profiles.
-	 * @return array{WebhookNormalizer, object}
+	 * @return array{WebhookNormalizer, WebhookProfileReaderStub}
 	 */
 	private function counting_normalizer(
 		?array $profiles = null,

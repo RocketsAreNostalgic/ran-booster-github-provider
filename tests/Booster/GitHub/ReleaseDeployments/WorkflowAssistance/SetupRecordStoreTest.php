@@ -80,7 +80,9 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertNull( $store->refresh_source_revision( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
 		self::assertNull( $store->refresh_source_revision( '123456789', 'theme', 'example-plugin/example-plugin.php', 5 ) );
 		self::assertNull( $store->refresh_source_revision( '123456789', 'plugin', 'other/example.php', 5 ) );
-		self::assertSame( 4, $store->find( '123456789' )['source_revision'] );
+		$record = $store->find( '123456789' );
+		self::assertNotNull( $record );
+		self::assertSame( 4, $record['source_revision'] );
 	}
 	public function test_existing_unknown_rows_occupy_their_key_without_byte_changes(): void {
 		foreach ( array(
@@ -230,7 +232,7 @@ final class SetupRecordStoreTest extends TestCase {
 			array(),
 			array_filter(
 				array_keys( $GLOBALS['ran_booster_release_deployments_test_options'] ),
-				static fn ( string $key ): bool => str_contains( $key, 'setup_claim' )
+				static fn ( int|string $key ): bool => is_string( $key ) && str_contains( $key, 'setup_claim' )
 			)
 		);
 	}
@@ -259,7 +261,9 @@ final class SetupRecordStoreTest extends TestCase {
 		$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
 		$other           = new SetupRecordStore();
 		self::assertNull( $other->refresh_source_revision( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 ) );
-		self::assertSame( 3, $other->find( '123456789' )['source_revision'] );
+		$record = $other->find( '123456789' );
+		self::assertNotNull( $record );
+		self::assertSame( 3, $record['source_revision'] );
 
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the original connection to release its lock.
 		$GLOBALS['wpdb'] = $first_connection;
@@ -267,6 +271,7 @@ final class SetupRecordStoreTest extends TestCase {
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The focused database double switches to a distinct connection.
 		$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
 		$refreshed       = $other->refresh_source_revision( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 );
+		self::assertNotNull( $refreshed );
 		self::assertSame( 4, $refreshed['source_revision'] );
 		self::assertNotNull( $other->find( '987654321' ) );
 		self::assertCount( 2, $GLOBALS['ran_booster_release_deployments_test_options']['ran_booster_github_provider_release_workflow_setup_records'] );
@@ -283,7 +288,9 @@ final class SetupRecordStoreTest extends TestCase {
 		$store = new SetupRecordStore();
 		self::assertTrue( $store->save( $this->record() ) );
 		self::assertFalse( $store->save( array_replace( $this->record(), array( 'package_identifier' => 'other/other.php' ) ) ) );
-		self::assertSame( 'example-plugin/example-plugin.php', $store->find( '123456789' )['package_identifier'] );
+		$record = $store->find( '123456789' );
+		self::assertNotNull( $record );
+		self::assertSame( 'example-plugin/example-plugin.php', $record['package_identifier'] );
 	}
 	public function test_schema_one_record_is_occupied_but_never_interpreted_as_current_state(): void {
 		$legacy                 = array_intersect_key( $this->record(), array_flip( array( 'repo_id', 'repository', 'package_type', 'package_identifier', 'source_revision', 'default_branch', 'setup_branch', 'head_sha', 'pr_number' ) ) );

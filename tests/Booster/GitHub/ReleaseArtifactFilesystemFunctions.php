@@ -6,6 +6,7 @@ declare(strict_types=1);
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- This fixture must occupy the exact Core namespace to intercept the existing host contract.
 namespace RAN\Deployment;
 
+/** @param int<1,max> $length */
 function random_bytes( int $length ): string {
 	$value = $GLOBALS['ran_booster_custody_random_bytes'] ?? null;
 

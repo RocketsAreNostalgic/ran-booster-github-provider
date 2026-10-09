@@ -15,8 +15,10 @@ require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 
 final class StarterSecurityCheckTest extends TestCase {
 	private function origin(): string {
-		$bytes = TemplatePackApi3Fixture::archive();
-		return StarterOrigin::encode( TemplatePack::from_archive( $bytes, TemplatePackApi3Fixture::identity( $bytes ) )['pack'], 'source-ready-wordpress-plugin/3' );
+		$bytes  = TemplatePackApi3Fixture::archive();
+		$result = TemplatePack::from_archive( $bytes, TemplatePackApi3Fixture::identity( $bytes ) );
+		self::assertSame( 'ok', $result['code'] );
+		return StarterOrigin::encode( $result['pack'], 'source-ready-wordpress-plugin/3' );
 	}
 	/**
 	 * @return array<array-key,mixed>
@@ -182,6 +184,7 @@ final class StarterSecurityCheckTest extends TestCase {
 			$cases[] = json_encode( $bad );
 		}
 		foreach ( $cases as $case ) {
+			self::assertIsString( $case );
 			self::assertSame( 'unknown', $checker->check( $case )['status'] );
 		}
 		self::assertSame( 0, $calls );

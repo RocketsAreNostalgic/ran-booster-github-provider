@@ -56,6 +56,9 @@ final class GitHubReleaseArtifact implements RepositoryReleaseArtifact, Reposito
 			return $this->discard_result;
 		}
 		try {
+			if ( ! is_callable( array( $this->artifact, 'discard' ) ) ) {
+				throw new RuntimeException( 'The public release artifact cannot be discarded.' );
+			}
 			$discarded            = true === $this->artifact->discard();
 			$this->discard_result = $discarded ? true : ( $this->handed_off ? false : null );
 
@@ -84,6 +87,9 @@ final class GitHubReleaseArtifact implements RepositoryReleaseArtifact, Reposito
 			throw new RuntimeException( 'The GitHub release artifact is unavailable.' );
 		}
 
+		if ( ! is_callable( array( $this->artifact, 'inspect' ) ) ) {
+			throw new RuntimeException( 'The public release artifact cannot be inspected.' );
+		}
 		return $this->artifact->inspect( $inspection );
 	}
 

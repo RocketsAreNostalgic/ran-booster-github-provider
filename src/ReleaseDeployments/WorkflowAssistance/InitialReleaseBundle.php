@@ -58,7 +58,7 @@ final readonly class InitialReleaseBundle {
 		);
 	}
 
-	/** @return array{code:string,bundle?:self} */
+	/** @return array{code:'ok',bundle:self}|array{code:'invalid_bundle'} */
 	public static function bootstrap(
 		TemplatePack $pack,
 		SourceReadyAssessment $assessment,

@@ -16,6 +16,35 @@ use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\NeutralReleaseUpda
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 final class PublicReleaseResultMappingTest extends TestCase {
+	public function test_candidate_asset_names_preserve_the_certified_core_rejection_contract(): void {
+		foreach ( array( array( 1 => 'example.zip' ), array( 'asset' => 'example.zip' ), array( 42 ) ) as $names ) {
+			$listing = $this->listing();
+			$listing['value']['candidates'][0]['expected_asset_names'] = $names;
+			$provider = $this->provider( new PublicReleaseSourceFixture( $listing, array(), array() ) );
+			try {
+				$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+				self::fail( 'Malformed asset-name collections must fail.' );
+			} catch ( \InvalidArgumentException $failure ) {
+				self::assertSame( 'The repository release candidate is invalid.', $failure->getMessage() );
+			}
+		}
+		foreach ( array( array(), array( 'example.zip' ) ) as $names ) {
+			$listing = $this->listing();
+			$listing['value']['candidates'][0]['expected_asset_names'] = $names;
+			$provider = $this->provider( new PublicReleaseSourceFixture( $listing, array(), array() ) );
+			$result   = $provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+			self::assertSame( $names, $result->candidates[0]->expected_asset_names );
+		}
+	}
+
+	public function test_missing_public_registrar_method_keeps_the_unavailable_failure(): void {
+		$provider = GitHubProvider::create( new RepositoryResolverSecretsStub(), new EmptyAuthenticatedWebhookDeliveryEvidenceReader(), new \stdClass() );
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionCode( 503 );
+		$this->expectExceptionMessage( 'GitHub release candidate listing is unavailable.' );
+		$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+	}
+
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function setUp(): void {
 		NeutralReleaseUpdaterFixtures::reset();

@@ -59,9 +59,12 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 				if ( null !== $this->maximum_artifact_bytes ) {
 					$arguments[] = ( $this->maximum_artifact_bytes )();
 				}
+				if ( ! is_callable( array( $this->registrar, $method ) ) ) {
+					return false;
+				}
 				$this->updater = $this->registrar->{$method}( ...$arguments );
 			}
-			return true === $this->updater->register();
+			return null !== $this->updater && is_callable( array( $this->updater, 'register' ) ) && true === $this->updater->register();
 		} catch ( \Throwable ) {
 			return false;
 		}
