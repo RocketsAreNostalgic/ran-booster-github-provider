@@ -43,7 +43,7 @@ test("Provider pilot preserves phase ordering, runtime matrix and fail-closed te
   assert.match(implementation, /permissions:\n      contents: read/);
   assert.match(implementation, /pull_request_target/);
   assert.match(implementation, /tools: composer:v2/);
-  assert.match(implementation, /node-version: '24.11.0'/);
+  assert.match(implementation, /node-version: '24.21.0'/);
   assert.match(implementation, /composer validate --strict --no-check-publish --no-check-all/);
   assert.match(implementation, /composer install --no-interaction --prefer-dist --no-progress/);
   assert.equal(implementation.match(/uses: shivammathur\/setup-php@/g)?.length, 1);
