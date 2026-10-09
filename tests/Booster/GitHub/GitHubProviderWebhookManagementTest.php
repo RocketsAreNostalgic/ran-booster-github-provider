@@ -26,6 +26,7 @@ final class GitHubProviderWebhookManagementTest extends TestCase {
 		}
 	}
 
+	/** @param 'setup'|'check'|'reconfigure'|'remove'|'test' $operation */
 	#[DataProvider( 'management_credential_sources' )]
 	public function test_management_operation_uses_the_selected_saved_credential( string $operation ): void {
 		$store    = new RepositoryResolverSecretsStub( array( 'saved-profile' => self::SAVED_TOKEN ) );

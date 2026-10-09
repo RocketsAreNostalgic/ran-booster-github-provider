@@ -113,6 +113,9 @@ final class WebhookNormalizerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @param list<string> $values
+	 */
 	#[DataProvider( 'malformed_signature_form_provider' )]
 	public function test_malformed_signature_forms_are_rejected_before_secrets( array $values ): void {
 		$body                         = '{}';
@@ -171,6 +174,9 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertSame( 0, $secrets->calls );
 	}
 
+	/**
+	 * @param string|list<string> $value
+	 */
 	#[DataProvider( 'invalid_bounded_header_provider' )]
 	public function test_invalid_event_and_delivery_headers_are_rejected_before_secrets(
 		string $header,
@@ -357,6 +363,9 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertSame( 0, $secrets->calls );
 	}
 
+	/**
+	 * @param array<array-key,mixed> $payload
+	 */
 	#[DataProvider( 'malformed_push_provider' )]
 	public function test_missing_or_malformed_required_push_fields_are_rejected( array $payload ): void {
 		$body = $this->encode( $payload );
@@ -406,6 +415,9 @@ final class WebhookNormalizerTest extends TestCase {
 		yield 'non-boolean deletion flag' => array( $payload );
 	}
 
+	/**
+	 * @param array<array-key,mixed> $payload
+	 */
 	#[DataProvider( 'ignored_push_provider' )]
 	public function test_non_deployable_pushes_are_ignored( array $payload ): void {
 		$body     = $this->encode( $payload );
@@ -607,7 +619,7 @@ final class WebhookNormalizerTest extends TestCase {
 
 	/**
 	 * @param list<array<string, mixed>>|null $profiles Secret profiles.
-	 * @return array{WebhookNormalizer, object}
+	 * @return array{WebhookNormalizer, WebhookProfileReaderStub}
 	 */
 	private function counting_normalizer(
 		?array $profiles = null,

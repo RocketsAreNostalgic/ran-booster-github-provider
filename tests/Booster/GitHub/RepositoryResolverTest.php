@@ -217,6 +217,9 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @param array<array-key,mixed> $headers
+	 */
 	#[DataProvider( 'rate_limit_response_provider' )]
 	public function test_exact_repository_maps_rate_limit_responses(
 		int $status,
@@ -238,6 +241,9 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @param array<array-key,mixed> $headers
+	 */
 	#[DataProvider( 'rate_limit_response_provider' )]
 	public function test_authenticated_listing_maps_rate_limit_responses(
 		int $status,
@@ -262,6 +268,9 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @param array<array-key,mixed> $headers
+	 */
 	#[DataProvider( 'rate_limit_response_provider' )]
 	public function test_public_listing_maps_rate_limit_responses(
 		int $status,
@@ -384,6 +393,9 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @param array<array-key,mixed> $headers
+	 */
 	#[DataProvider( 'rate_limit_response_provider' )]
 	public function test_explicit_public_profile_never_retries_denials_anonymously(
 		int $status,
@@ -740,6 +752,9 @@ final class RepositoryResolverTest extends TestCase {
 		return $provider;
 	}
 
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function repository_identity_response( bool $is_private = false, string $id = '987654321' ): array {
 		return $this->response(
 			200,
@@ -752,6 +767,10 @@ final class RepositoryResolverTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @param array<array-key,mixed> $body
+	 * @return array<array-key,mixed>
+	 */
 	private function response( int $status, array $body ): array {
 		return array(
 			'response' => array( 'code' => $status ),
@@ -760,6 +779,10 @@ final class RepositoryResolverTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @param array<array-key,mixed> $headers
+	 * @return array<array-key,mixed>
+	 */
 	private function error_response( int $status, array $headers ): array {
 		return array(
 			'response' => array( 'code' => $status ),

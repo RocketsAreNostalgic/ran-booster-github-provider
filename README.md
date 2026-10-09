@@ -50,7 +50,7 @@ Do not infer host compatibility from matching version numbers.
 **Use the Provider version bundled with your chosen Booster release.** Core
 `v1.0.0-beta.31` is published and bundles Provider beta.13. Provider CI pins that
 immutable Core tag target for source-host qualification, as identified in
-[the contribution guide](CONTRIBUTING.md). Its level-5 analysis and host tests do
+[the contribution guide](CONTRIBUTING.md). Its level-8 analysis and host tests do
 not establish installed-site or UI acceptance for a different composition. A
 package release alone does not qualify a different host/dependency combination.
 

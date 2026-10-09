@@ -17,8 +17,11 @@ final class ProducerExchangeTest extends TestCase {
 		$dir = dirname( __DIR__, 4 ) . '/fixtures/api3-producer';
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Read the committed producer ZIP/manifest bytes exactly for provenance and digest assertions.
 		$bytes = file_get_contents( $dir . '/ran-booster-release-bootstrap-templates.zip' );
+		self::assertNotFalse( $bytes );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Read the committed producer ZIP/manifest bytes exactly for provenance and digest assertions.
-		$e = json_decode( file_get_contents( $dir . '/producer-exchange.json' ), true, 512, JSON_THROW_ON_ERROR );
+		$exchange = file_get_contents( $dir . '/producer-exchange.json' );
+		self::assertNotFalse( $exchange );
+		$e = json_decode( $exchange, true, 512, JSON_THROW_ON_ERROR );
 		if ( strlen( $bytes ) !== 10132 || hash( 'sha256', $bytes ) !== '2da459b63715660226b43914d3466f8b176bf645961dc0009fb51168c21ae7cf' ) {
 			throw new \RuntimeException( 'ZIP mismatch' );
 		}
@@ -151,7 +154,9 @@ final class ProducerExchangeTest extends TestCase {
 			self::assertSame( hash_file( 'sha256', $root . '/dist-one/example-package-1.2.3.zip' ), hash_file( 'sha256', $root . '/dist-two/example-package-1.2.3.zip' ) );
 			$zip = new \ZipArchive();
 			self::assertTrue( $zip->open( $root . '/dist-one/example-package-1.2.3.zip' ) );
-			self::assertSame( \ZipArchive::CM_STORE, $zip->statName( 'example-package/assets/repeated.txt' )['comp_method'] );
+			$stat = $zip->statName( 'example-package/assets/repeated.txt' );
+			self::assertNotFalse( $stat );
+			self::assertSame( \ZipArchive::CM_STORE, $stat['comp_method'] );
 			$zip->close();
 		} finally {
 			$iterator = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::CHILD_FIRST );

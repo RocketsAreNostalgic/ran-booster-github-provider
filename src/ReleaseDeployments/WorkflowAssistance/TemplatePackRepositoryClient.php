@@ -34,7 +34,7 @@ final class TemplatePackRepositoryClient {
 	/**
 	 * Select the newest eligible stable immutable release; never fall back to an older format.
 	 *
-	 * @return array{code:string, pack?:TemplatePack}
+	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
 	 */
 	public function discover( string $token = '' ): array {
 		$repository = $this->repository( $token );
@@ -75,7 +75,7 @@ final class TemplatePackRepositoryClient {
 	 * Re-fetch one preview-pinned release and reject any identity drift.
 	 *
 	 * @param array<string, mixed> $expected_identity
-	 * @return array{code:string, pack?:TemplatePack}
+	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
 	 */
 	public function exact( array $expected_identity, string $token = '' ): array {
 		if ( ! $this->expected_identity_belongs_here( $expected_identity ) ) {
@@ -107,7 +107,7 @@ final class TemplatePackRepositoryClient {
 		return $result['pack']->identity() === $expected_identity ? $result : $this->error( 'template_pack_changed' );
 	}
 
-	/** @return array{code:string} */
+	/** @return array{code:'ok'|'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
 	private function repository( string $token ): array {
 		$response = $this->json_request( '/repos/' . self::REPOSITORY, 65536, $token );
 		if ( 'ok' !== $response['code'] ) {
@@ -116,13 +116,13 @@ final class TemplatePackRepositoryClient {
 		$id   = $this->positive_numeric_string( $response['data']['id'] ?? null );
 		$name = $response['data']['full_name'] ?? null;
 		return is_string( $name ) && hash_equals( self::REPOSITORY, $name ) && null !== $id && hash_equals( self::REPOSITORY_ID, $id )
-			? $this->ok( array() )
+			? array( 'code' => 'ok' )
 			: $this->error( 'template_pack_changed' );
 	}
 
 	/**
-	 * @param array<string, mixed> $candidate
-	 * @return array{code:string, pack?:TemplatePack}
+	 * @param array{release_id:int,release_tag:string,release_target:string,version:string,asset_count:int,asset_id:int,asset_name:string,asset_state:string,asset_content_type:string,asset_size:int,asset_digest:string,asset_sha256:string} $candidate
+	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
 	 */
 	private function verified_release( array $candidate, string $token ): array {
 		$release = $this->json_request(
@@ -199,7 +199,7 @@ final class TemplatePackRepositoryClient {
 		return TemplatePack::from_archive( $asset['body'], $identity );
 	}
 
-	/** @return array<string, int|string>|false|null False means intentionally ineligible. */
+	/** @return array{release_id:int,release_tag:string,release_target:string,version:string,asset_count:int,asset_id:int,asset_name:string,asset_state:string,asset_content_type:string,asset_size:int,asset_digest:string,asset_sha256:string}|false|null False means intentionally ineligible. */
 	private function candidate( mixed $release ): array|false|null {
 		if ( ! is_array( $release ) || ! is_bool( $release['immutable'] ?? null ) || ! is_bool( $release['draft'] ?? null )
 			|| ! is_bool( $release['prerelease'] ?? null ) ) {
@@ -296,7 +296,10 @@ final class TemplatePackRepositoryClient {
 			&& ( $expected['asset_digest'] ?? null ) === 'sha256:' . $expected['asset_sha256'];
 	}
 
-	/** @param array<string, int|string> $candidate @param array<string, mixed> $expected */
+	/**
+	 * @param array{release_id:int,release_tag:string,release_target:string,version:string,asset_count:int,asset_id:int,asset_name:string,asset_state:string,asset_content_type:string,asset_size:int,asset_digest:string,asset_sha256:string} $candidate
+	 * @param array<string, mixed> $expected
+	 */
 	private function candidate_matches_expected( array $candidate, array $expected ): bool {
 		return $candidate['release_id'] === $expected['release_id']
 			&& hash_equals( $candidate['release_tag'], $expected['release_tag'] )
@@ -311,7 +314,7 @@ final class TemplatePackRepositoryClient {
 			&& hash_equals( $candidate['asset_sha256'], $expected['asset_sha256'] );
 	}
 
-	/** @return array{code:string, data?:array<string,mixed>|list<mixed>} */
+	/** @return array{code:'ok',data:array<array-key,mixed>}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
 	private function json_request( string $path, int $limit, string $token ): array {
 		$response = $this->request( $path, 'application/vnd.github+json', $limit, 0, $token );
 		if ( 'ok' !== $response['code'] ) {
@@ -323,15 +326,18 @@ final class TemplatePackRepositoryClient {
 			return $this->error( 'template_pack_invalid' );
 		}
 
-		return is_array( $data ) ? $this->ok( array( 'data' => $data ) ) : $this->error( 'template_pack_invalid' );
+		return is_array( $data ) ? array(
+			'code' => 'ok',
+			'data' => $data,
+		) : $this->error( 'template_pack_invalid' );
 	}
 
-	/** @return array{code:string, body?:string} */
+	/** @return array{code:'ok',body:string}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
 	private function binary_request( string $path, int $expected_size, string $token ): array {
 		return $this->request( $path, 'application/octet-stream', min( self::ASSET_BODY_LIMIT, $expected_size + 1 ), 3, $token );
 	}
 
-	/** @return array{code:string, body?:string} */
+	/** @return array{code:'ok',body:string}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
 	private function request( string $path, string $accept, int $limit, int $redirects, string $token ): array {
 		if ( ! str_starts_with( $path, '/repos/' ) || $limit < 1 || $limit > self::ASSET_BODY_LIMIT ) {
 			return $this->error( 'template_pack_invalid' );
@@ -388,7 +394,10 @@ final class TemplatePackRepositoryClient {
 			return $this->error( 'template_pack_unavailable' );
 		}
 
-		return $this->ok( array( 'body' => $body ) );
+		return array(
+			'code' => 'ok',
+			'body' => $body,
+		);
 	}
 
 	private function positive_int( mixed $value ): ?int {
@@ -410,12 +419,10 @@ final class TemplatePackRepositoryClient {
 		return str_starts_with( $tag, 'v' ) && StarterOrigin::version( $version ) ? $version : null;
 	}
 
-	/** @param array<string, mixed> $values @return array<string, mixed> */
-	private function ok( array $values ): array {
-		return array_merge( array( 'code' => 'ok' ), $values );
-	}
-
-	/** @return array{code:string} */
+	/**
+	 * @param 'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed' $code
+	 * @return array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'}
+	 */
 	private function error( string $code ): array {
 		return array( 'code' => $code );
 	}

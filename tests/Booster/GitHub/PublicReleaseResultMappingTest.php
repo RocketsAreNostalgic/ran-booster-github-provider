@@ -16,6 +16,35 @@ use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\NeutralReleaseUpda
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 final class PublicReleaseResultMappingTest extends TestCase {
+	public function test_candidate_asset_names_preserve_the_certified_core_rejection_contract(): void {
+		foreach ( array( array( 1 => 'example.zip' ), array( 'asset' => 'example.zip' ), array( 42 ) ) as $names ) {
+			$listing = $this->listing();
+			$listing['value']['candidates'][0]['expected_asset_names'] = $names;
+			$provider = $this->provider( new PublicReleaseSourceFixture( $listing, array(), array() ) );
+			try {
+				$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+				self::fail( 'Malformed asset-name collections must fail.' );
+			} catch ( \InvalidArgumentException $failure ) {
+				self::assertSame( 'The repository release candidate is invalid.', $failure->getMessage() );
+			}
+		}
+		foreach ( array( array(), array( 'example.zip' ) ) as $names ) {
+			$listing = $this->listing();
+			$listing['value']['candidates'][0]['expected_asset_names'] = $names;
+			$provider = $this->provider( new PublicReleaseSourceFixture( $listing, array(), array() ) );
+			$result   = $provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+			self::assertSame( $names, $result->candidates[0]->expected_asset_names );
+		}
+	}
+
+	public function test_missing_public_registrar_method_keeps_the_unavailable_failure(): void {
+		$provider = GitHubProvider::create( new RepositoryResolverSecretsStub(), new EmptyAuthenticatedWebhookDeliveryEvidenceReader(), new \stdClass() );
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionCode( 503 );
+		$this->expectExceptionMessage( 'GitHub release candidate listing is unavailable.' );
+		$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+	}
+
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.
 	protected function setUp(): void {
 		NeutralReleaseUpdaterFixtures::reset();
@@ -167,6 +196,9 @@ final class PublicReleaseResultMappingTest extends TestCase {
 
 	private function provider( PublicReleaseSourceFixture $source ): GitHubProvider {
 		return GitHubProvider::create( new RepositoryResolverSecretsStub(), new EmptyAuthenticatedWebhookDeliveryEvidenceReader(), new PublicReleaseRegistrarFixture( $source ) ); }
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function envelope( bool $ok, string $code, mixed $value, string $cleanup = 'not_applicable' ): array {
 		return array(
 			'ok'             => $ok,
@@ -175,6 +207,9 @@ final class PublicReleaseResultMappingTest extends TestCase {
 			'retry_after'    => null,
 			'cleanup_status' => $cleanup,
 		); }
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function listing(): array {
 		return $this->envelope(
 			true,
@@ -198,6 +233,9 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		$path = tempnam( sys_get_temp_dir(), 'p3-mapping-' );
 		file_put_contents( $path, 'protocol3-bytes' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Exact temporary structural-artifact fixture.
 		return $path; }
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function facts(): array {
 		return array(
 			'release_identity'       => '42',
@@ -229,14 +267,29 @@ final class PublicReleaseRegistrarFixture {
 final class PublicReleaseSourceFixture {
 	public int $inspect_calls = 0;
 	public int $acquire_calls = 0;
-	public function __construct( private array $release_list, private array $inspect, private array $acquire ) {} public function list(): array {
+	/**
+	 * @param array<array-key,mixed> $acquire
+	 * @param array<array-key,mixed> $inspect
+	 * @param array<array-key,mixed> $release_list
+	 */
+	public function __construct( private array $release_list, private array $inspect, private array $acquire ) {}
+	/**
+	 * @return array<array-key,mixed>
+	 */
+	public function list(): array {
 		return $this->release_list;
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Structural release-source fixture preserves the public lookup signature.
 	public function inspect( string $id, string $tag ): array {
 		++$this->inspect_calls;
 		return $this->inspect;
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Structural release-source fixture preserves the public acquisition signature.
 	public function acquire( string $id, string $tag, string $fingerprint ): array {
 		++$this->acquire_calls;

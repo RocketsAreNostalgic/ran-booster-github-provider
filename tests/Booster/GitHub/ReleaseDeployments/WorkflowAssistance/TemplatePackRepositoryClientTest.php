@@ -193,7 +193,9 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 					self::assertSame( 'RAN-Booster-Release-Deployments', $headers['User-Agent'] );
 				}
 
-				return array_shift( $responses );
+				$response = array_shift( $responses );
+				self::assertNotNull( $response );
+				return $response;
 			}
 		);
 
@@ -355,14 +357,20 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		);
 	}
 
-	/** @param array<string, mixed> $manifest @return array<string, mixed> */
+	/**
+	 * @param array<string, mixed> $manifest
+	 * @return array<string, mixed>
+	 */
 	private function manifest_identity( array $manifest, string $tag ): array {
 		$manifest['release']['tag'] = $tag;
 
 		return $manifest;
 	}
 
-	/** @return array<string, mixed> */
+	/**
+	 * @return array<string, mixed>
+	 * @param array<array-key,mixed> $body
+	 */
 	private function response( int $status, array $body ): array {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test transport requires throwing deterministic JSON encoding.
 		return $this->binary_response( $status, (string) json_encode( $body, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ) );

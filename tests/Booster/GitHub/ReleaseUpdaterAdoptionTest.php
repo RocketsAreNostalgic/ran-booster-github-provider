@@ -24,7 +24,9 @@ final class ReleaseUpdaterAdoptionTest extends TestCase {
 		self::assertSame( 5, $copy['runtime_protocol'] );
 		self::assertSame( ltrim( $packages[0]['version'], 'v' ), $copy['package_version'] );
 		self::assertSame( $packages[0]['source']['reference'], \Composer\InstalledVersions::getReference( 'ran/wp-release-updater' ) );
-		self::assertSame( realpath( $root ), realpath( \Composer\InstalledVersions::getInstallPath( 'ran/wp-release-updater' ) ) );
+		$install_path = \Composer\InstalledVersions::getInstallPath( 'ran/wp-release-updater' );
+		self::assertNotNull( $install_path );
+		self::assertSame( realpath( $root ), realpath( $install_path ) );
 
 		$files    = array( 'bootstrap.php', 'runtime.php' );
 		$iterator = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root . '/src', \FilesystemIterator::SKIP_DOTS ) );
@@ -51,6 +53,7 @@ final class ReleaseUpdaterAdoptionTest extends TestCase {
 		self::assertSame( 1, $first->diagnostics()['candidate_count'] );
 		self::assertSame( $first->diagnostics(), $second->diagnostics() );
 		foreach ( array( $first, $second ) as $registrar ) {
+			self::assertIsObject( $registrar );
 			foreach ( array( 'plugin', 'theme', 'releases', 'diagnostics' ) as $method ) {
 				self::assertTrue( is_callable( array( $registrar, $method ) ) );
 			}
@@ -78,6 +81,8 @@ final class ReleaseUpdaterAdoptionTest extends TestCase {
 	/** @return array<string, mixed> */
 	private function read_json( string $file ): array {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect the installed dependency and committed lock without network access.
-		return json_decode( file_get_contents( $file ), true, 512, JSON_THROW_ON_ERROR );
+		$source = file_get_contents( $file );
+		self::assertNotFalse( $source );
+		return json_decode( $source, true, 512, JSON_THROW_ON_ERROR );
 	}
 }

@@ -496,7 +496,11 @@ final class RepositoryWebhookClientTest extends TestCase {
 		);
 	}
 
-	/** @param mixed $body @return array<string,mixed> */
+	/**
+	 * @param mixed $body
+	 * @return array<string,mixed>
+	 * @param array<array-key,mixed> $headers
+	 */
 	private function response( int $status, mixed $body, array $headers = array() ): array {
 		return array(
 			'response' => array( 'code' => $status ),

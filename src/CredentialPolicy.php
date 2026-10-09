@@ -114,7 +114,10 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 		return trim( $value );
 	}
 
-	/** @param array<string, mixed> $configuration */
+	/**
+	 * @param array<string, mixed> $configuration
+	 * @param list<string> $allowed
+	 */
 	private function assert_only_keys( array $configuration, array $allowed ): void {
 		if ( array() !== array_diff( array_keys( $configuration ), $allowed ) ) {
 			throw new RuntimeException( 'GitHub credential configuration contains unsupported fields.' );

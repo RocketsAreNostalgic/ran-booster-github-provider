@@ -15,9 +15,14 @@ require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 
 final class StarterSecurityCheckTest extends TestCase {
 	private function origin(): string {
-		$bytes = TemplatePackApi3Fixture::archive();
-		return StarterOrigin::encode( TemplatePack::from_archive( $bytes, TemplatePackApi3Fixture::identity( $bytes ) )['pack'], 'source-ready-wordpress-plugin/3' );
+		$bytes  = TemplatePackApi3Fixture::archive();
+		$result = TemplatePack::from_archive( $bytes, TemplatePackApi3Fixture::identity( $bytes ) );
+		self::assertSame( 'ok', $result['code'] );
+		return StarterOrigin::encode( $result['pack'], 'source-ready-wordpress-plugin/3' );
 	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
 	private function entry( bool $shared = false ): array {
 		return array(
 			'ghsa_id'    => $shared ? 'GHSA-3333-4444-5555' : 'GHSA-2222-3333-4444',
@@ -32,6 +37,10 @@ final class StarterSecurityCheckTest extends TestCase {
 			),
 		);
 	}
+	/**
+	 * @param array<array-key,mixed> $entries
+	 * @return array<array-key,mixed>
+	 */
 	private function index( array $entries ): array {
 		return array(
 			'schema'         => 'ran-release-starter-advisories',
@@ -39,6 +48,11 @@ final class StarterSecurityCheckTest extends TestCase {
 			'advisories'     => $entries,
 		);
 	}
+	/**
+	 * @param array<array-key,mixed> $advisory_override
+	 * @param array<array-key,mixed>|string $index
+	 * @return array<array-key,mixed>
+	 */
 	private function run_check( array|string $index, array $advisory_override = array(), int $status = 200, string $token = '' ): array {
 		$requests = array();
 		$checker  = new StarterSecurityCheck(
@@ -170,6 +184,7 @@ final class StarterSecurityCheckTest extends TestCase {
 			$cases[] = json_encode( $bad );
 		}
 		foreach ( $cases as $case ) {
+			self::assertIsString( $case );
 			self::assertSame( 'unknown', $checker->check( $case )['status'] );
 		}
 		self::assertSame( 0, $calls );

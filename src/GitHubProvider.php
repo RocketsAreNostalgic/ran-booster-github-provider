@@ -432,7 +432,11 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			if ( ! $this->ensure_direct_filesystem() ) {
 				throw new RuntimeException();
 			}
-			$result = $this->release_source( $package_type, $repository, $channel )->list();
+			$source = $this->release_source( $package_type, $repository, $channel );
+			if ( ! is_callable( array( $source, 'list' ) ) ) {
+				throw new RuntimeException( 'The public release source is incompatible.' );
+			}
+			$result = $source->list();
 		} catch ( \Throwable ) {
 			throw new RuntimeException( 'GitHub release candidate listing is unavailable.', 503 );
 		}
@@ -457,6 +461,14 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				|| ! is_string( $release['details_url'] ?? null )
 				|| ! hash_equals( $this->release_details_url( $repository, $release['tag'] ), $release['details_url'] ) ) {
 				throw new RuntimeException( 'GitHub returned invalid release candidates.', 502 );
+			}
+			if ( ! array_is_list( $release['expected_asset_names'] ) ) {
+				throw new InvalidArgumentException( 'The repository release candidate is invalid.' );
+			}
+			foreach ( $release['expected_asset_names'] as $asset_name ) {
+				if ( ! is_string( $asset_name ) ) {
+					throw new InvalidArgumentException( 'The repository release candidate is invalid.' );
+				}
 			}
 			$candidates[] = new RepositoryReleaseCandidate(
 				$release['release_identity'],
@@ -487,7 +499,11 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			if ( ! $this->ensure_direct_filesystem() ) {
 				throw new RuntimeException();
 			}
-			$result = $this->release_source( $package_type, $repository, $channel )->inspect( $provider_release_id, $tag );
+			$source = $this->release_source( $package_type, $repository, $channel );
+			if ( ! is_callable( array( $source, 'inspect' ) ) ) {
+				throw new RuntimeException( 'The public release source is incompatible.' );
+			}
+			$result = $source->inspect( $provider_release_id, $tag );
 		} catch ( \Throwable ) {
 			throw new RuntimeException( 'GitHub release inspection is unavailable.', 503 );
 		}
@@ -548,7 +564,11 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			if ( ! $this->ensure_direct_filesystem() ) {
 				throw new RuntimeException();
 			}
-			$result = $this->release_source( $package_type, $repository, $channel )->acquire( $provider_release_id, $tag, $expected_fingerprint );
+			$source = $this->release_source( $package_type, $repository, $channel );
+			if ( ! is_callable( array( $source, 'acquire' ) ) ) {
+				throw new RuntimeException( 'The public release source is incompatible.' );
+			}
+			$result = $source->acquire( $provider_release_id, $tag, $expected_fingerprint );
 		} catch ( \Throwable ) {
 			throw new RuntimeException( 'GitHub release acquisition is unavailable.', 503 );
 		}
@@ -601,7 +621,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			);
 		} catch ( \Throwable ) {
 			try {
-				$cleanup_failed = ! $result['value']['artifact']->discard();
+				$artifact       = $result['value']['artifact'];
+				$cleanup_failed = ! is_callable( array( $artifact, 'discard' ) ) || ! $artifact->discard();
 			} catch ( \Throwable ) {
 				$cleanup_failed = true;
 			}
@@ -761,6 +782,9 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			$arguments[] = $maximum_artifact_bytes;
 		}
 
+		if ( ! is_callable( array( $this->registrar, 'releases' ) ) ) {
+			throw new RuntimeException( 'The public release registrar is incompatible.' );
+		}
 		return $this->registrar->releases( ...$arguments );
 	}
 

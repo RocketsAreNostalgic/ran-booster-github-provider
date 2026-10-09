@@ -7,7 +7,10 @@ namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 /** Maintainer handoff for the initial recipe; no runtime settings attestation. */
 final class StarterGuidance {
 	public static function render( TemplatePack $pack, string $profile ): string {
-		$origin   = StarterOrigin::decode( StarterOrigin::encode( $pack, $profile ) );
+		$origin = StarterOrigin::decode( StarterOrigin::encode( $pack, $profile ) );
+		if ( null === $origin ) {
+			throw new \RuntimeException( 'The generated starter origin is invalid.' );
+		}
 		$header   = sprintf( "# Release starter\n\nPack: %s / %s\nSource: %s\nZIP SHA-256: %s\nShared Profile B: %s\n\n", $pack->pack_version(), $profile, $pack->identity()['release_commit'], $pack->identity()['asset_sha256'], $origin['shared_profile_b']['commit'] );
 		$guidance = <<<'GUIDANCE'
 You own these files after setup. Booster does not update or repair them.

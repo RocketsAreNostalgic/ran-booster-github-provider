@@ -14,8 +14,10 @@ require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 /** Native ZIP tests of the candidate reader; these fixtures are not producer qualification. */
 final class TemplatePackApi3ContractTest extends TestCase {
 	public function test_only_api3_renders_both_profiles_deterministically(): void {
-		$archive = Fixture::archive();
-		$pack    = TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['pack'];
+		$archive     = Fixture::archive();
+		$pack_result = TemplatePack::from_archive( $archive, Fixture::identity( $archive ) );
+		self::assertSame( 'ok', $pack_result['code'] );
+		$pack = $pack_result['pack'];
 		self::assertSame( 3, TemplatePack::CONSUMER_API );
 		foreach ( array( 'plugin', 'theme' ) as $type ) {
 			$values = array(
@@ -99,8 +101,10 @@ final class TemplatePackApi3ContractTest extends TestCase {
 	}
 
 	public function test_closed_placeholder_types_and_bounds(): void {
-		$archive = Fixture::archive();
-		$pack    = TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['pack'];
+		$archive     = Fixture::archive();
+		$pack_result = TemplatePack::from_archive( $archive, Fixture::identity( $archive ) );
+		self::assertSame( 'ok', $pack_result['code'] );
+		$pack = $pack_result['pack'];
 		foreach ( array( 'a--b', '-abc', 'abc-', str_repeat( 'a', 101 ), 'a$(id)', 'a/b' ) as $slug ) {
 			self::assertSame(
 				'invalid_render',
@@ -144,8 +148,10 @@ final class TemplatePackApi3ContractTest extends TestCase {
 	}
 
 	public function test_extra_files_are_only_header_and_optional_conventional_readme(): void {
-		$archive = Fixture::archive();
-		$pack    = TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['pack'];
+		$archive     = Fixture::archive();
+		$pack_result = TemplatePack::from_archive( $archive, Fixture::identity( $archive ) );
+		self::assertSame( 'ok', $pack_result['code'] );
+		$pack = $pack_result['pack'];
 		foreach ( array( '[{"type":"json","path":"package.json","jsonpath":"$.version"}]', '[{"type":"generic","path":"plugin.php"},{"type":"generic","path":"custom.txt"}]', '[{"type":"generic","path":"nested/plugin.php"}]' ) as $fragment ) {
 			self::assertSame(
 				'invalid_render',
@@ -175,6 +181,9 @@ final class TemplatePackApi3ContractTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @param array<array-key,mixed> $manifest
+	 */
 	private function assert_invalid_manifest( array $manifest ): void {
 		$archive = Fixture::archive( $manifest );
 		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $archive, Fixture::identity( $archive ) )['code'] );

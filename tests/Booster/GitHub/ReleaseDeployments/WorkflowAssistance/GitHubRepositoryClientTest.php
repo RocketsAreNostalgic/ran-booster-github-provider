@@ -498,7 +498,11 @@ final class GitHubRepositoryClientTest extends TestCase {
 		self::assertSame( 'rate_limited', $client->repository( self::REPOSITORY )['code'] );
 	}
 
-	/** @return array<string,mixed> */
+	/**
+	 * @return array<string,mixed>
+	 * @param array<array-key,mixed> $body
+	 * @param array<array-key,mixed> $headers
+	 */
 	private function response( int $status, array $body, array $headers = array() ): array {
 		return array(
 			'response' => array( 'code' => $status ),

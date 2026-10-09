@@ -105,7 +105,10 @@ final class StarterSecurityCheck {
 		return true;
 	}
 
-	/** @param array<string,mixed> $value @param list<string> $keys */
+	/**
+	 * @param array<string,mixed> $value
+	 * @param list<string> $keys
+	 */
 	private static function keys( array $value, array $keys ): bool {
 		$actual = array_keys( $value );
 		sort( $actual );

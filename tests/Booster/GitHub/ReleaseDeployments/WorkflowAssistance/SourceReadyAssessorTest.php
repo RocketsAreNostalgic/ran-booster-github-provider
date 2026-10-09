@@ -508,7 +508,10 @@ final class SourceReadyAssessorTest extends TestCase {
 		yield 'invalid utf8' => array( "example\xC3\x28.php" );
 	}
 
-	/** @param array<string,string> $documents @param array<string,string> $modes */
+	/**
+	 * @param array<string,string> $documents
+	 * @param array<string,string> $modes
+	 */
 	private function snapshot( array $documents, array $modes = array() ): RepositorySnapshot {
 		$entries = array();
 		foreach ( $documents as $path => $document ) {

@@ -110,6 +110,9 @@ final class GitHubRepositoryReleaseWorkflow {
 		$token = $this->credential( $credential_id, true );
 		return $this->persist( 'outcome', $status, $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->outcome( $status, $token ) );
 	}
+	/**
+	 * @param array{code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string,correlation_reference?:string} $outcome
+	 */
 	private function persist( string $operation, RepositoryReleaseWorkflowTarget $status, array $outcome ): RepositoryReleaseWorkflowResult {
 		$observation = match ( $outcome['code'] ) {
 			'workflow_release_automation_conflict' => 'existing_automation_detected', 'workflow_release_automation_present' => 'booster_setup_verified', 'workflow_inspected' => 'no_recognisable_automation', default => '' };
@@ -150,6 +153,9 @@ final class GitHubRepositoryReleaseWorkflow {
 	private function bootstrap_preflight( RepositoryReleaseWorkflowPreflight $preflight ): bool {
 		return in_array( $preflight->code(), array( 'ready', 'release_unavailable' ), true );
 	}
+	/**
+	 * @return array{code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
+	 */
 	private function preflight_result( RepositoryReleaseWorkflowPreflight $preflight, string $key = '' ): array {
 		return array(
 			'code'            => 'workflow_' . ( 'preflight_unavailable' === $preflight->code() ? 'preflight_unavailable' : $preflight->code() ),
@@ -159,6 +165,9 @@ final class GitHubRepositoryReleaseWorkflow {
 			'diagnostic_code' => '' !== $preflight->reason_code() ? $preflight->reason_code() : 'preflight_contract_unavailable',
 		);
 	}
+	/**
+	 * @return array{code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
+	 */
 	private function unauthorised( string $key = '' ): array {
 		return array(
 			'code'            => 'workflow_unauthorised',
@@ -168,6 +177,9 @@ final class GitHubRepositoryReleaseWorkflow {
 			'diagnostic_code' => 'credential_authorisation_unavailable',
 		);
 	}
+	/**
+	 * @return array{code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
+	 */
 	private function invalid_request( string $key = '' ): array {
 		return array(
 			'code'            => 'workflow_invalid_request',
@@ -192,6 +204,9 @@ final class GitHubRepositoryReleaseWorkflow {
 	private function selected_credential_unavailable( ?string $id, string $token ): bool {
 		return null !== $id && '' !== $id && '' === $token;
 	}
+	/**
+	 * @return list<array{id:string,label:string}>
+	 */
 	private function credential_choices(): array {
 		try {
 			$profiles = $this->credentials->credential_profiles();

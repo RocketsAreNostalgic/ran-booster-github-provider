@@ -204,6 +204,10 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		return new GitHubRepositoryReleaseWorkflow( $credentials, $coordinator, $records );
 	}
 
+	/**
+	 * @param array<array-key,mixed> $overrides
+	 * @return array<array-key,mixed>
+	 */
 	private function record( array $overrides = array() ): array {
 		return array_replace(
 			array(

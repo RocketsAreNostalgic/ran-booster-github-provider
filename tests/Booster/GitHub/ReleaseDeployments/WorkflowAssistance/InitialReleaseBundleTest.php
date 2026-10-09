@@ -23,7 +23,9 @@ final class InitialReleaseBundleTest extends TestCase {
 		$assessment = $this->assessment( $snapshot );
 		$documents  = array();
 		foreach ( array_reverse( $snapshot->document_paths() ) as $path ) {
-			$documents[ $path ] = $snapshot->document( $path );
+			$document = $snapshot->document( $path );
+			self::assertNotNull( $document );
+			$documents[ $path ] = $document;
 		}
 		$reordered = new RepositorySnapshot(
 			$snapshot->repository_id(),
@@ -37,6 +39,7 @@ final class InitialReleaseBundleTest extends TestCase {
 		$second    = InitialReleaseBundle::bootstrap( $pack_result['pack'], $this->assessment( $reordered ), $reordered, 'https://github.com/owner/example-plugin' );
 
 		self::assertSame( 'ok', $first['code'] );
+		self::assertSame( 'ok', $second['code'] );
 		self::assertSame( $first['bundle']->hash(), $second['bundle']->hash() );
 		self::assertSame( $first['bundle']->changed_path_hash(), $second['bundle']->changed_path_hash() );
 		self::assertSame( $first['bundle']->allowlist_hash(), $second['bundle']->allowlist_hash() );
@@ -127,9 +130,11 @@ final class InitialReleaseBundleTest extends TestCase {
 	}
 
 	public function test_refuses_non_ready_assessment_and_occupied_generated_path(): void {
-		$archive = TemplatePackApi3Fixture::archive();
-		$pack    = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['pack'];
-		$base    = $this->snapshot();
+		$archive     = TemplatePackApi3Fixture::archive();
+		$pack_result = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+		self::assertSame( 'ok', $pack_result['code'] );
+		$pack = $pack_result['pack'];
+		$base = $this->snapshot();
 		self::assertSame( 'invalid_bundle', InitialReleaseBundle::bootstrap( $pack, $this->assessment( $base ), $base, 'https://github.com/owner/other' )['code'] );
 		$entries                = $base->entries();
 		$docs                   = array(
@@ -142,14 +147,16 @@ final class InitialReleaseBundleTest extends TestCase {
 			'sha'  => sha1( 'version.txt' ),
 			'size' => 5,
 		);
-		$occupied               = new RepositorySnapshot( '101', 'owner/example-plugin', 'main', str_repeat( 'a', 40 ), $entries, $docs );
-		$assessment             = $this->assessment( $occupied );
+		self::assertNotNull( $docs['example-plugin.php'] );
+		$occupied   = new RepositorySnapshot( '101', 'owner/example-plugin', 'main', str_repeat( 'a', 40 ), $entries, $docs );
+		$assessment = $this->assessment( $occupied );
 
 		self::assertSame( 'release_path_conflict', $assessment->code() );
 		self::assertSame( 'invalid_bundle', InitialReleaseBundle::bootstrap( $pack, $assessment, $occupied, 'https://github.com/owner/example-plugin' )['code'] );
 	}
 
 
+	/** @return \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SourceReadyAssessment */
 	private function assessment( RepositorySnapshot $snapshot ): object {
 		return ( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', '1.2.3', 'https://github.com/owner/example-plugin' );
 	}

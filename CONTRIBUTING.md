@@ -19,7 +19,7 @@ Use these focused commands:
 | `composer standards` | Shared PHPCS/WPCS/PHPCompatibility rules |
 | `composer standards:fix` | PHPCBF with the same rules and source paths |
 | `composer test` | Host-independent foundation and release-control tests |
-| `composer check:host` | Host contract, blocking level-5 analysis and implementation PHPUnit |
+| `composer check:host` | Host contract, blocking level-8 analysis and implementation PHPUnit |
 
 After `composer check`, run the required host-backed aggregate using the exact
 certified Booster checkout pinned in [CI](.github/workflows/ci.yml):
@@ -32,10 +32,10 @@ test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 8a3ed5a8acdb3875f498e
 ```
 
 This exact host is the immutable Core `v1.0.0-beta.31` tag target, supplying
-Provider API 14 / workflow V3. PHPStan blocks at level 5 over default-inclusive production and
-`tests/foundation-contract.php`, with unchanged WordPress extension, bootstrap
+Provider API 14 / workflow V3. PHPStan blocks at level 8 over default-inclusive production and development
+profiles, including `tests/foundation-contract.php`, with unchanged WordPress extension, bootstrap
 files and PHPDoc certainty setting. No baseline or ignore list is introduced.
-Levels 6–8 remain separately scoped. Source-host qualification does not establish
+Source-host qualification does not establish
 installed-site or UI acceptance. Update the SHA example when the authoritative
 CI tuple changes.
 
@@ -93,4 +93,4 @@ The foundation contract stays directly analyzed. Independent recursive discovery
 must match locked FileFinder plus CLI stub-file removal. The host aggregate
 proves new root/nested/split/moved sources, src/tests collisions, unsupported
 extensions, production-stub rejection and excluded-fixture scan isolation.
-No existing production omission or analysis-level change is claimed.
+Production analysis coverage is unchanged.

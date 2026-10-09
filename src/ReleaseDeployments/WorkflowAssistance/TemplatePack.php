@@ -76,7 +76,10 @@ final readonly class TemplatePack {
 		'workflow_events',
 	);
 
-	/** @param array<string, mixed> $identity @param array<string, array<string, array{content:string,sha256:string}>> $profiles */
+	/**
+	 * @param array<string, mixed> $identity
+	 * @param array<string, array<string, array{content:string,sha256:string}>> $profiles
+	 */
 	private function __construct(
 		private array $identity,
 		private string $pack_version,
@@ -87,7 +90,7 @@ final readonly class TemplatePack {
 
 	/**
 	 * @param array<string, mixed> $identity
-	 * @return array{code:string, pack?:self}
+	 * @return array{code:'ok',pack:self}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_incompatible'}
 	 */
 	public static function from_archive( string $archive, array $identity ): array {
 		if ( ! self::valid_identity( $identity, $archive ) ) {
@@ -168,7 +171,7 @@ final readonly class TemplatePack {
 	 * Literal substitution only. Downloaded bytes are never evaluated.
 	 *
 	 * @param array<string, mixed> $values
-	 * @return array{code:string, content?:string, sha256?:string}
+	 * @return array{code:'ok',content:string,sha256:string}|array{code:'invalid_render'}
 	 */
 	public function render( string $profile, string $logical_id, array $values ): array {
 		if ( ! isset( $this->profiles[ $profile ][ $logical_id ], self::ENTRY_PLACEHOLDERS[ $logical_id ] ) ) {
@@ -261,7 +264,10 @@ final readonly class TemplatePack {
 		return $manifest;
 	}
 
-	/** @param array<string, mixed> $manifest @param array<string, mixed> $identity */
+	/**
+	 * @param array<string, mixed> $manifest
+	 * @param array<string, mixed> $identity
+	 */
 	private static function manifest_identity_matches( array $manifest, array $identity ): bool {
 		return is_string( $manifest['repository']['name'] ?? null )
 			&& is_string( $manifest['repository']['id'] ?? null )

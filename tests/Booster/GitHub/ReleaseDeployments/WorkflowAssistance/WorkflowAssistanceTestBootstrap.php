@@ -92,6 +92,7 @@ foreach ( array(
 }
 
 if ( ! function_exists( __NAMESPACE__ . '\\wp_json_encode' ) ) {
+	/** @param int<1,max> $depth */
 	// phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- This exact WordPress function and adjacent filesystem or database double form one isolated host fixture.
 	function wp_json_encode( mixed $value, int $flags = 0, int $depth = 512 ): string|false {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Minimal test shim for WordPress's wrapper.
@@ -167,6 +168,9 @@ if ( ! function_exists( __NAMESPACE__ . '\\wp_remote_retrieve_header' ) ) {
 }
 
 if ( ! function_exists( __NAMESPACE__ . '\\wp_parse_url' ) ) {
+	/**
+	 * @return ($component is -1 ? array<array-key,mixed>|false : ($component is PHP_URL_PORT ? int|null|false : string|null|false))
+	 */
 	function wp_parse_url( string $url, int $component = -1 ): array|int|string|null|false {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Minimal test shim for WordPress's wrapper.
 		return parse_url( $url, $component );

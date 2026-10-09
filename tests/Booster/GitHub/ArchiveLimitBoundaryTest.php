@@ -25,7 +25,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 	public function test_release_inspection_resolves_and_validates_supplied_limit_lazily(): void {
 		$limit_reads = 0;
 		$registrar   = new class() {
-			/** @var list<mixed> */
+			/** @var array<array-key,mixed> */
 			public array $arguments = array();
 
 			public function releases( mixed ...$arguments ): object {
@@ -83,7 +83,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 
 	public function test_release_source_forwards_api11_host_limit(): void {
 		$registrar  = new class() {
-			/** @var list<mixed> */
+			/** @var array<array-key,mixed> */
 			public array $arguments = array();
 
 			public function maximum_artifact_bytes(): int {
@@ -149,7 +149,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 
 	public function test_native_target_forwards_supplied_host_limit(): void {
 		$runtime = new class() {
-			/** @var list<mixed> */
+			/** @var array<array-key,mixed> */
 			public array $arguments = array();
 
 			public function plugin( mixed ...$arguments ): object {
@@ -181,7 +181,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 
 	public function test_direct_native_target_without_host_limit_uses_updater_owned_default_contract(): void {
 		$runtime = new class() {
-			/** @var list<mixed> */
+			/** @var array<array-key,mixed> */
 			public array $arguments = array();
 
 			public function plugin( mixed ...$arguments ): object {
@@ -211,7 +211,7 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 
 	public function test_provider_created_native_target_forwards_api11_host_limit(): void {
 		$runtime  = new class() {
-			/** @var list<mixed> */
+			/** @var array<array-key,mixed> */
 			public array $arguments = array();
 
 			public function plugin( mixed ...$arguments ): object {

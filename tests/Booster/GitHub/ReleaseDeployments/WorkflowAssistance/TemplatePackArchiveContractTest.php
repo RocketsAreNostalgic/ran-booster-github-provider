@@ -212,8 +212,10 @@ final class TemplatePackArchiveContractTest extends TestCase {
 	}
 
 	public function test_renderer_rejects_unsafe_or_incomplete_consumer_inputs(): void {
-		$archive = TemplatePackApi3Fixture::archive();
-		$pack    = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) )['pack'];
+		$archive     = TemplatePackApi3Fixture::archive();
+		$pack_result = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+		self::assertSame( 'ok', $pack_result['code'] );
+		$pack = $pack_result['pack'];
 
 		self::assertSame( 'invalid_render', $pack->render( 'unknown-profile', 'release-workflow', array() )['code'] );
 		self::assertSame(
