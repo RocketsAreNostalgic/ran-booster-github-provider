@@ -734,6 +734,48 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		return new WorkflowApplicationCoordinator( new GitHubRepositoryClient( $transport ), new TemplatePackRepositoryClient( $transport ), new SourceReadyAssessor(), $records );
 	}
 
+	public function test_branch_identity_drift_stops_readback_and_reports_partial_without_a_pull(): void {
+		foreach ( array( 'head', 'parent' ) as $drift ) {
+			$transport         = new D23ApplicationTransport();
+			$records           = new SetupRecordStore();
+			$readback_started  = false;
+			$readback_requests = array();
+			$send              = static function ( string $method, string $url, array $arguments ) use ( $transport, $drift, &$readback_started, &$readback_requests ): array {
+				$response         = $transport( $method, $url, $arguments );
+				$is_branch        = $transport->write_counts['ref'] > 0 && 'GET' === $method && str_contains( $url, '/git/ref/heads/' ) && ! str_ends_with( $url, '/main' );
+				$readback_started = $readback_started || $is_branch;
+				if ( $readback_started ) {
+					$readback_requests[] = $url;
+				}
+				if ( ( 'head' === $drift && $is_branch ) || ( 'parent' === $drift && $readback_started && str_contains( $url, '/git/commits/' ) ) ) {
+					self::assertIsString( $response['body'] );
+					$data = json_decode( $response['body'], true, 512, JSON_THROW_ON_ERROR );
+					if ( 'head' === $drift ) {
+						$data['object']['sha'] = str_repeat( '9', 40 );
+					} else {
+						$data['parents'] = array( array( 'sha' => str_repeat( '9', 40 ) ) );
+					}
+					$response['body'] = wp_json_encode( $data );
+				}
+				return $response;
+			};
+			$coordinator       = new WorkflowApplicationCoordinator( new GitHubRepositoryClient( $send ), new TemplatePackRepositoryClient( $transport ), new SourceReadyAssessor(), $records );
+			$status            = WorkflowProviderFixtures::target();
+			$inspect           = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
+			self::assertSame( 'workflow_inspected', $inspect['code'] );
+			$result = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
+			self::assertSame( 'workflow_partial', $result['code'] );
+			self::assertSame( 'repository_mutation', $result['failure_stage'] );
+			self::assertFalse( $result['successful'] );
+			self::assertCount( 'head' === $drift ? 1 : 2, $readback_requests );
+			self::assertSame( 0, $transport->write_counts['pull'] );
+			self::assertNull( $records->find( '101' ) );
+			$claim = $records->claim( '101', 'plugin', 'example-plugin/example-plugin.php', 1 );
+			self::assertNotNull( $claim );
+			self::assertTrue( $records->release_claim( '101', $claim ) );
+		}
+	}
+
 	private function ready_preflight(): RepositoryReleaseWorkflowPreflight {
 		return WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::RELEASE_UNAVAILABLE );
 	}

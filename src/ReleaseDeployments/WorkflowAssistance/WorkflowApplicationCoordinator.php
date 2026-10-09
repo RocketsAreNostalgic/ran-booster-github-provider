@@ -384,9 +384,15 @@ final class WorkflowApplicationCoordinator {
 	 * @param array<array-key,mixed> $remote
 	 */
 	private function verify_branch( array $remote, string $branch, string $head, InitialReleaseBundle $bundle, string $token ): bool {
-		$ref    = $this->github->branch_ref( $remote['repository'], $branch, $token );
-		$commit = 'ok' === $ref['code'] && hash_equals( $head, $ref['sha'] ) ? $this->github->git_commit( $remote['repository'], $head, $token ) : $ref;
-		$tree   = 'ok' === $commit['code'] && array( $remote['base_sha'] ) === $commit['parents'] ? $this->github->snapshot( $remote['repository'], $remote['repository_id'], $remote['default_branch'], $head, $token ) : $commit;
+		$ref = $this->github->branch_ref( $remote['repository'], $branch, $token );
+		if ( 'ok' !== $ref['code'] || ! hash_equals( $head, $ref['sha'] ) ) {
+			return false;
+		}
+		$commit = $this->github->git_commit( $remote['repository'], $head, $token );
+		if ( 'ok' !== $commit['code'] || array( $remote['base_sha'] ) !== $commit['parents'] ) {
+			return false;
+		}
+		$tree = $this->github->snapshot( $remote['repository'], $remote['repository_id'], $remote['default_branch'], $head, $token );
 		if ( 'ok' !== $tree['code'] ) {
 			return false;
 		}
