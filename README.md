@@ -75,7 +75,7 @@ composer install --no-interaction --prefer-dist --no-progress
 composer check
 ```
 
-The local gate requires PHP 8.2+, Composer and Node 24.11.0. Node serves the
+The local gate requires PHP 8.2+, Composer and Node 24.21.0. Node serves the
 release-control tests, not a browser frontend. See [CONTRIBUTING.md](CONTRIBUTING.md)
 for the additional required host-backed checks and exact candidate checkout.
 Composer installation alone does not provide WordPress, Booster's interfaces,

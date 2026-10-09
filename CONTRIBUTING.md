@@ -2,7 +2,7 @@
 
 This package follows the Rockets Are Nostalgic `php-library` engineering baseline.
 
-The canonical local gate requires PHP 8.2+ with Composer and Node **24.11.0**. Node is used only for the maintained release-control scripts/tests; this repository still has no frontend toolchain.
+The canonical local gate requires PHP 8.2+ with Composer and Node **24.21.0**. Node is used only for the maintained release-control scripts/tests; this repository still has no frontend toolchain.
 
 Install only from the tracked lock and run the canonical local gate before opening a pull request:
 

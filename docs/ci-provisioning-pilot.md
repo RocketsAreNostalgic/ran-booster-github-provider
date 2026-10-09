@@ -11,7 +11,7 @@ matrix legs must succeed. Failure, cancellation or a skipped group blocks it.
 
 The Provider-owned inline sequence preserves shared `quality-php-library-v2.yml`
 at `788f783d2998994f7aab9691710911ed1bd762c9`: exact credential-free source checkout,
-locked manifests, PHP/zip/Composer v2, pinned Node 24.11.0 with explicit version
+locked manifests, PHP/zip/Composer v2, pinned Node 24.21.0 with explicit version
 verification, pre-install Composer validation, locked install, `composer check`
 and the broader PHP syntax sweep outside vendor/node_modules. Review future
 shared-baseline changes against this local sequence deliberately.
