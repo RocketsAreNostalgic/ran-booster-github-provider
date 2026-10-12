@@ -14,7 +14,7 @@ use RAN\RepositoryProvider\RepositoryLookupRequest;
 use RAN\RepositoryProvider\RepositoryProvider;
 use RAN\RepositoryProvider\RepositoryReleaseArtifact;
 use RAN\RepositoryProvider\RepositoryReleaseArtifactCustody;
-use RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV3;
+use RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV4;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreview;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowResult;
@@ -37,12 +37,12 @@ require $core_root . '/autoload.php';
 
 $core_plugin = file_get_contents( $core_root . '/ran-booster.php' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Exact certified source contract. Retain this process-local CLI gate binding; this script never enters the WordPress runtime.
 if ( ! is_string( $core_plugin )
-	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 14 \);/", $core_plugin )
+	|| 1 !== preg_match( "/define\( 'RAN_BOOSTER_PROVIDER_API_VERSION', 15 \);/", $core_plugin )
 ) {
 	throw new RuntimeException( 'Unexpected Provider API generation.' );
 }
 if ( ! class_exists( ProviderRegistrationContext::class ) ) {
-	throw new RuntimeException( 'Provider API 14 registration context is unavailable.' );
+	throw new RuntimeException( 'Provider API 15 registration context is unavailable.' );
 }
 
 /** @return string */
@@ -105,12 +105,12 @@ $contracts = array(
 		'size'         => array( array(), 'int' ),
 		'sha256'       => array( array(), 'string' ),
 	),
-	RepositoryReleaseWorkflowManagementV3::class => array(
+	RepositoryReleaseWorkflowManagementV4::class => array(
 		'workflow_status'  => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ) ), RepositoryReleaseWorkflowStatus::class ),
 		'workflow_preview' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ) ), '?' . RepositoryReleaseWorkflowPreview::class ),
-		'workflow_inspect' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'channel', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credential_id', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflow_setup'   => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ), array( 'confirmation', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credential_id', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
-		'workflow_outcome' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'credential_id', '?string' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflow_inspect' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'channel', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credential_id', '?string' ), array( 'progress', '?RAN\\Activity\\ActivityProgress' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflow_setup'   => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'key', 'string' ), array( 'confirmation', 'string' ), array( 'preflight', RepositoryReleaseWorkflowPreflight::class ), array( 'credential_id', '?string' ), array( 'progress', '?RAN\\Activity\\ActivityProgress' ) ), RepositoryReleaseWorkflowResult::class ),
+		'workflow_outcome' => array( array( array( 'target', RepositoryReleaseWorkflowTarget::class ), array( 'credential_id', '?string' ), array( 'progress', '?RAN\\Activity\\ActivityProgress' ) ), RepositoryReleaseWorkflowResult::class ),
 	),
 );
 
@@ -136,9 +136,9 @@ foreach ( $contracts as $interface_name => $methods ) {
 	}
 }
 
-if ( 3 !== ( new ReflectionClass( RepositoryReleaseWorkflowManagementV3::class ) )->getConstant( 'RELEASE_WORKFLOW_API_VERSION' ) ) {
+if ( 4 !== ( new ReflectionClass( RepositoryReleaseWorkflowManagementV4::class ) )->getConstant( 'RELEASE_WORKFLOW_API_VERSION' ) ) {
 	throw new RuntimeException( 'Unexpected release-workflow API generation.' );
 }
-if ( ! ( new ReflectionClass( RepositoryReleaseWorkflowManagementV3::class ) )->isSubclassOf( ProviderCapability::class ) ) {
-	throw new RuntimeException( 'Release workflow V3 must remain a provider capability.' );
+if ( ! ( new ReflectionClass( RepositoryReleaseWorkflowManagementV4::class ) )->isSubclassOf( ProviderCapability::class ) ) {
+	throw new RuntimeException( 'Release workflow V4 must remain a provider capability.' );
 }

@@ -215,6 +215,9 @@ if ( ! function_exists( __NAMESPACE__ . '\\add_option' ) ) {
 
 if ( ! function_exists( __NAMESPACE__ . '\\delete_option' ) ) {
 	function delete_option( string $option ): bool {
+		if ( ( $GLOBALS['ran_booster_github_provider_test_option_delete_failure'] ?? null ) === $option ) {
+			return false;
+		}
 		if ( ! array_key_exists( $option, $GLOBALS['ran_booster_release_deployments_test_options'] ) ) {
 			return false;
 		}

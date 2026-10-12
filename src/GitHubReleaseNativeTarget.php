@@ -43,6 +43,10 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 		$this->maximum_artifact_bytes = null === $maximum_artifact_bytes ? null : Closure::fromCallable( $maximum_artifact_bytes );
 	}
 
+	public function matches_check_source( string $runtime_provider, string $repository_identity, string $channel ): bool {
+		return 'github' === $runtime_provider && $this->provider_repository_id === $repository_identity && $this->channel === $channel;
+	}
+
 	public function register(): bool {
 		try {
 			if ( null === $this->updater ) {

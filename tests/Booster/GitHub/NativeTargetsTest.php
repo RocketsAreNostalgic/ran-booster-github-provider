@@ -9,6 +9,14 @@ use RAN\BoosterGitHubProvider\V1\GitHubReleaseNativeTarget;
 
 final class NativeTargetsTest extends TestCase {
 
+	public function test_check_source_matches_only_exact_captured_runtime_identity(): void {
+		$target = $this->target( null );
+		self::assertTrue( $target->matches_check_source( 'github', '42', 'stable' ) );
+		self::assertFalse( $target->matches_check_source( 'gh', '42', 'stable' ) );
+		self::assertFalse( $target->matches_check_source( 'github', '042', 'stable' ) );
+		self::assertFalse( $target->matches_check_source( 'github', '42', 'prerelease' ) );
+	}
+
 	public function test_construction_does_not_resolve_private_credentials(): void {
 		$reads  = 0;
 		$target = $this->target(

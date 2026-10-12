@@ -29,11 +29,11 @@ outside the checkout. Baseline rejects the Core environment and sibling checkout
 Tracked source bytes (including locks, even with misleading index flags) and
 installed dependency file bytes/symlink targets are checked before and after the
 phases. Only a successful baseline admits the host phase for the same source.
-Host environment variables are scoped to that step. The current source host is immutable Core `v1.0.0-beta.31`
-`8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf`, qualifying Provider API14 / workflow V3.
-It replaces recovery candidate `ae4de158e3ae02d99162b9b8d0babdc9269a36da` and supersedes the pilot's historical API13 host
-`a53d35f18d226bf37f8485f351a5d0decdac6066`; the provisioning boundaries are unchanged.
-See [the historical recovery evidence](beta31-recovery-qualification.md).
+Host environment variables are scoped to that step. The current source host is
+immutable Core PR307 candidate `3aea62a102a9c180467b34d7e61967c7bd039621`,
+qualifying Provider API15 / workflow V4. It replaces the beta.31/API14 host;
+the provisioning boundaries are unchanged. Source qualification does not establish
+publication or installed-site acceptance. See the [historical recovery evidence](beta31-recovery-qualification.md).
 PHPUnit/PHPStan caches are outside vendor and remain
 ordinary disposable test state. No cached vendor or certified host is trusted.
 These jobs do not establish installed or released Core composition.

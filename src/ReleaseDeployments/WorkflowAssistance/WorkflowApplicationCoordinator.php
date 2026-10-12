@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
+use RAN\Activity\ActivityProgress;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowTarget;
 use Throwable;
@@ -26,7 +27,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
-	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, string $token ): array {
+	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, string $token, ?ActivityProgress $progress = null ): array {
 		if ( 'stable' !== $channel || $this->records->occupied( $status->provider_repository_id() ) ) {
 			return $this->result( $status, 'invalid_request' );
 		}
@@ -37,7 +38,7 @@ final class WorkflowApplicationCoordinator {
 		if ( ! $this->accepts_bootstrap_preflight( $preflight->code() ) ) {
 			return $this->result( $status, $preflight->code(), 'ready' === $preflight->code(), '', 'release_preflight', $this->preflight_diagnostic( $preflight->code(), $preflight->reason_code() ) );
 		}
-		$remote = $this->bootstrap_bundle( $status, $token, null );
+		$remote = $this->bootstrap_bundle( $status, $token, null, $progress );
 		if ( 'ok' !== $remote['code'] ) {
 			return $this->result( $status, $remote['code'], 'release_automation_present' === $remote['code'] );
 		}
@@ -54,7 +55,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
-	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, string $token ): array {
+	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, string $token, ?ActivityProgress $progress = null ): array {
 		$preview = $this->preview( $key, $status );
 		if ( null === $preview || 'bootstrap' !== $preview['kind'] || '' === $token || ! hash_equals( $preview['repository'], trim( $confirmation ) ) ) {
 			return $this->result( $status, 'invalid_request', false, $key );
@@ -66,16 +67,18 @@ final class WorkflowApplicationCoordinator {
 		if ( ! $this->accepts_bootstrap_preflight( $preflight->code() ) ) {
 			return $this->result( $status, 'target_changed', false, $key, 'release_preflight', $this->preflight_diagnostic( $preflight->code(), $preflight->reason_code() ) );
 		}
+		$progress?->progress( 'gh.template_pack' );
 		$latest = $this->templates->discover( $token );
 		$exact  = 'ok' === $latest['code'] && $latest['pack']->identity() === $preview['template_identity']
 			? $this->templates->exact( $preview['template_identity'], $token ) : array( 'code' => 'template_superseded' );
 		if ( 'ok' !== $exact['code'] ) {
 			return $this->result( $status, $exact['code'], false, $key );
 		}
-		$remote = $this->bootstrap_bundle( $status, $token, $exact['pack'] );
+		$remote = $this->bootstrap_bundle( $status, $token, $exact['pack'], $progress );
 		if ( 'ok' !== $remote['code'] || ! $this->preview_matches_bundle( $preview, $remote ) ) {
 			return $this->result( $status, 'target_changed', false, $key );
 		}
+		$progress?->progress( 'gh.setup_pull_request' );
 		return $this->open_draft( $status, $key, $remote, $token );
 	}
 
@@ -94,12 +97,13 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
-	public function outcome( RepositoryReleaseWorkflowTarget $status, string $token ): array {
+	public function outcome( RepositoryReleaseWorkflowTarget $status, string $token, ?ActivityProgress $progress = null ): array {
 		$record = $this->current_record( $status );
 		if ( null === $record ) {
 			return $this->result( $status, 'invalid_request' );
 		}
 		$repo = $this->github->repository( $record['repository'], $token );
+		$progress?->progress( 'gh.pull_request_outcome' );
 		$pull = $this->github->pull_request( $record['repository'], $record['pr_number'], $token );
 		if ( 'ok' !== $repo['code'] || 'ok' !== $pull['code'] ) {
 			return $this->result( $status, 'ok' !== $repo['code'] ? $repo['code'] : $pull['code'] );
@@ -211,10 +215,14 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	private function bootstrap_bundle( RepositoryReleaseWorkflowTarget $status, string $token, ?TemplatePack $pack = null ): array {
+	private function bootstrap_bundle( RepositoryReleaseWorkflowTarget $status, string $token, ?TemplatePack $pack = null, ?ActivityProgress $progress = null ): array {
+		$progress?->progress( 'gh.repository_snapshot' );
 		$target = $this->target( $status, $token );
 		if ( 'ok' !== $target['code'] ) {
 			return $target;
+		}
+		if ( null === $pack ) {
+			$progress?->progress( 'gh.template_pack' );
 		}
 		$template = null === $pack ? $this->templates->discover( $token ) : array(
 			'code' => 'ok',
@@ -223,6 +231,7 @@ final class WorkflowApplicationCoordinator {
 		if ( 'ok' !== $template['code'] ) {
 			return $template;
 		}
+		$progress?->progress( 'gh.automation_assessment' );
 		$assessment = $this->assessor->assess( $target['snapshot'], $status->type(), $status->package_root(), $status->installed_version(), $status->expected_update_uri() );
 		if ( ! $assessment->ready_for_bootstrap() ) {
 			return array( 'code' => $assessment->code() );

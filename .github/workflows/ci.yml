@@ -96,18 +96,18 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Check out certified Booster host
-        # Immutable Core v1.0.0-beta.31 source host: Provider API14 / workflow V3.
+        # Immutable Core PR307 source candidate: Provider API15 / workflow V4.
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: 8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf
+          ref: 3aea62a102a9c180467b34d7e61967c7bd039621
           persist-credentials: false
           path: booster
 
       - name: Verify exact source and host revisions
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: 8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf
+          RAN_BOOSTER_HOST_SHA: 3aea62a102a9c180467b34d7e61967c7bd039621
         run: |
           set -euo pipefail
           test -n "$RAN_EXPECTED_SHA"
@@ -194,18 +194,18 @@ jobs:
         run: bash scripts/ci-quality-phase.sh baseline
 
       - name: Check out certified Booster host
-        # Immutable Core v1.0.0-beta.31 source host; installed/UI acceptance is separate.
+        # Immutable Core PR307 source candidate; release and installed/UI acceptance are separate.
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: 8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf
+          ref: 3aea62a102a9c180467b34d7e61967c7bd039621
           persist-credentials: false
           path: booster
 
       - name: Run certified-host quality aggregate
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: 8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf
+          RAN_BOOSTER_HOST_SHA: 3aea62a102a9c180467b34d7e61967c7bd039621
           RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
           RAN_CI_PHASE_STATE: ${{ runner.temp }}/provider-phase-${{ matrix.php }}
         working-directory: provider

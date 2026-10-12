@@ -26,6 +26,7 @@ final class ModuleDependencyBoundaryTest extends TestCase {
 	);
 
 	private const ALLOWED_IMPORTS = array(
+		'RAN\Activity\ActivityProgress',
 		'RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\GitHubRepositoryClient',
 		'RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\GitHubRepositoryReleaseWorkflow',
 		'RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupRecordStore',
@@ -86,7 +87,7 @@ final class ModuleDependencyBoundaryTest extends TestCase {
 		'RAN\RepositoryProvider\RepositoryReleaseNativeTargetStatus',
 		'RAN\RepositoryProvider\RepositoryReleaseNativeTargets',
 		'RAN\RepositoryProvider\RepositoryReleaseReadUnavailable',
-		'RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV3',
+		'RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV4',
 		'RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight',
 		'RAN\RepositoryProvider\RepositoryReleaseWorkflowPreview',
 		'RAN\RepositoryProvider\RepositoryReleaseWorkflowResult',

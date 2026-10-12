@@ -44,7 +44,7 @@ The implementation consumes Booster-owned provider contracts, so implementation 
 ```sh
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the certified host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 3aea62a102a9c180467b34d7e61967c7bd039621 &&
   composer check:host
 ```
 
@@ -52,8 +52,8 @@ test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 8a3ed5a8acdb3875f498e
 
 CI pins and verifies the certified Booster revision before running those host-backed gates, separately verifies the host contract, validates mutable PR release classification, and exposes one terminal `quality` fan-in. Do not make the host-independent `composer check` gate depend implicitly on an unverified local Booster checkout.
 
-The certified source host is the immutable Core `v1.0.0-beta.31` tag target
-`8a3ed5a8acdb3875f498e2f44bf9eba89fddbbaf`, with Provider API 14 / workflow V3.
+The source-qualification host is immutable Core PR307 candidate
+`3aea62a102a9c180467b34d7e61967c7bd039621`, with Provider API 15 / workflow V4. This is source-host qualification, not released-Core certification.
 PHPStan blocks at level 8 over both default-inclusive production and development profiles.
 The original production profile keeps test declarations isolated; the complementary
 development profile discovers the root and excludes only src (analyzed by production),
