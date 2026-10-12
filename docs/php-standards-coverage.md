@@ -41,7 +41,7 @@ and two-build tests establish these invariants.
 
 PHPCBF uses the same configuration and paths as PHPCS; repeated fixes are stable.
 Both production and development PHPStan profiles now require level 8 under
-organisation #148. The exact immutable Core beta.31 source-host identity is
+organisation #148. The exact immutable Core source-candidate identity is
 unchanged. Local PHP 8.3 qualification complements the native PHP 8.2/8.5
 matrix and Node 24.21.0 checks; PR evidence records their exact revisions/results.
 No new release authority or installed/UI acceptance is claimed.

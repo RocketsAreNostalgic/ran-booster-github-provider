@@ -1,6 +1,6 @@
 # RAN Booster GitHub Provider
 
-> Reporting candidate: requires Provider API 15 / Add-on API 17. Exact source qualification is pending the coordinated Core candidate; the previous beta.31 certification below does not qualify this revision.
+> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects immutable Core PR307 source candidate `8ccc7268f0773fa17b28ccac0560c3b3c43f7ef2`; this is not released-Core certification.
 > Workflow V4 accepts optional progress-only handles. Core stores assessment and failure history; this package retains setup claims, previews and pull-request records.
 
 `ran/booster-github-provider` is the first-party GitHub implementation for
@@ -50,12 +50,11 @@ an active runtime and fail closed; upgrading this package alone does not qualify
 the host's installed composition.
 Do not infer host compatibility from matching version numbers.
 
-**Use the Provider version bundled with your chosen Booster release.** Core
-`v1.0.0-beta.31` is published and bundles Provider beta.13. Provider CI pins that
-immutable Core tag target for source-host qualification, as identified in
-[the contribution guide](CONTRIBUTING.md). Its level-8 analysis and host tests do
-not establish installed-site or UI acceptance for a different composition. A
-package release alone does not qualify a different host/dependency combination.
+**Use the Provider version bundled with your chosen Booster release.** This API15
+candidate is qualified against the exact Core PR307 source revision pinned in CI,
+as identified in [the contribution guide](CONTRIBUTING.md). Earlier beta.31/API14
+certification does not qualify this composition. Source-host analysis and tests
+do not establish package publication or installed-site/UI acceptance.
 
 This is prerelease software. Pin an immutable release and retain the consuming
 application's lockfile. Public contracts and prerelease persistence formats can
@@ -177,12 +176,11 @@ Maintainers should use [CONTRIBUTING.md](CONTRIBUTING.md) for quality commands,
 [AGENTS.md](AGENTS.md) for the repository engineering contract. The package is
 licensed under [GPL-2.0-or-later](LICENSE).
 
-## API14 naming candidate
+## Reporting candidate compatibility
 
-This source includes the earlier 50 Core-owned interface method migrations and
-completes owned parameter, property and connected consumer naming. It requires
-the exact API14 Core candidate pinned in CI; prior API12/API13 tuples are not
-compatible. WorkflowV3 and persisted/template identities remain unchanged.
-Candidate host qualification is preparation, not released-Core certification.
-See Core #167 for reviewed candidate identities and the publication/adoption
-sequence. The earlier published beta.9 remains historical API12 helper evidence.
+Provider API15 and workflow V4 replace the earlier API14/V3 source contract.
+Workflow results and operational setup records retain their domain meaning;
+Core now owns durable assessment/failure history. GitHub reports actual progress
+through the same public contract available to external providers. Source-host
+qualification precedes matching satellite releases and Core lock adoption; keep
+these proposals unmerged until their specific review and owner decisions.
