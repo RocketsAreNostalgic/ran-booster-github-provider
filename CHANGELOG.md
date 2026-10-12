@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.16](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.15...v1.0.0-beta.16) (2026-10-12)
+
+
+### Features
+
+* use Core activity history for GitHub workflow checks ([#72](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/72)) ([4399780](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/43997801a6392dce13c74ce29325428384d49c26))
+
 ## [1.0.0-beta.15](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.14...v1.0.0-beta.15) (2026-10-09)
 
 
