@@ -27,7 +27,7 @@ certified Booster checkout pinned in [CI](.github/workflows/ci.yml):
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the certified host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 8ccc7268f0773fa17b28ccac0560c3b3c43f7ef2 &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 3aea62a102a9c180467b34d7e61967c7bd039621 &&
   composer check:host
 ```
 
@@ -78,10 +78,10 @@ parameter occurrences (including three private promotions) and four reserved
 parameters, with connected callers and Core consumers. This intentionally
 breaks the old beta PHP API; no mixed old/new tuple compatibility is claimed.
 The earlier API13 tranche migrated all 50 Core-interface implementation methods.
-The current API14 recovery completes public parameters, properties, promotions
+The historical API14 recovery completed public parameters, properties, promotions
 and connected callers with the matching Core declarations. Persisted/template keys,
 credentials and runtime protocols are unchanged. See [the migration ledger](docs/naming-migration.md) and
-[the proposed Core contract manifest](docs/naming-core-contract-manifest.md).
+[the current Core contract manifest](docs/naming-core-contract-manifest.md).
 
 See [standards coverage](docs/php-standards-coverage.md) for whole-tree enforcement
 and the retained foreign-signature and test-fixture exceptions.

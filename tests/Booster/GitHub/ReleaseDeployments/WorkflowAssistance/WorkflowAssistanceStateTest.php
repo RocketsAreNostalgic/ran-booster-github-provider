@@ -17,6 +17,8 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array_fill_keys(
 			array(
 				WorkflowAssistanceState::SETUP_OPTION,
+				'ran_booster_github_provider_release_workflow_assessment_observations',
+				'ran_booster_github_provider_release_workflow_failure_history',
 			),
 			array( 'current' => true )
 		);
@@ -41,9 +43,10 @@ final class WorkflowAssistanceStateTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function tearDown(): void {
 		$GLOBALS['wpdb']->disconnect();
+		unset( $GLOBALS['ran_booster_github_provider_test_option_delete_failure'] );
 	}
 
-	public function test_durable_cleanup_owns_only_current_provider_state_and_is_repeatable(): void {
+	public function test_durable_cleanup_removes_current_and_retired_provider_state_and_is_repeatable(): void {
 		$state = new WorkflowAssistanceState();
 
 		self::assertTrue( $state->remove_durable_state() );
@@ -59,6 +62,18 @@ final class WorkflowAssistanceStateTest extends TestCase {
 
 		self::assertTrue( $state->remove_durable_state() );
 		self::assertCount( 4, $GLOBALS['ran_booster_release_deployments_test_options'] );
+	}
+
+	public function test_failed_retired_option_deletion_is_reported_and_can_be_retried(): void {
+		$option = 'ran_booster_github_provider_release_workflow_failure_history';
+		$GLOBALS['ran_booster_github_provider_test_option_delete_failure'] = $option;
+		$state = new WorkflowAssistanceState();
+		self::assertFalse( $state->remove_durable_state() );
+		self::assertArrayHasKey( $option, $GLOBALS['ran_booster_release_deployments_test_options'] );
+		unset( $GLOBALS['ran_booster_github_provider_test_option_delete_failure'] );
+		self::assertTrue( $state->remove_durable_state() );
+		self::assertArrayNotHasKey( $option, $GLOBALS['ran_booster_release_deployments_test_options'] );
+		self::assertSame( 'preserved', $GLOBALS['ran_booster_release_deployments_test_options']['unrelated_option'] );
 	}
 
 	public function test_lock_and_preview_names_are_provider_owned(): void {

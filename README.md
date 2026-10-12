@@ -1,6 +1,6 @@
 # RAN Booster GitHub Provider
 
-> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects immutable Core PR307 source candidate `8ccc7268f0773fa17b28ccac0560c3b3c43f7ef2`; this is not released-Core certification.
+> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects immutable Core PR307 source candidate `3aea62a102a9c180467b34d7e61967c7bd039621`; this is not released-Core certification.
 > Workflow V4 accepts optional progress-only handles. Core stores assessment and failure history; this package retains setup claims, previews and pull-request records.
 
 `ran/booster-github-provider` is the first-party GitHub implementation for

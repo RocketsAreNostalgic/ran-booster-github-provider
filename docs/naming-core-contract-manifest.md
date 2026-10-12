@@ -1,6 +1,38 @@
 # Provider/Core naming contract manifest — 2026-10-01
 
-## Operative API14 recovery scope — 2 October 2026
+## Operative API15 reporting contract
+
+Current source-host qualification pins Core PR307 commit
+`3aea62a102a9c180467b34d7e61967c7bd039621` in [CI](../.github/workflows/ci.yml),
+with Provider API15 and `RepositoryReleaseWorkflowManagementV4`. This candidate
+is not a released-Core certification; historical beta.31 evidence below does not
+qualify this revision. Publication, Core dependency adoption and installed/UI
+acceptance remain separate decisions and gates.
+
+The existing snake_case public names and named arguments remain authoritative.
+The reporting additions are:
+
+| Contract | Current shape |
+|---|---|
+| `ArchiveRequest` | Optional `?ActivityProgress $progress` for actual archive preparation stages. |
+| `workflow_inspect` | `(RepositoryReleaseWorkflowTarget $target, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id, ?ActivityProgress $progress = null): RepositoryReleaseWorkflowResult` |
+| `workflow_setup` | `(RepositoryReleaseWorkflowTarget $target, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id, ?ActivityProgress $progress = null): RepositoryReleaseWorkflowResult` |
+| `workflow_outcome` | `(RepositoryReleaseWorkflowTarget $target, ?string $credential_id, ?ActivityProgress $progress = null): RepositoryReleaseWorkflowResult` |
+| `workflow_status` / `workflow_preview` | Existing read-only signatures unchanged; no progress argument or fresh activity. |
+| `RepositoryReleaseNativeTarget` | Adds `matches_check_source(string $runtime_provider, string $repository_identity, string $channel): bool` to match bounded release-check observations to the native target. |
+
+`ActivityProgress` supplies progress only; Core owns operation completion, shared
+history and readback. The GitHub provider retains setup authority and cleanup of
+its retired history option names, with no legacy history reads, migration or new
+writes. Workflow template/persisted producer keys, credentials, webhook behavior,
+and updater runtime protocol5 are unchanged by this reporting contract.
+
+The sections below are historical inventories, including their old interface
+names, line numbers, proposed mappings, host identities and deferred decisions.
+They are superseded by this operative section and the executable host contract
+in `tests/host-contract.php`.
+
+## Historical API14 recovery scope — 2 October 2026
 
 The current recovery completes owned public parameters, properties, promotions and
 connected consumers on top of the earlier 50 Core-interface method migrations.
@@ -10,8 +42,8 @@ API13/API14 tuple compatibility are provided. Workflow V3, persisted/template ke
 credentials, webhook behavior and updater runtime protocol 5 are unchanged.
 
 The historical recovery candidate Core was
-`ae4de158e3ae02d99162b9b8d0babdc9269a36da`, used for the evidence below. Current host qualification uses the immutable
-Core beta.31 revision in [CI](../.github/workflows/ci.yml). That historical candidate passed 432 tests / 3,354 assertions. The beta.31
+`ae4de158e3ae02d99162b9b8d0babdc9269a36da`, used for the evidence below. Subsequent historical host qualification used immutable
+Core beta.31. That historical candidate passed 432 tests / 3,354 assertions. The beta.31
 source-host qualification passes 434 tests / 3,362 assertions, including interface
 parameter-name conformance.
 See [the historical recovery qualification](beta31-recovery-qualification.md) for
@@ -20,7 +52,7 @@ Source qualification does not authorize publication or Core dependency adoption.
 
 All sections below preserve historical audits and checkpoints. Their earlier
 public-parameter deferrals, proposed mappings, source line references and host
-identities describe those checkpoints, not the operative API14 contract above.
+identities describe those checkpoints, not the operative API15 contract above.
 
 ## Historical API13 methods-only checkpoint — 1 October 2026
 

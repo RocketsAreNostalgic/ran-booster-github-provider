@@ -51,6 +51,10 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$result      = $coordinator->inspect( WorkflowProviderFixtures::target(), 'stable', WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::RELEASE_UNAVAILABLE ), 'token', $progress );
 		self::assertSame( 'workflow_inspected', $result['code'] );
 		self::assertSame( array( 'gh.repository_snapshot', 'gh.template_pack', 'gh.automation_assessment' ), $progress->stages );
+		$progress->stages = array();
+		$setup            = $coordinator->setup( WorkflowProviderFixtures::target(), $result['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token', $progress );
+		self::assertSame( 'workflow_setup_open', $setup['code'] );
+		self::assertSame( array( 'gh.template_pack', 'gh.repository_snapshot', 'gh.automation_assessment', 'gh.setup_pull_request' ), $progress->stages );
 	}
 
 	public function test_release_asset_inspection_uses_the_assessment_preflight_contract(): void {

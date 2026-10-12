@@ -17,10 +17,10 @@ final class WorkflowAssistanceState {
 		return 'ran_booster_github_workflow_' . substr( hash( 'sha256', $options ), 0, 32 );
 	}
 
-	/** Remove current provider-owned durable workflow-assistance state. */
+	/** Remove current and retired provider-owned durable workflow-assistance state. */
 	public function remove_durable_state(): bool {
 		$missing = new \stdClass();
-		foreach ( self::current_options() as $option ) {
+		foreach ( self::cleanup_options() as $option ) {
 			delete_option( $option );
 			if ( function_exists( 'wp_cache_delete' ) ) {
 				wp_cache_delete( $option, 'options' );
@@ -34,9 +34,12 @@ final class WorkflowAssistanceState {
 	}
 
 	/** @return list<string> */
-	private static function current_options(): array {
+	private static function cleanup_options(): array {
 		return array(
 			self::SETUP_OPTION,
+			// Retired history is cleanup-only; Core owns all new activity records.
+			'ran_booster_github_provider_release_workflow_assessment_observations',
+			'ran_booster_github_provider_release_workflow_failure_history',
 		);
 	}
 }

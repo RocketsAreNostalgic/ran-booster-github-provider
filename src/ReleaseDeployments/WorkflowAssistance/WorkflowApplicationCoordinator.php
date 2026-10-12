@@ -221,7 +221,9 @@ final class WorkflowApplicationCoordinator {
 		if ( 'ok' !== $target['code'] ) {
 			return $target;
 		}
-		$progress?->progress( 'gh.template_pack' );
+		if ( null === $pack ) {
+			$progress?->progress( 'gh.template_pack' );
+		}
 		$template = null === $pack ? $this->templates->discover( $token ) : array(
 			'code' => 'ok',
 			'pack' => $pack,
