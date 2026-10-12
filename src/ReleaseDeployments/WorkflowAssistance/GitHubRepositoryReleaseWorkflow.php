@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
+use RAN\Activity\ActivityProgress;
 use RAN\RepositoryProvider\ProviderCredentialStore;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreview;
@@ -12,18 +13,16 @@ use RAN\RepositoryProvider\RepositoryReleaseWorkflowStatus;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowTarget;
 use Throwable;
 
-/** @internal GitHub implementation and persistence owner for initial-only workflow API 3. */
+/** @internal GitHub implementation and operational owner for initial-only workflow API 4. */
 final class GitHubRepositoryReleaseWorkflow {
 	public function __construct( private ProviderCredentialStore $credentials, private WorkflowApplicationCoordinator $coordinator, private SetupRecordStore $records ) {}
 
 	public function status( RepositoryReleaseWorkflowTarget $status ): RepositoryReleaseWorkflowStatus {
-		$record      = $this->records->find( $status->provider_repository_id() );
-		$exact       = null !== $record && $status->type() === $record['package_type'] && $status->identifier() === $record['package_identifier'] && $status->source_revision() === $record['source_revision'];
-		$type        = null === $record ? $status->type() : $record['package_type'];
-		$identifier  = null === $record ? $status->identifier() : $record['package_identifier'];
-		$revision    = null === $record ? $status->source_revision() : $record['source_revision'];
-		$observation = $this->records->assessment_observation( $status->provider_repository_id(), $status->type(), $status->identifier(), $status->source_revision() );
-		$history     = array_map( static fn ( array $entry ): array => array_intersect_key( $entry, array_flip( array( 'operation', 'outcome_code', 'failure_stage', 'diagnostic_code', 'diagnostic_available', 'correlation_reference', 'recorded_at' ) ) ), $this->records->failure_history( $status->provider_repository_id(), $status->type(), $status->identifier(), $status->source_revision() ) );
+		$record     = $this->records->find( $status->provider_repository_id() );
+		$exact      = null !== $record && $status->type() === $record['package_type'] && $status->identifier() === $record['package_identifier'] && $status->source_revision() === $record['source_revision'];
+		$type       = null === $record ? $status->type() : $record['package_type'];
+		$identifier = null === $record ? $status->identifier() : $record['package_identifier'];
+		$revision   = null === $record ? $status->source_revision() : $record['source_revision'];
 		return new RepositoryReleaseWorkflowStatus(
 			'gh',
 			$status->provider_repository_id(),
@@ -34,9 +33,9 @@ final class GitHubRepositoryReleaseWorkflow {
 			$identifier,
 			$revision,
 			null !== $record ? $record['operation'] : '',
-			is_array( $observation ) ? $observation['kind'] : '',
-			is_array( $observation ) ? $observation['observed_at'] : '',
-			$history,
+			'',
+			'',
+			array(),
 			$this->credential_choices(),
 			array(
 				array(
@@ -83,71 +82,37 @@ final class GitHubRepositoryReleaseWorkflow {
 		);
 	}
 
-	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id ): RepositoryReleaseWorkflowResult {
+	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
 		if ( 'stable' !== $channel ) {
-			return $this->persist( 'inspect', $status, $this->invalid_request() );
+			return $this->result( $this->invalid_request() );
 		}
 		if ( ! $this->bootstrap_preflight( $preflight ) ) {
-			return $this->persist( 'inspect', $status, $this->preflight_result( $preflight ) );
+			return $this->result( $this->preflight_result( $preflight ) );
 		}
 		$token = $this->credential( $credential_id, false );
-		return $this->persist( 'inspect', $status, $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->inspect( $status, $channel, $preflight, $token ) );
+		return $this->result( $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->inspect( $status, $channel, $preflight, $token, $progress ) );
 	}
-	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id ): RepositoryReleaseWorkflowResult {
+	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
 		if ( ! $this->bootstrap_preflight( $preflight ) ) {
-			return $this->persist( 'setup', $status, $this->preflight_result( $preflight, $key ) );
+			return $this->result( $this->preflight_result( $preflight, $key ) );
 		}
 		if ( null === $this->coordinator->preview( $key, $status ) ) {
-			return $this->persist( 'setup', $status, $this->unauthorised( $key ) );
+			return $this->result( $this->unauthorised( $key ) );
 		}
 		$token = $this->credential( $credential_id, true );
-		return $this->persist( 'setup', $status, '' === $token ? $this->unauthorised( $key ) : $this->coordinator->setup( $status, $key, $confirmation, $preflight, $token ) );
+		return $this->result( '' === $token ? $this->unauthorised( $key ) : $this->coordinator->setup( $status, $key, $confirmation, $preflight, $token, $progress ) );
 	}
-	public function outcome( RepositoryReleaseWorkflowTarget $status, ?string $credential_id ): RepositoryReleaseWorkflowResult {
+	public function outcome( RepositoryReleaseWorkflowTarget $status, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
 		if ( ! $this->coordinator->has_current_record( $status ) ) {
-			return $this->persist( 'outcome', $status, $this->invalid_request() );
+			return $this->result( $this->invalid_request() );
 		}
 		$token = $this->credential( $credential_id, true );
-		return $this->persist( 'outcome', $status, $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->outcome( $status, $token ) );
+		return $this->result( $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->outcome( $status, $token, $progress ) );
 	}
 	/**
 	 * @param array{code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string,correlation_reference?:string} $outcome
 	 */
-	private function persist( string $operation, RepositoryReleaseWorkflowTarget $status, array $outcome ): RepositoryReleaseWorkflowResult {
-		$observation = match ( $outcome['code'] ) {
-			'workflow_release_automation_conflict' => 'existing_automation_detected', 'workflow_release_automation_present' => 'booster_setup_verified', 'workflow_inspected' => 'no_recognisable_automation', default => '' };
-		if ( '' !== $observation ) {
-			$this->records->save_assessment_observation(
-				array(
-					'kind'               => $observation,
-					'repository_id'      => $status->provider_repository_id(),
-					'package_type'       => $status->type(),
-					'package_identifier' => $status->identifier(),
-					'source_revision'    => $status->source_revision(),
-					'observed_at'        => gmdate( 'Y-m-d\\TH:i:s\\Z' ),
-				)
-			);
-		}
-		if ( ! $outcome['successful'] && '' !== $outcome['failure_stage'] ) {
-			$reference = bin2hex( random_bytes( 16 ) );
-			$available = false;
-			$this->records->record_failure(
-				array(
-					'operation'             => $operation,
-					'outcome_code'          => $outcome['code'],
-					'failure_stage'         => $outcome['failure_stage'],
-					'package_type'          => $status->type(),
-					'package_identifier'    => $status->identifier(),
-					'source_revision'       => $status->source_revision(),
-					'repository_id'         => $status->provider_repository_id(),
-					'diagnostic_code'       => $outcome['diagnostic_code'],
-					'diagnostic_available'  => $available,
-					'correlation_reference' => $reference,
-					'recorded_at'           => gmdate( 'Y-m-d\\TH:i:s\\Z' ),
-				)
-			);
-			$outcome['correlation_reference'] = '';
-		}
+	private function result( array $outcome ): RepositoryReleaseWorkflowResult {
 		return new RepositoryReleaseWorkflowResult( $outcome['code'], $outcome['successful'], $outcome['preview_key'], $outcome['failure_stage'], $outcome['diagnostic_code'], $outcome['correlation_reference'] ?? '' );
 	}
 	private function bootstrap_preflight( RepositoryReleaseWorkflowPreflight $preflight ): bool {

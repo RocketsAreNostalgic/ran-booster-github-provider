@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
 use PHPUnit\Framework\TestCase;
+use RAN\Activity\ActivityProgress;
 use RAN\AddOn\ReleaseTracking\ReleaseTrackingEligibility;
 use RAN\AddOn\ReleaseTracking\ReleaseTrackingFacade;
 use RAN\AddOn\ReleaseTracking\ReleaseTrackingResult;
@@ -36,6 +37,20 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$result                                 = $coordinator->inspect( $status, 'stable', WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::PREFLIGHT_UNAVAILABLE ), 'token' );
 		self::assertSame( 'workflow_preflight_unavailable', $result['code'] );
 		self::assertSame( 'provider_unavailable', $result['diagnostic_code'] );
+	}
+
+	public function test_progress_tracks_real_inspection_stages_without_owning_completion(): void {
+		$progress    = new class() implements ActivityProgress {
+			/** @var list<string> */
+			public array $stages = array();
+			public function progress( string $code, string $message = '' ): void {
+				$this->stages[] = $code . $message;
+			}
+		};
+		$coordinator = $this->coordinator( new D23ReleaseFacade(), new D23ApplicationTransport(), new SetupRecordStore() );
+		$result      = $coordinator->inspect( WorkflowProviderFixtures::target(), 'stable', WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::RELEASE_UNAVAILABLE ), 'token', $progress );
+		self::assertSame( 'workflow_inspected', $result['code'] );
+		self::assertSame( array( 'gh.repository_snapshot', 'gh.template_pack', 'gh.automation_assessment' ), $progress->stages );
 	}
 
 	public function test_release_asset_inspection_uses_the_assessment_preflight_contract(): void {

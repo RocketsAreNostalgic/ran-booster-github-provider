@@ -43,6 +43,10 @@ spl_autoload_register(
 			// class_exists(..., false), so the certified host intentionally lacks it.
 			return;
 		}
+		if ( 'RAN\\Activity\\ActivityProgress' === $class_name ) {
+			require $ran_booster_root . '/RAN/Activity/ActivityProgress.php';
+			return;
+		}
 		if ( 'RAN\\Provider\\ProviderCapability' === $class_name ) {
 			require $ran_booster_root . '/RAN/Provider/ProviderCapability.php';
 			return;

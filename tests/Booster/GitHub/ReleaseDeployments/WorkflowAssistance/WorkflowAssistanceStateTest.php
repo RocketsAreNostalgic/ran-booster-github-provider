@@ -17,8 +17,6 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		$GLOBALS['ran_booster_release_deployments_test_options'] = array_fill_keys(
 			array(
 				WorkflowAssistanceState::SETUP_OPTION,
-				WorkflowAssistanceState::ASSESSMENT_OPTION,
-				WorkflowAssistanceState::FAILURE_OPTION,
 			),
 			array( 'current' => true )
 		);

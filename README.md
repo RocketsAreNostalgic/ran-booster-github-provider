@@ -1,5 +1,8 @@
 # RAN Booster GitHub Provider
 
+> Reporting candidate: requires Provider API 15 / Add-on API 17. Exact source qualification is pending the coordinated Core candidate; the previous beta.31 certification below does not qualify this revision.
+> Workflow V4 accepts optional progress-only handles. Core stores assessment and failure history; this package retains setup claims, previews and pull-request records.
+
 `ran/booster-github-provider` is the first-party GitHub implementation for
 [RAN Booster](https://github.com/RocketsAreNostalgic/ran-booster). It is a
 **Composer library**, not an installable WordPress plugin. Ordinary Booster
@@ -11,7 +14,7 @@ its runtime archive; they do not install or activate this package separately.
 The Provider resolves and browses GitHub repositories, prepares archives,
 validates credentials, normalizes and manages webhooks, and supplies diagnostics.
 It also lists, inspects and acquires GitHub releases, composes native update
-targets, and offers initial release-workflow setup through the V3 capability.
+targets, and offers initial release-workflow setup through the V4 capability.
 
 Booster supplies the public provider contracts and owns registration, credential
 custody, policy, deployment orchestration and administrator screens. This package
@@ -31,12 +34,12 @@ WordPress and Provider API requirements are host contracts, not Composer checks.
 | --- | --- |
 | PHP | `^8.2` |
 | WordPress host | WordPress 7.0+ through a compatible Booster host |
-| Outer Provider API | Exactly `14`; not compatible with API 11, 12 or 13 |
-| Release-workflow capability | Initial-only `RepositoryReleaseWorkflowManagementV3` |
+| Outer Provider API | Exactly `15`; not compatible with API 14 or earlier |
+| Release-workflow capability | Initial-only `RepositoryReleaseWorkflowManagementV4` |
 | Shared repository paths | `ran/updater-support ^1.0.0-beta.4` |
 | Release updater | `ran/wp-release-updater ~1.0.0-beta.9`, locked beta.9 / runtime protocol 5 |
 
-The package version, `V1` PHP namespace, outer Provider API, workflow V3,
+The package version, `V1` PHP namespace, outer Provider API, workflow V4,
 template-pack API 3 and updater runtime protocol are separate contracts.
 
 The host and Provider must resolve the same released updater dependency. Composer

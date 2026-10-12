@@ -12,6 +12,7 @@ use RAN\RepositoryProvider\Admin\ProviderAdminMetadata;
 use RAN\RepositoryProvider\Admin\ProviderNavigationPlacement;
 use RAN\RepositoryProvider\Admin\ProviderSetupMetadata;
 use RAN\RepositoryProvider\Admin\WebhookScopeMetadata;
+use RAN\Activity\ActivityProgress;
 use RAN\RepositoryProvider\ArchiveRequest;
 use RAN\RepositoryProvider\AuthenticatedPreparedArchive;
 use RAN\RepositoryProvider\AuthenticatedWebhookDeliveryEvidenceReader;
@@ -48,7 +49,7 @@ use RAN\RepositoryProvider\RepositoryReleaseMetadata;
 use RAN\RepositoryProvider\RepositoryReleaseNativeTarget;
 use RAN\RepositoryProvider\RepositoryReleaseNativeTargets;
 use RAN\RepositoryProvider\RepositoryReleaseReadUnavailable;
-use RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV3;
+use RAN\RepositoryProvider\RepositoryReleaseWorkflowManagementV4;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreview;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowResult;
@@ -71,7 +72,7 @@ use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplateP
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowApplicationCoordinator;
 use RuntimeException;
 
-final class GitHubProvider implements RepositoryProvider, RepositoryPathInspector, CredentialValidator, CredentialedPublicRepositoryBrowser, WebhookNormalizerContract, ProviderCredentialPolicySupplier, RepositoryWebhookSettingsLink, RepositoryWebhookFitness, RepositoryWebhookManagement, RepositoryReleaseMetadata, RepositoryReleaseCandidateListing, RepositoryReleaseInspector, RepositoryReleaseAcquirer, RepositoryReleaseNativeTargets, RepositoryReleaseWorkflowManagementV3 {
+final class GitHubProvider implements RepositoryProvider, RepositoryPathInspector, CredentialValidator, CredentialedPublicRepositoryBrowser, WebhookNormalizerContract, ProviderCredentialPolicySupplier, RepositoryWebhookSettingsLink, RepositoryWebhookFitness, RepositoryWebhookManagement, RepositoryReleaseMetadata, RepositoryReleaseCandidateListing, RepositoryReleaseInspector, RepositoryReleaseAcquirer, RepositoryReleaseNativeTargets, RepositoryReleaseWorkflowManagementV4 {
 	public const OPERATION = 'repository-webhook-management';
 	public const VERSION   = 3;
 
@@ -235,16 +236,16 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return $this->release_workflow->preview( $target, $key );
 	}
 
-	public function workflow_inspect( RepositoryReleaseWorkflowTarget $target, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id ): RepositoryReleaseWorkflowResult {
-		return $this->release_workflow->inspect( $target, $channel, $preflight, $credential_id );
+	public function workflow_inspect( RepositoryReleaseWorkflowTarget $target, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
+		return $this->release_workflow->inspect( $target, $channel, $preflight, $credential_id, $progress );
 	}
 
-	public function workflow_setup( RepositoryReleaseWorkflowTarget $target, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id ): RepositoryReleaseWorkflowResult {
-		return $this->release_workflow->setup( $target, $key, $confirmation, $preflight, $credential_id );
+	public function workflow_setup( RepositoryReleaseWorkflowTarget $target, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
+		return $this->release_workflow->setup( $target, $key, $confirmation, $preflight, $credential_id, $progress );
 	}
 
-	public function workflow_outcome( RepositoryReleaseWorkflowTarget $target, ?string $credential_id ): RepositoryReleaseWorkflowResult {
-		return $this->release_workflow->outcome( $target, $credential_id );
+	public function workflow_outcome( RepositoryReleaseWorkflowTarget $target, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
+		return $this->release_workflow->outcome( $target, $credential_id, $progress );
 	}
 
 	public function get_credential_policy(): ProviderCredentialPolicy {

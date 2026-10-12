@@ -6,10 +6,8 @@ namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 /** Owns the GitHub provider's local workflow-assistance storage namespace and cleanup. */
 final class WorkflowAssistanceState {
-	public const SETUP_OPTION      = 'ran_booster_github_provider_release_workflow_setup_records';
-	public const ASSESSMENT_OPTION = 'ran_booster_github_provider_release_workflow_assessment_observations';
-	public const FAILURE_OPTION    = 'ran_booster_github_provider_release_workflow_failure_history';
-	public const PREVIEW_PREFIX    = 'ran_booster_github_provider_release_workflow_preview_';
+	public const SETUP_OPTION   = 'ran_booster_github_provider_release_workflow_setup_records';
+	public const PREVIEW_PREFIX = 'ran_booster_github_provider_release_workflow_preview_';
 
 	public static function claim_lock_name(): string {
 		global $wpdb;
@@ -39,8 +37,6 @@ final class WorkflowAssistanceState {
 	private static function current_options(): array {
 		return array(
 			self::SETUP_OPTION,
-			self::ASSESSMENT_OPTION,
-			self::FAILURE_OPTION,
 		);
 	}
 }
