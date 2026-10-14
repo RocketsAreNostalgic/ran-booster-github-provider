@@ -795,6 +795,94 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		}
 	}
 
+	public function test_plugin_and_theme_setup_do_not_fetch_unused_readback_blobs(): void {
+		foreach ( array( 'plugin', 'theme' ) as $type ) {
+			foreach ( array( 403, 429, 500, 'malformed' ) as $failure ) {
+				$this->setUp();
+				$transport      = new D23ApplicationTransport( false, $type );
+				$records        = new SetupRecordStore();
+				$readback_blobs = 0;
+				$branch_reads   = 0;
+				$send           = static function ( string $method, string $url, array $arguments ) use ( $transport, $failure, &$readback_blobs, &$branch_reads ): array {
+					$response = $transport( $method, $url, $arguments );
+					if ( $transport->write_counts['ref'] > 0 && 'GET' === $method ) {
+						if ( str_contains( $url, '/git/ref/heads/' ) && ! str_ends_with( $url, '/main' ) ) {
+							++$branch_reads;
+						}
+						if ( str_contains( $url, '/git/blobs/' ) ) {
+							++$readback_blobs;
+							$response['response']['code'] = is_int( $failure ) ? $failure : 200;
+							$response['body']             = 'malformed' === $failure ? '{' : '{}';
+						}
+					}
+					return $response;
+				};
+				$coordinator    = new WorkflowApplicationCoordinator( new GitHubRepositoryClient( $send ), new TemplatePackRepositoryClient( $transport ), new SourceReadyAssessor(), $records );
+				$status         = WorkflowProviderFixtures::target( $type, 'theme' === $type ? 'example-theme' : 'example-plugin/example-plugin.php' );
+				$inspect        = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
+				self::assertSame( 'workflow_inspected', $inspect['code'] );
+				$result = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
+				self::assertSame( 'workflow_setup_open', $result['code'] );
+				self::assertSame( 0, $readback_blobs );
+				self::assertSame( 2, $branch_reads );
+				self::assertNotNull( $records->find( '101' ) );
+				self::assertSame( 1, $transport->write_counts['pull'] );
+			}
+		}
+	}
+
+	public function test_entry_readback_preserves_later_ref_generated_mode_and_extra_pr_file_refusals(): void {
+		foreach ( array( 'later_ref', 'generated_mode', 'extra_pr_file' ) as $fault ) {
+			$transport    = new D23ApplicationTransport();
+			$records      = new SetupRecordStore();
+			$branch_reads = 0;
+			$send         = static function ( string $method, string $url, array $arguments ) use ( $transport, $fault, &$branch_reads ): array {
+				$response = $transport( $method, $url, $arguments );
+				if ( $transport->write_counts['ref'] < 1 || 'GET' !== $method ) {
+					return $response;
+				}
+				if ( ! str_contains( $url, '/git/ref/heads/' ) && ! str_contains( $url, '/git/trees/' ) && ! str_contains( $url, '/pulls/17/files' ) ) {
+					return $response;
+				}
+				$data = json_decode( $response['body'], true, 512, JSON_THROW_ON_ERROR );
+				if ( str_contains( $url, '/git/ref/heads/' ) && ! str_ends_with( $url, '/main' ) ) {
+					++$branch_reads;
+					if ( 'later_ref' === $fault && 2 === $branch_reads ) {
+						$data['object']['sha'] = str_repeat( '9', 40 );
+					}
+				}
+				if ( 'generated_mode' === $fault && str_contains( $url, '/git/trees/' ) ) {
+					foreach ( $data['tree'] as &$entry ) {
+						if ( '.github/workflows/quality.yml' === $entry['path'] ) {
+							$entry['mode'] = '100755';
+						}
+					}
+					unset( $entry );
+				}
+				if ( 'extra_pr_file' === $fault && str_contains( $url, '/pulls/17/files' ) ) {
+					$data[] = array(
+						'filename' => 'unexpected.php',
+						'status'   => 'added',
+						'sha'      => str_repeat( '9', 40 ),
+					);
+				}
+				$response['body'] = wp_json_encode( $data );
+				return $response;
+			};
+			$coordinator  = new WorkflowApplicationCoordinator( new GitHubRepositoryClient( $send ), new TemplatePackRepositoryClient( $transport ), new SourceReadyAssessor(), $records );
+			$status       = WorkflowProviderFixtures::target();
+			$inspect      = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
+			self::assertSame( 'workflow_inspected', $inspect['code'] );
+			$result = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
+			self::assertSame( 'workflow_partial', $result['code'] );
+			self::assertSame( 'repository_mutation', $result['failure_stage'] );
+			self::assertFalse( $result['successful'] );
+			self::assertNull( $records->find( '101' ) );
+			self::assertSame( 'generated_mode' === $fault ? 1 : 2, $branch_reads );
+			self::assertSame( 'extra_pr_file' === $fault ? 1 : 0, $transport->write_counts['pull'] );
+		}
+	}
+
 	private function ready_preflight(): RepositoryReleaseWorkflowPreflight {
 		return WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::RELEASE_UNAVAILABLE );
 	}

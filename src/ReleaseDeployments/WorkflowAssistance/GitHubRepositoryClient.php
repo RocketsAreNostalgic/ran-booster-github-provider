@@ -64,18 +64,11 @@ final class GitHubRepositoryClient {
 			? $this->ok( array( 'sha' => $sha ) )
 			: $this->error( 'invalid_response' );
 	}
-	/**
+	/** Exact bounded Git-tree metadata; admission and mutation readback share validation.
 	 * @return array<array-key,mixed>
 	 */
-	public function snapshot(
-		string $repository,
-		string $repository_id,
-		string $default_branch,
-		string $sha,
-		string $token = ''
-	): array {
-		if ( ! $this->valid_repository( $repository ) || null === $this->numeric_string( $repository_id )
-			|| ! $this->valid_branch( $default_branch ) || ! $this->valid_sha( $sha ) ) {
+	private function tree_entries( string $repository, string $sha, string $token = '' ): array {
+		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
 		$response = $this->request( 'GET', '/repos/' . $repository . '/git/trees/' . $sha . '?recursive=1', $token );
@@ -87,9 +80,7 @@ final class GitHubRepositoryClient {
 			|| count( $data['tree'] ) > self::MAX_TREE ) {
 			return $this->error( 'invalid_response' );
 		}
-		$entries           = array();
-		$candidates        = array();
-		$prefix_candidates = array();
+		$entries = array();
 		foreach ( $data['tree'] as $item ) {
 			if ( ! is_array( $item ) || ! $this->valid_path( $item['path'] ?? null )
 				|| isset( $entries[ $item['path'] ] )
@@ -109,6 +100,53 @@ final class GitHubRepositoryClient {
 				'sha'  => $item['sha'],
 				'size' => $size,
 			);
+		}
+		return $this->ok( array( 'entries' => $entries ) );
+	}
+
+	/** Bounded metadata-only snapshot for exact mutation readback.
+	 * @return array<array-key,mixed>
+	 */
+	public function entry_snapshot( string $repository, string $repository_id, string $default_branch, string $sha, string $token = '' ): array {
+		if ( ! $this->valid_repository( $repository ) || null === $this->numeric_string( $repository_id )
+			|| ! $this->valid_branch( $default_branch ) || ! $this->valid_sha( $sha ) ) {
+			return $this->error( 'invalid_request' );
+		}
+		$tree = $this->tree_entries( $repository, $sha, $token );
+		if ( 'ok' !== $tree['code'] ) {
+			return $tree;
+		}
+		try {
+			$snapshot = new RepositorySnapshot( $repository_id, $repository, $default_branch, $sha, $tree['entries'], array() );
+		} catch ( Throwable ) {
+			return $this->error( 'invalid_response' );
+		}
+		return $this->ok( array( 'snapshot' => $snapshot ) );
+	}
+
+	/**
+	 * @return array<array-key,mixed>
+	 */
+	public function snapshot(
+		string $repository,
+		string $repository_id,
+		string $default_branch,
+		string $sha,
+		string $token = ''
+	): array {
+		if ( ! $this->valid_repository( $repository ) || null === $this->numeric_string( $repository_id )
+			|| ! $this->valid_branch( $default_branch ) || ! $this->valid_sha( $sha ) ) {
+			return $this->error( 'invalid_request' );
+		}
+		$tree = $this->tree_entries( $repository, $sha, $token );
+		if ( 'ok' !== $tree['code'] ) {
+			return $tree;
+		}
+		$entries           = $tree['entries'];
+		$candidates        = array();
+		$prefix_candidates = array();
+		foreach ( $entries as $path => $item ) {
+			$size = $item['size'];
 			if ( 'blob' === $item['type'] && $this->assessment_document( $path ) ) {
 				$candidates[ $path ] = $item['sha'];
 			} elseif ( 'blob' === $item['type'] && $size >= 42 && SourceReadyAssessor::potential_runtime_blob( $path ) ) {

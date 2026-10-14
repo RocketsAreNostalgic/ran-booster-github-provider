@@ -401,7 +401,7 @@ final class WorkflowApplicationCoordinator {
 		if ( 'ok' !== $commit['code'] || array( $remote['base_sha'] ) !== $commit['parents'] ) {
 			return false;
 		}
-		$tree = $this->github->snapshot( $remote['repository'], $remote['repository_id'], $remote['default_branch'], $head, $token );
+		$tree = $this->github->entry_snapshot( $remote['repository'], $remote['repository_id'], $remote['default_branch'], $head, $token );
 		if ( 'ok' !== $tree['code'] ) {
 			return false;
 		}
