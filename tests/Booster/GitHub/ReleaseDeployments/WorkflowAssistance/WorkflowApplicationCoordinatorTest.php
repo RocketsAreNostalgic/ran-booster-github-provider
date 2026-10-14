@@ -242,16 +242,18 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			$this->setUp();
 			$transport   = new D23ApplicationTransport( package_type: $type );
 			$records     = new SetupRecordStore();
-			$armed       = false;
+			$state       = new class() {
+				public bool $armed  = false;
+				public int $numeric = 0;
+			};
 			$reads       = array();
-			$numeric     = 0;
-			$send        = static function ( string $method, string $url, array $arguments ) use ( $transport, &$armed, &$reads, &$numeric ): array {
+			$send        = static function ( string $method, string $url, array $arguments ) use ( $transport, $state, &$reads ): array {
 				$response = $transport( $method, $url, $arguments );
-				if ( $armed && str_contains( $url, TemplatePackApi3Fixture::REPOSITORY ) ) {
+				if ( $state->armed && str_contains( $url, TemplatePackApi3Fixture::REPOSITORY ) ) {
 					$reads[] = $url;
 					self::assertSame( 'GET', $method );
 					self::assertSame( 'Bearer token', $arguments['headers']['Authorization'] );
-					if ( 1 === preg_match( '~/releases/[0-9]+$~', $url ) && ++$numeric > 1 ) {
+					if ( 1 === preg_match( '~/releases/[0-9]+$~', $url ) && ++$state->numeric > 1 ) {
 						return array(
 							'response' => array( 'code' => 403 ),
 							'body'     => '{}',
@@ -266,10 +268,10 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			self::assertSame( 'workflow_inspected', $inspect['code'] );
 			$preview = $coordinator->preview( $inspect['preview_key'], $status );
 			self::assertNotNull( $preview );
-			$armed = true;
-			$setup = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
+			$state->armed = true;
+			$setup        = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
 			self::assertSame( 'workflow_setup_open', $setup['code'] );
-			self::assertSame( 1, $numeric );
+			self::assertSame( 1, $state->numeric );
 			self::assertCount( 6, $reads );
 			$record = $records->find( '101' );
 			self::assertNotNull( $record );
@@ -887,19 +889,21 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 			foreach ( array( 'new', 'existing_pr' ) as $path ) {
 				foreach ( array( 'none', 'commit', 'tree' ) as $failure ) {
 					$this->setUp();
-					$transport    = new D23ApplicationTransport( false, $type );
-					$records      = new SetupRecordStore();
-					$armed        = false;
-					$commit_reads = 0;
-					$tree_reads   = 0;
-					$send         = static function ( string $method, string $url, array $arguments ) use ( $transport, $failure, &$armed, &$commit_reads, &$tree_reads ): array {
+					$transport   = new D23ApplicationTransport( false, $type );
+					$records     = new SetupRecordStore();
+					$state       = new class() {
+						public bool $armed       = false;
+						public int $commit_reads = 0;
+						public int $tree_reads   = 0;
+					};
+					$send        = static function ( string $method, string $url, array $arguments ) use ( $transport, $failure, $state ): array {
 						$response = $transport( $method, $url, $arguments );
-						if ( ! $armed || 'GET' !== $method ) {
+						if ( ! $state->armed || 'GET' !== $method ) {
 							return $response;
 						}
 						if ( str_contains( $url, '/git/commits/' . str_repeat( 'c', 40 ) ) ) {
-							++$commit_reads;
-							if ( 'commit' === $failure || $commit_reads > 1 ) {
+							++$state->commit_reads;
+							if ( 'commit' === $failure || $state->commit_reads > 1 ) {
 								return array(
 									'response' => array( 'code' => 503 ),
 									'body'     => '{}',
@@ -907,8 +911,8 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 							}
 						}
 						if ( str_contains( $url, '/git/trees/' . str_repeat( 'c', 40 ) ) ) {
-							++$tree_reads;
-							if ( 'tree' === $failure || $tree_reads > 1 ) {
+							++$state->tree_reads;
+							if ( 'tree' === $failure || $state->tree_reads > 1 ) {
 								return array(
 									'response' => array( 'code' => 503 ),
 									'body'     => '{}',
@@ -917,8 +921,8 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 						}
 						return $response;
 					};
-					$coordinator  = new WorkflowApplicationCoordinator( new GitHubRepositoryClient( $send ), new TemplatePackRepositoryClient( $transport ), new SourceReadyAssessor(), $records );
-					$status       = WorkflowProviderFixtures::target( $type, 'theme' === $type ? 'example-theme' : 'example-plugin/example-plugin.php' );
+					$coordinator = new WorkflowApplicationCoordinator( new GitHubRepositoryClient( $send ), new TemplatePackRepositoryClient( $transport ), new SourceReadyAssessor(), $records );
+					$status      = WorkflowProviderFixtures::target( $type, 'theme' === $type ? 'example-theme' : 'example-plugin/example-plugin.php' );
 					if ( 'existing_pr' === $path ) {
 						$seed = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 						self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $seed['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code'] );
@@ -927,11 +931,11 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 					$before  = $transport->write_counts['pull'];
 					$inspect = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 					self::assertSame( 'workflow_inspected', $inspect['code'] );
-					$armed  = true;
-					$result = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
+					$state->armed = true;
+					$result       = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
 					self::assertSame( 'none' === $failure ? ( 'new' === $path ? 'workflow_setup_open' : 'workflow_setup_recovered' ) : 'workflow_partial', $result['code'] );
-					self::assertSame( 1, $commit_reads );
-					self::assertSame( 'commit' === $failure ? 0 : 1, $tree_reads );
+					self::assertSame( 1, $state->commit_reads );
+					self::assertSame( 'commit' === $failure ? 0 : 1, $state->tree_reads );
 					self::assertSame( $before + ( 'none' === $failure && 'new' === $path ? 1 : 0 ), $transport->write_counts['pull'] );
 					self::assertSame( 'none' === $failure, null !== $records->find( '101' ) );
 					if ( 'none' !== $failure ) {
@@ -948,13 +952,15 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 				$this->setUp();
 				$transport   = new D23ApplicationTransport( false, $type );
 				$records     = new SetupRecordStore();
-				$armed       = false;
-				$moved       = false;
-				$send        = static function ( string $method, string $url, array $arguments ) use ( $transport, &$armed, &$moved ): array {
+				$state       = new class() {
+					public bool $armed = false;
+					public bool $moved = false;
+				};
+				$send        = static function ( string $method, string $url, array $arguments ) use ( $transport, $state ): array {
 					$response = $transport( $method, $url, $arguments );
-					if ( $armed && ! $moved && 'GET' === $method && str_contains( $url, '/git/commits/' . str_repeat( 'c', 40 ) ) ) {
+					if ( $state->armed && ! $state->moved && 'GET' === $method && str_contains( $url, '/git/commits/' . str_repeat( 'c', 40 ) ) ) {
 						( new \ReflectionProperty( $transport, 'branch_head' ) )->setValue( $transport, str_repeat( '9', 40 ) );
-						$moved = true;
+						$state->moved = true;
 					}
 					return $response;
 				};
@@ -969,9 +975,9 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 				$before  = $transport->write_counts['pull'];
 				$inspect = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 				self::assertSame( 'workflow_inspected', $inspect['code'] );
-				$armed  = true;
-				$result = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
-				self::assertTrue( $moved );
+				$state->armed = true;
+				$result       = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
+				self::assertTrue( $state->moved );
 				self::assertSame( 'workflow_partial', $result['code'] );
 				self::assertSame( 'repository_mutation', $result['failure_stage'] );
 				self::assertSame( $before, $transport->write_counts['pull'] );
