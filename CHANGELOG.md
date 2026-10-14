@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0-beta.17](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.16...v1.0.0-beta.17) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* integrate qualified workflow verification and setup read reuse ([#81](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/81))
+
+### Performance
+
+* integrate qualified workflow verification and setup read reuse ([#81](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/81)) ([f96db41](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/f96db41d01890841fc84b944b61e422682140e70))
+
 ## [1.0.0-beta.16](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.15...v1.0.0-beta.16) (2026-10-12)
 
 
