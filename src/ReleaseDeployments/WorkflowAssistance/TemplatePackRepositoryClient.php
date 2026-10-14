@@ -71,42 +71,6 @@ final class TemplatePackRepositoryClient {
 		return array() === $candidates ? $this->error( 'template_pack_unavailable' ) : $this->verified_release( $candidates[0], $token );
 	}
 
-	/**
-	 * Re-fetch one preview-pinned release and reject any identity drift.
-	 *
-	 * @param array<string, mixed> $expected_identity
-	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
-	 */
-	public function exact( array $expected_identity, string $token = '' ): array {
-		if ( ! $this->expected_identity_belongs_here( $expected_identity ) ) {
-			return $this->error( 'template_pack_changed' );
-		}
-		$repository = $this->repository( $token );
-		if ( 'ok' !== $repository['code'] ) {
-			return $repository;
-		}
-		$release = $this->json_request(
-			'/repos/' . self::REPOSITORY . '/releases/' . $expected_identity['release_id'],
-			self::JSON_BODY_LIMIT,
-			$token
-		);
-		if ( 'ok' !== $release['code'] ) {
-			return $release;
-		}
-		$candidate = $this->candidate( $release['data'] );
-		if ( ! is_array( $candidate ) || ! $this->candidate_matches_expected( $candidate, $expected_identity ) ) {
-			return $this->error( 'template_pack_changed' );
-		}
-		$result = $this->verified_release( $candidate, $token );
-		if ( 'ok' !== $result['code'] ) {
-			return in_array( $result['code'], array( 'template_pack_incompatible', 'template_pack_unavailable' ), true )
-				? $result
-				: $this->error( 'template_pack_changed' );
-		}
-
-		return $result['pack']->identity() === $expected_identity ? $result : $this->error( 'template_pack_changed' );
-	}
-
 	/** @return array{code:'ok'|'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
 	private function repository( string $token ): array {
 		$response = $this->json_request( '/repos/' . self::REPOSITORY, 65536, $token );
@@ -254,64 +218,6 @@ final class TemplatePackRepositoryClient {
 			'asset_digest'       => $digest,
 			'asset_sha256'       => $digest_match[1],
 		);
-	}
-
-	/** @param array<string, mixed> $expected */
-	private function expected_identity_belongs_here( array $expected ): bool {
-		$keys = array(
-			'repository_name',
-			'repository_id',
-			'release_id',
-			'release_tag',
-			'release_commit',
-			'release_target',
-			'tag_target',
-			'release_draft',
-			'release_prerelease',
-			'release_immutable',
-			'asset_count',
-			'asset_id',
-			'asset_name',
-			'asset_state',
-			'asset_content_type',
-			'asset_size',
-			'asset_digest',
-			'asset_sha256',
-		);
-		return array_keys( $expected ) === $keys
-			&& ( $expected['repository_name'] ?? null ) === self::REPOSITORY
-			&& ( $expected['repository_id'] ?? null ) === self::REPOSITORY_ID
-			&& is_int( $expected['release_id'] ?? null ) && $expected['release_id'] > 0
-			&& is_string( $expected['release_tag'] ?? null ) && null !== $this->version_from_tag( $expected['release_tag'] )
-			&& is_string( $expected['release_commit'] ?? null ) && 1 === preg_match( '/\A[a-f0-9]{40}\z/D', $expected['release_commit'] )
-			&& hash_equals( $expected['release_commit'], (string) ( $expected['release_target'] ?? '' ) )
-			&& hash_equals( $expected['release_commit'], (string) ( $expected['tag_target'] ?? '' ) )
-			&& false === ( $expected['release_draft'] ?? null ) && false === ( $expected['release_prerelease'] ?? null )
-			&& true === ( $expected['release_immutable'] ?? null ) && 1 === ( $expected['asset_count'] ?? null )
-			&& is_int( $expected['asset_id'] ?? null ) && $expected['asset_id'] > 0
-			&& ( $expected['asset_name'] ?? null ) === self::ASSET_NAME
-			&& 'uploaded' === ( $expected['asset_state'] ?? null ) && in_array( $expected['asset_content_type'] ?? null, array( 'application/zip', 'application/octet-stream' ), true )
-			&& is_int( $expected['asset_size'] ?? null ) && $expected['asset_size'] > 0 && $expected['asset_size'] <= self::ASSET_BODY_LIMIT
-			&& is_string( $expected['asset_sha256'] ?? null ) && 1 === preg_match( '/\A[a-f0-9]{64}\z/D', $expected['asset_sha256'] )
-			&& ( $expected['asset_digest'] ?? null ) === 'sha256:' . $expected['asset_sha256'];
-	}
-
-	/**
-	 * @param array{release_id:int,release_tag:string,release_target:string,version:string,asset_count:int,asset_id:int,asset_name:string,asset_state:string,asset_content_type:string,asset_size:int,asset_digest:string,asset_sha256:string} $candidate
-	 * @param array<string, mixed> $expected
-	 */
-	private function candidate_matches_expected( array $candidate, array $expected ): bool {
-		return $candidate['release_id'] === $expected['release_id']
-			&& hash_equals( $candidate['release_tag'], $expected['release_tag'] )
-			&& hash_equals( $candidate['release_target'], $expected['release_target'] )
-			&& $candidate['asset_count'] === $expected['asset_count']
-			&& $candidate['asset_id'] === $expected['asset_id']
-			&& hash_equals( $candidate['asset_name'], $expected['asset_name'] )
-			&& hash_equals( $candidate['asset_state'], $expected['asset_state'] )
-			&& hash_equals( $candidate['asset_content_type'], $expected['asset_content_type'] )
-			&& $candidate['asset_size'] === $expected['asset_size']
-			&& hash_equals( $candidate['asset_digest'], $expected['asset_digest'] )
-			&& hash_equals( $candidate['asset_sha256'], $expected['asset_sha256'] );
 	}
 
 	/** @return array{code:'ok',data:array<array-key,mixed>}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */

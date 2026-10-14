@@ -87,58 +87,7 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		}
 	}
 
-	public function test_exact_refetch_requires_every_pinned_release_and_asset_identity(): void {
-		$archive              = TemplatePackApi3Fixture::archive();
-		$release              = $this->release( 41, 'v1.2.3', $archive );
-		$transport            = new TemplatePackScriptedTransport(
-			array(
-				$this->response(
-					200,
-					array(
-						'id'        => TemplatePackApi3Fixture::REPOSITORY_ID,
-						'full_name' => TemplatePackApi3Fixture::REPOSITORY,
-					)
-				),
-				$this->response( 200, $release ),
-				$this->response( 200, $release ),
-				$this->tag_response(),
-				$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
-				$this->binary_response( 200, $archive ),
-			)
-		);
-		$identity             = TemplatePackApi3Fixture::identity( $archive );
-		$identity['asset_id'] = $release['assets'][0]['id'];
 
-		$result = $this->client( $transport )->exact( $identity );
-
-		self::assertSame( 'ok', $result['code'] );
-		self::assertSame( $identity, $result['pack']->identity() );
-
-		$missing = $identity;
-		unset( $missing['tag_target'] );
-		$missing_transport = new TemplatePackScriptedTransport( array() );
-		self::assertSame( 'template_pack_changed', $this->client( $missing_transport )->exact( $missing )['code'] );
-		self::assertCount( 0, $missing_transport->requests );
-
-		$changed             = $identity;
-		$changed['asset_id'] = 999;
-		$changed_transport   = new TemplatePackScriptedTransport(
-			array(
-				$this->response(
-					200,
-					array(
-						'id'        => TemplatePackApi3Fixture::REPOSITORY_ID,
-						'full_name' => TemplatePackApi3Fixture::REPOSITORY,
-					)
-				),
-				$this->response( 200, $release ),
-			)
-		);
-		self::assertSame(
-			'template_pack_changed',
-			$this->client( $changed_transport )->exact( $changed )['code']
-		);
-	}
 
 	public function test_authenticated_requests_send_the_operation_token_for_json_and_asset_reads(): void {
 		$archive   = TemplatePackApi3Fixture::archive();
@@ -290,25 +239,47 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		self::assertCount( 6, $transport->requests );
 	}
 
-	public function test_exact_refetch_keeps_remote_unavailability_distinct_from_identity_drift(): void {
-		$archive              = TemplatePackApi3Fixture::archive();
-		$release              = $this->release( 41, 'v1.2.3', $archive );
-		$identity             = TemplatePackApi3Fixture::identity( $archive );
-		$identity['asset_id'] = $release['assets'][0]['id'];
-		$transport            = new TemplatePackScriptedTransport(
-			array(
-				$this->repository_response(),
-				$this->response( 200, $release ),
-				$this->response( 503, array() ),
-			)
-		);
 
-		self::assertSame( 'template_pack_unavailable', $this->client( $transport )->exact( $identity )['code'] );
-		self::assertCount( 3, $transport->requests );
-	}
 
 	private function client( TemplatePackScriptedTransport $transport ): TemplatePackRepositoryClient {
 		return new TemplatePackRepositoryClient( $transport );
+	}
+
+	public function test_discovery_requires_fresh_release_source_and_asset_checks(): void {
+		$archive = TemplatePackApi3Fixture::archive();
+		$release = $this->release( 41, 'v1.2.3', $archive );
+		foreach ( array(
+			array( 2, $this->response( 404, array() ), 'template_pack_changed', 3 ),
+			array( 2, $this->response( 403, array() ), 'template_pack_unavailable', 3 ),
+			array( 2, $this->response( 200, array_replace( $release, array( 'immutable' => false ) ) ), 'template_pack_changed', 3 ),
+			array( 3, $this->response( 403, array() ), 'template_pack_unavailable', 4 ),
+			array(
+				3,
+				$this->response(
+					200,
+					array(
+						'object' => array(
+							'type' => 'commit',
+							'sha'  => str_repeat( '9', 40 ),
+						),
+					)
+				),
+				'template_pack_invalid',
+				5,
+			),
+			array( 4, $this->response( 403, array() ), 'template_pack_unavailable', 5 ),
+			array( 4, $this->response( 200, array( 'sha' => str_repeat( '9', 40 ) ) ), 'template_pack_invalid', 5 ),
+			array( 5, $this->binary_response( 403, '' ), 'template_pack_unavailable', 6 ),
+			array( 5, $this->binary_response( 200, str_repeat( 'x', strlen( $archive ) ) ), 'template_pack_invalid', 6 ),
+		) as [ $boundary, $failure, $expected, $requests ] ) {
+			$responses              = array( $this->repository_response(), $this->response( 200, array( $release ) ), $this->response( 200, $release ), $this->tag_response(), $this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ), $this->binary_response( 200, $archive ) );
+			$responses[ $boundary ] = $failure;
+			$transport              = new TemplatePackScriptedTransport( $responses );
+			$result                 = $this->client( $transport )->discover();
+			self::assertSame( $expected, $result['code'] );
+			self::assertArrayNotHasKey( 'pack', $result );
+			self::assertCount( $requests, $transport->requests );
+		}
 	}
 
 	/** @return array<string, mixed> */

@@ -69,12 +69,10 @@ final class WorkflowApplicationCoordinator {
 		}
 		$progress?->progress( 'gh.template_pack' );
 		$latest = $this->templates->discover( $token );
-		$exact  = 'ok' === $latest['code'] && $latest['pack']->identity() === $preview['template_identity']
-			? $this->templates->exact( $preview['template_identity'], $token ) : array( 'code' => 'template_superseded' );
-		if ( 'ok' !== $exact['code'] ) {
-			return $this->result( $status, $exact['code'], false, $key );
+		if ( 'ok' !== $latest['code'] || $latest['pack']->identity() !== $preview['template_identity'] ) {
+			return $this->result( $status, 'template_superseded', false, $key );
 		}
-		$remote = $this->bootstrap_bundle( $status, $token, $exact['pack'], $progress );
+		$remote = $this->bootstrap_bundle( $status, $token, $latest['pack'], $progress );
 		if ( 'ok' !== $remote['code'] || ! $this->preview_matches_bundle( $preview, $remote ) ) {
 			return $this->result( $status, 'target_changed', false, $key );
 		}
@@ -310,7 +308,11 @@ final class WorkflowApplicationCoordinator {
 		}
 		$pull = $lookup['pull'];
 		$head = null === $pull ? $this->create_atomic_commit( $remote, $bundle, $branch, $token ) : $pull['head_sha'];
-		if ( null === $head || ! $this->verify_branch( $remote, $branch, $head, $bundle, $token ) ) {
+		// Atomic creation verifies immutable objects; the outer owner still observes the mutable ref.
+		$verified = null !== $head && ( null === $pull
+			? $this->verify_branch_ref( $remote['repository'], $branch, $head, $token )
+			: $this->verify_branch( $remote, $branch, $head, $bundle, $token ) );
+		if ( ! $verified ) {
 			return $this->result( $status, 'partial', false, $preview_key, 'repository_mutation' );
 		}
 		$recovered = null !== $pull;
@@ -389,12 +391,17 @@ final class WorkflowApplicationCoordinator {
 		return 'ok' === $ref['code'] && hash_equals( $commit['sha'], $ref['sha'] ) && $this->verify_branch( $remote, $branch, $commit['sha'], $bundle, $token ) ? $commit['sha'] : null;
 	}
 
+	/** Observe the mutable setup ref without repeating immutable object reads. */
+	private function verify_branch_ref( string $repository, string $branch, string $head, string $token ): bool {
+		$ref = $this->github->branch_ref( $repository, $branch, $token );
+		return 'ok' === $ref['code'] && hash_equals( $head, $ref['sha'] );
+	}
+
 	/**
 	 * @param array<array-key,mixed> $remote
 	 */
 	private function verify_branch( array $remote, string $branch, string $head, InitialReleaseBundle $bundle, string $token ): bool {
-		$ref = $this->github->branch_ref( $remote['repository'], $branch, $token );
-		if ( 'ok' !== $ref['code'] || ! hash_equals( $head, $ref['sha'] ) ) {
+		if ( ! $this->verify_branch_ref( $remote['repository'], $branch, $head, $token ) ) {
 			return false;
 		}
 		$commit = $this->github->git_commit( $remote['repository'], $head, $token );
