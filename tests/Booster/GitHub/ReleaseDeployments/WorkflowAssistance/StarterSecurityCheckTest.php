@@ -18,7 +18,9 @@ final class StarterSecurityCheckTest extends TestCase {
 		$bytes  = TemplatePackApi3Fixture::archive();
 		$result = TemplatePack::from_archive( $bytes, TemplatePackApi3Fixture::identity( $bytes ) );
 		self::assertSame( 'ok', $result['code'] );
-		return StarterOrigin::encode( $result['pack'], 'source-ready-wordpress-plugin/3' );
+		$workflow = $result['pack']->render( 'source-ready-wordpress-plugin/3', 'release-workflow', array( 'PACKAGE_SLUG' => 'example-plugin' ) );
+		self::assertSame( 'ok', $workflow['code'] );
+		return StarterOrigin::encode( $result['pack'], 'source-ready-wordpress-plugin/3', $workflow['content'] );
 	}
 	/**
 	 * @return array<array-key,mixed>

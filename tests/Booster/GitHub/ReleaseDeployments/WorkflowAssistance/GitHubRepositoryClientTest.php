@@ -16,6 +16,53 @@ final class GitHubRepositoryClientTest extends TestCase {
 	private const TREE       = '1111111111111111111111111111111111111111';
 	private const BLOB       = '2222222222222222222222222222222222222222';
 
+	public function test_entry_snapshot_keeps_tree_validation_without_admission_blob_reads(): void {
+		$entry   = array(
+			'path' => 'example.php',
+			'type' => 'blob',
+			'mode' => '100644',
+			'sha'  => self::BLOB,
+			'size' => 100,
+		);
+		$valid   = array(
+			'truncated' => false,
+			'tree'      => array( $entry ),
+		);
+		$invalid = array(
+			array(
+				'truncated' => true,
+				'tree'      => array( $entry ),
+			),
+			array(
+				'truncated' => false,
+				'tree'      => array( $entry, $entry ),
+			),
+			array(
+				'truncated' => false,
+				'tree'      => array( array_replace( $entry, array( 'path' => '../escape.php' ) ) ),
+			),
+			array(
+				'truncated' => false,
+				'tree'      => array( array_replace( $entry, array( 'mode' => '040000' ) ) ),
+			),
+			array(
+				'truncated' => false,
+				'tree'      => array_fill( 0, 2001, $entry ),
+			),
+		);
+		foreach ( array_merge( array( $valid ), $invalid ) as $index => $tree ) {
+			$transport = new D23GitHubTransport( array( $this->response( 200, $tree ) ) );
+			$result    = ( new GitHubRepositoryClient( $transport ) )->entry_snapshot( self::REPOSITORY, '101', 'main', self::SHA, 'token' );
+			self::assertSame( 0 === $index ? 'ok' : 'invalid_response', $result['code'] );
+			self::assertCount( 1, $transport->requests );
+			self::assertStringContainsString( '/git/trees/' . self::SHA . '?recursive=1', $transport->requests[0]['url'] );
+			if ( 0 === $index ) {
+				self::assertSame( array(), $result['snapshot']->document_paths() );
+				self::assertSame( self::BLOB, $result['snapshot']->entries()['example.php']['sha'] );
+			}
+		}
+	}
+
 	public function test_exact_repository_branch_commit_and_snapshot_reads_are_bounded(): void {
 		$header    = "<?php\n/** Plugin Name: Example\n * Requires PHP: 8.2\n * Requires at least: 7.0\n * Version: 1.2.3\n */\n";
 		$transport = new D23GitHubTransport(

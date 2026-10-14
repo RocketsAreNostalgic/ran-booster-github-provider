@@ -12,6 +12,8 @@ Core consumers are limited to `RAN/Uninstall/LocalDataRemover.php` and `tests/Lo
 This intentionally breaks the previous beta PHP helper API, including old named arguments; there are no compatibility aliases. Core interface implementations, residual public parameters/promotions, persisted/wire fields, template identities and operational behavior remain outside the rename.
 Source and local host overlays are **preparation**, not immutable package publication or Core adoption. Exact combined qualification, hosted reviews, owner merge decisions, approved producer publication and real Core lock adoption remain separate gates.
 
+The initial setup now uses its one fresh, fully verified discovery result and compares its complete identity with the preview. This deliberately retires the public beta helper `TemplatePackRepositoryClient::exact()` and its `expected_identity` parameter; no compatibility alias remains. Its sole maintained production caller was setup. Numeric release and asset re-fetch, source and archive checks remain in discovery, and malformed or changed preview identities remain refused by setup. The historical mapping below records the removed API; it does not require retaining that duplicate acquisition path.
+
 The original inventory and proposal below is retained as historical mapping evidence. Its pending-agreement wording is superseded by this checkpoint; it is not a renewed permission gate.
 
 ## Scope and compatibility gate

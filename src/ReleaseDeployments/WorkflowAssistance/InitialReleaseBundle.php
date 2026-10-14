@@ -126,15 +126,16 @@ final readonly class InitialReleaseBundle {
 				return array( 'code' => 'invalid_bundle' );
 			}
 
-			$allowlist = implode( "\n", $assessment->release_files() ) . "\n";
-			$generated = array_merge(
+			$allowlist    = implode( "\n", $assessment->release_files() ) . "\n";
+			$origin_bytes = StarterOrigin::encode( $pack, $assessment->profile(), $rendered[ self::WORKFLOW_PATH ] );
+			$generated    = array_merge(
 				$rendered,
 				array(
 					'.release-please-manifest.json' => self::json( array( '.' => $assessment->version() ) ),
 					'version.txt'                   => $assessment->version() . "\n",
 					'release-contents.txt'          => $allowlist,
-					self::ORIGIN_PATH               => StarterOrigin::encode( $pack, $assessment->profile() ),
-					'RELEASE-STARTER.md'            => StarterGuidance::render( $pack, $assessment->profile() ),
+					self::ORIGIN_PATH               => $origin_bytes,
+					'RELEASE-STARTER.md'            => StarterGuidance::render( $origin_bytes ),
 				)
 			);
 
