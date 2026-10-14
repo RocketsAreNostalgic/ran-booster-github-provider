@@ -12,10 +12,10 @@ final class StarterOrigin {
 	public const SHARED_REPOSITORY = 'RocketsAreNostalgic/.github';
 	public const SHARED_COMMIT     = '63c4a4b192bbb4cf203dab281b75a0907e85c3a9';
 
-	public static function encode( TemplatePack $pack, string $profile ): string {
+	/** @internal The bundle supplies the workflow bytes rendered from this verified pack. */
+	public static function encode( TemplatePack $pack, string $profile, string $actual_workflow ): string {
 		$identity = $pack->identity();
-		$rendered = $pack->render( $profile, 'release-workflow', array( 'PACKAGE_SLUG' => 'origin-check' ) );
-		$pin      = 'ok' === $rendered['code'] ? self::workflow_pin( $rendered['content'] ) : null;
+		$pin      = self::workflow_pin( $actual_workflow );
 		if ( null === $pin ) {
 			throw new \RuntimeException( 'Shared workflow provenance is unavailable.' );
 		}

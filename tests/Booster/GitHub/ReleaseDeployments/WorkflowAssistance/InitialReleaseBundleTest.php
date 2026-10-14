@@ -9,6 +9,8 @@ use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\InitialRe
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\RepositorySnapshot;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SourceReadyAssessor;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplatePack;
+use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\StarterOrigin;
+use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\StarterGuidance;
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi3Fixture;
 
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
@@ -126,6 +128,74 @@ final class InitialReleaseBundleTest extends TestCase {
 			self::assertSame( 'ok', $pack['code'] );
 			$snapshot = $this->snapshot();
 			self::assertSame( 'invalid_bundle', InitialReleaseBundle::bootstrap( $pack['pack'], $this->assessment( $snapshot ), $snapshot, 'https://github.com/owner/example-plugin' )['code'] );
+		}
+	}
+
+	public function test_provenance_uses_the_workflow_rendered_for_the_actual_package(): void {
+		$path     = 'templates/shared/release-please.yml.tmpl';
+		$template = str_replace( "  release:\n", "  {{RAN_PACKAGE_SLUG}}:\n", TemplatePackApi3Fixture::templates()[ $path ] );
+		$manifest = TemplatePackApi3Fixture::manifest();
+		foreach ( $manifest['profiles'] as &$profile ) {
+			$profile['entries']['release-workflow']['sha256'] = hash( 'sha256', $template );
+			$profile['entries']['release-workflow']['size']   = strlen( $template );
+		}
+		unset( $profile );
+		$archive = TemplatePackApi3Fixture::archive( $manifest, array( $path => $template ) );
+		$pack    = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+		self::assertSame( 'ok', $pack['code'] );
+		foreach ( array( 'plugin', 'theme' ) as $type ) {
+			$header    = 'plugin' === $type ? 'release.php' : 'style.css';
+			$documents = array(
+				$header => 'plugin' === $type
+					? "<?php\n/**\n * Plugin Name: Release\n * Requires PHP: 8.2\n * Requires at least: 7.0\n * Version: 1.2.3\n * Update URI: https://github.com/owner/release\n */\n"
+					: "/*\nTheme Name: Release\nRequires PHP: 8.2\nRequires at least: 7.0\nVersion: 1.2.3\nUpdate URI: https://github.com/owner/release\n*/\n",
+			);
+			if ( 'theme' === $type ) {
+				$documents['index.php'] = "<?php\n";
+			}
+			$entries = array();
+			foreach ( $documents as $file_path => $content ) {
+				$entries[ $file_path ] = array(
+					'type' => 'blob',
+					'mode' => '100644',
+					'sha'  => sha1( 'blob ' . strlen( $content ) . "\0" . $content ),
+					'size' => strlen( $content ),
+				);
+			}
+			$snapshot   = new RepositorySnapshot( '101', 'owner/release', 'main', str_repeat( 'a', 40 ), $entries, $documents );
+			$assessment = ( new SourceReadyAssessor() )->assess( $snapshot, $type, 'release', '1.2.3', 'https://github.com/owner/release' );
+			$bundle     = InitialReleaseBundle::bootstrap( $pack['pack'], $assessment, $snapshot, 'https://github.com/owner/release' );
+			self::assertSame( 'ok', $bundle['code'] );
+			$files  = $bundle['bundle']->files();
+			$origin = StarterOrigin::decode( $files[ InitialReleaseBundle::ORIGIN_PATH ]['content'] );
+			self::assertNotNull( $origin );
+			self::assertStringContainsString( "jobs:\n  release:\n", $files[ InitialReleaseBundle::WORKFLOW_PATH ]['content'] );
+			self::assertSame( StarterOrigin::SHARED_COMMIT, $origin['shared_profile_b']['commit'] );
+			self::assertSame( StarterGuidance::render( $files[ InitialReleaseBundle::ORIGIN_PATH ]['content'] ), $files['RELEASE-STARTER.md']['content'] );
+		}
+	}
+
+	public function test_guidance_refuses_ambiguous_or_malformed_origin_bytes(): void {
+		$archive = TemplatePackApi3Fixture::archive();
+		$pack    = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+		self::assertSame( 'ok', $pack['code'] );
+		$snapshot = $this->snapshot();
+		$bundle   = InitialReleaseBundle::bootstrap( $pack['pack'], $this->assessment( $snapshot ), $snapshot, 'https://github.com/owner/example-plugin' );
+		self::assertSame( 'ok', $bundle['code'] );
+		$origin = $bundle['bundle']->files()[ InitialReleaseBundle::ORIGIN_PATH ]['content'];
+		foreach ( array(
+			'{',
+			str_replace( '"schema":', '"schema":"forged","schema":', $origin ),
+			str_replace( '"schema":', '"unknown":', $origin ),
+			str_replace( StarterOrigin::SHARED_COMMIT, 'badpin', $origin ),
+			str_repeat( ' ', 8193 ) . $origin,
+		) as $invalid ) {
+			try {
+				StarterGuidance::render( $invalid );
+				self::fail( 'Malformed origin must not produce guidance.' );
+			} catch ( \RuntimeException $error ) {
+				self::assertSame( 'The generated starter origin is invalid.', $error->getMessage() );
+			}
 		}
 	}
 
