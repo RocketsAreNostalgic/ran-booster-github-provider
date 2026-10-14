@@ -97,7 +97,7 @@ final class TemplatePackRepositoryClient {
 		if ( ! is_array( $candidate ) || ! $this->candidate_matches_expected( $candidate, $expected_identity ) ) {
 			return $this->error( 'template_pack_changed' );
 		}
-		$result = $this->verified_release( $candidate, $token );
+		$result = $this->acquire_pack( $candidate, $token );
 		if ( 'ok' !== $result['code'] ) {
 			return in_array( $result['code'], array( 'template_pack_incompatible', 'template_pack_unavailable' ), true )
 				? $result
@@ -137,6 +137,14 @@ final class TemplatePackRepositoryClient {
 		if ( ! is_array( $exact ) || $exact !== $candidate ) {
 			return $this->error( 'template_pack_changed' );
 		}
+		return $this->acquire_pack( $exact, $token );
+	}
+
+	/**
+	 * @param array{release_id:int,release_tag:string,release_target:string,version:string,asset_count:int,asset_id:int,asset_name:string,asset_state:string,asset_content_type:string,asset_size:int,asset_digest:string,asset_sha256:string} $candidate
+	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
+	 */
+	private function acquire_pack( array $candidate, string $token ): array {
 		$tag = $this->json_request(
 			'/repos/' . self::REPOSITORY . '/git/ref/tags/' . rawurlencode( $candidate['release_tag'] ),
 			32768,
