@@ -7,6 +7,8 @@ use RAN\RepositoryProvider\RepositoryWebhookOperationResult;
 use RuntimeException;
 /** Fixed-origin GitHub client for repository-webhook-management/3. */
 final class RepositoryWebhookClient {
+
+	public function __construct( private ?\Closure $assert_operation = null ) {}
 	private const ORIGIN          = 'https://api.github.com';
 	private const CALL_TIMEOUT    = 8.0;
 	private const TOTAL_TIMEOUT   = 25.0;
@@ -220,7 +222,9 @@ final class RepositoryWebhookClient {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Fixed bounded provider payload; JSON exceptions fail closed.
 			$arguments['body'] = json_encode( $body, JSON_THROW_ON_ERROR );
 		}
+		$this->assert_operation?->__invoke();
 		$response = wp_remote_request( self::ORIGIN . $path, $arguments );
+		$this->assert_operation?->__invoke();
 		if ( is_wp_error( $response ) ) {
 			return array(
 				'status'   => 599,

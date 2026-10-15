@@ -34,6 +34,27 @@ final class ReleaseCandidateListingTest extends TestCase {
 		NeutralReleaseUpdaterFixtures::cleanup();
 	}
 
+	public function test_guarded_anonymous_listing_refuses_old_runtime_or_unavailable_selection_before_http(): void {
+		$registrar = NeutralReleaseUpdaterFixtures::registrar();
+		try {
+			$provider = GitHubProvider::create(
+				new RepositoryResolverSecretsStub(),
+				new Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
+				$registrar,
+				operation_guard: static fn (): bool => false
+			);
+			$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+			self::fail( 'A guarded listing must refuse without provider availability.' );
+		} catch ( RuntimeException $failure ) {
+			if ( ! is_callable( array( $registrar, 'with_operation_guard' ) ) ) {
+				self::assertSame( 'The guarded release registrar is incompatible.', $failure->getMessage() );
+			} else {
+				self::assertSame( array(), NeutralReleaseUpdaterFixtures::requests() );
+			}
+		}
+		self::assertSame( array(), NeutralReleaseUpdaterFixtures::requests() );
+	}
+
 	public function test_lists_neutral_updater_candidates_and_preserves_details_identity(): void {
 		NeutralReleaseUpdaterFixtures::queue(
 			array(

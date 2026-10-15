@@ -15,7 +15,7 @@ use Throwable;
 
 /** @internal GitHub implementation and operational owner for initial-only workflow API 4. */
 final class GitHubRepositoryReleaseWorkflow {
-	public function __construct( private ProviderCredentialStore $credentials, private WorkflowApplicationCoordinator $coordinator, private SetupRecordStore $records ) {}
+	public function __construct( private ProviderCredentialStore $credentials, private WorkflowApplicationCoordinator $coordinator, private SetupRecordStore $records, private ?\Closure $assert_operation = null ) {}
 
 	public function status( RepositoryReleaseWorkflowTarget $status ): RepositoryReleaseWorkflowStatus {
 		$record     = $this->records->find( $status->provider_repository_id() );
@@ -53,7 +53,9 @@ final class GitHubRepositoryReleaseWorkflow {
 	}
 
 	public function preview( RepositoryReleaseWorkflowTarget $status, string $key ): ?RepositoryReleaseWorkflowPreview {
+		$this->assert_operation?->__invoke();
 		$preview = $this->coordinator->preview( $key, $status );
+		$this->assert_operation?->__invoke();
 		if ( null === $preview ) {
 			return null;
 		}
@@ -83,6 +85,7 @@ final class GitHubRepositoryReleaseWorkflow {
 	}
 
 	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
+		$this->assert_operation?->__invoke();
 		if ( 'stable' !== $channel ) {
 			return $this->result( $this->invalid_request() );
 		}
@@ -93,6 +96,7 @@ final class GitHubRepositoryReleaseWorkflow {
 		return $this->result( $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->inspect( $status, $channel, $preflight, $token, $progress ) );
 	}
 	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
+		$this->assert_operation?->__invoke();
 		if ( ! $this->bootstrap_preflight( $preflight ) ) {
 			return $this->result( $this->preflight_result( $preflight, $key ) );
 		}
@@ -103,6 +107,7 @@ final class GitHubRepositoryReleaseWorkflow {
 		return $this->result( '' === $token ? $this->unauthorised( $key ) : $this->coordinator->setup( $status, $key, $confirmation, $preflight, $token, $progress ) );
 	}
 	public function outcome( RepositoryReleaseWorkflowTarget $status, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
+		$this->assert_operation?->__invoke();
 		if ( ! $this->coordinator->has_current_record( $status ) ) {
 			return $this->result( $this->invalid_request() );
 		}
@@ -158,11 +163,16 @@ final class GitHubRepositoryReleaseWorkflow {
 		if ( null === $id || '' === $id ) {
 			return '';
 		} try {
+			$this->assert_operation?->__invoke();
 			$profile = $this->credentials->credential_profiles()[ $id ] ?? null;
+			$this->assert_operation?->__invoke();
 			if ( ! is_array( $profile ) || 'file' !== ( $profile['source'] ?? null ) || ! empty( $profile['immutable'] ) || empty( $profile['configured'] ) ) {
 				return '';
-			} $material = $this->credentials->credential_material( $id );
-			$secret     = is_array( $material ) && is_string( $material['secret'] ?? null ) ? trim( $material['secret'] ) : '';
+			}
+			$this->assert_operation?->__invoke();
+			$material = $this->credentials->credential_material( $id );
+			$this->assert_operation?->__invoke();
+			$secret = is_array( $material ) && is_string( $material['secret'] ?? null ) ? trim( $material['secret'] ) : '';
 			return '' === $secret && $required ? '' : $secret;
 		} catch ( Throwable ) {
 			return ''; } }
@@ -174,7 +184,9 @@ final class GitHubRepositoryReleaseWorkflow {
 	 */
 	private function credential_choices(): array {
 		try {
+			$this->assert_operation?->__invoke();
 			$profiles = $this->credentials->credential_profiles();
+			$this->assert_operation?->__invoke();
 		} catch ( Throwable ) {
 			return array();
 		} $choices = array();

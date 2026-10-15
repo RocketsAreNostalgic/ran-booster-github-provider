@@ -76,6 +76,38 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	public const OPERATION = 'repository-webhook-management';
 	public const VERSION   = 3;
 
+	/**
+	 * Passive package semantics; Core binds its supplying plugin basename.
+	 *
+	 * @return array{implementation_id:string,compatibility_revision:string,provider_api_version:int,api_credential_formats:list<string>,webhook_signing_format:string,facets:list<class-string>}
+	 */
+	public static function compatibility_contract(): array {
+		return array(
+			'implementation_id'      => 'ran/booster-github-provider',
+			'compatibility_revision' => '1',
+			'provider_api_version'   => 15,
+			'api_credential_formats' => array( 'github-classic-pat-v1', 'github-fine-grained-pat-v1' ),
+			'webhook_signing_format' => 'github-hmac-sha256-v1',
+			'facets'                 => array(
+				ProviderCredentialPolicySupplier::class,
+				CredentialValidator::class,
+				\RAN\RepositoryProvider\RepositoryBrowser::class,
+				CredentialedPublicRepositoryBrowser::class,
+				WebhookNormalizerContract::class,
+				RepositoryWebhookFitness::class,
+				RepositoryWebhookManagement::class,
+				RepositoryWebhookSettingsLink::class,
+				RepositoryPathInspector::class,
+				RepositoryReleaseCandidateListing::class,
+				RepositoryReleaseInspector::class,
+				RepositoryReleaseAcquirer::class,
+				RepositoryReleaseMetadata::class,
+				RepositoryReleaseNativeTargets::class,
+				RepositoryReleaseWorkflowManagementV4::class,
+			),
+		);
+	}
+
 	private ProviderMetadata $metadata;
 	private ProviderCredentialStore $credentials;
 	private RepositoryBrowser $browser;
@@ -99,15 +131,44 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		ProviderCredentialStore $credentials,
 		AuthenticatedWebhookDeliveryEvidenceReader $delivery_evidence,
 		object $registrar,
-		?callable $maximum_artifact_bytes = null
+		?callable $maximum_artifact_bytes = null,
+		?callable $operation_guard = null,
+		?callable $native_mutation_begin = null,
+		?callable $native_mutation_complete = null
 	): RepositoryProvider {
+		$assert_operation = null === $operation_guard ? null : static function () use ( $operation_guard ): void {
+			try {
+				if ( true === $operation_guard() ) {
+					return;
+				}
+			} catch ( \Throwable ) {
+				throw new RuntimeException( 'GitHub provider operation is unavailable.' );
+			}
+			throw new RuntimeException( 'GitHub provider operation is unavailable.' );
+		};
+		if ( null !== $operation_guard ) {
+			if ( ! is_callable( array( $registrar, 'with_operation_guard' ) ) ) {
+				throw new RuntimeException( 'The guarded release registrar is incompatible.' );
+			}
+			$registrar = $registrar->with_operation_guard( $operation_guard );
+		}
+		if ( null !== $native_mutation_begin || null !== $native_mutation_complete ) {
+			if ( ! is_object( $registrar ) || null === $operation_guard || null === $native_mutation_begin || null === $native_mutation_complete || ! is_callable( array( $registrar, 'with_native_mutation_callbacks' ) ) ) {
+				throw new RuntimeException( 'The guarded native registrar is incompatible.' );
+			}
+			$registrar = $registrar->with_native_mutation_callbacks( $native_mutation_begin, $native_mutation_complete );
+		}
+		if ( ! is_object( $registrar ) ) {
+			throw new RuntimeException( 'The guarded release registrar is incompatible.' );
+		}
 		return new self(
 			$credentials,
-			new RepositoryBrowser( $credentials ),
-			new WebhookNormalizer( $credentials, $delivery_evidence ),
-			new RepositoryWebhookClient(),
+			new RepositoryBrowser( $credentials, $assert_operation ),
+			new WebhookNormalizer( $credentials, $delivery_evidence, $assert_operation ),
+			new RepositoryWebhookClient( $assert_operation ),
 			$registrar,
-			$maximum_artifact_bytes
+			$maximum_artifact_bytes,
+			$assert_operation
 		);
 	}
 
@@ -117,7 +178,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		WebhookNormalizer $webhooks,
 		RepositoryWebhookClient $webhook_client,
 		object $registrar,
-		?callable $maximum_artifact_bytes = null
+		?callable $maximum_artifact_bytes = null,
+		private ?Closure $assert_operation = null
 	) {
 		$this->registrar              = $registrar;
 		$this->maximum_artifact_bytes = null === $maximum_artifact_bytes ? null : Closure::fromCallable( $maximum_artifact_bytes );
@@ -131,12 +193,13 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		$this->release_workflow       = new GitHubRepositoryReleaseWorkflow(
 			$credentials,
 			new WorkflowApplicationCoordinator(
-				new GitHubRepositoryClient(),
-				new TemplatePackRepositoryClient(),
+				new GitHubRepositoryClient( assert_operation: $assert_operation ),
+				new TemplatePackRepositoryClient( assert_operation: $assert_operation ),
 				new SourceReadyAssessor(),
 				$workflow_records
 			),
-			$workflow_records
+			$workflow_records,
+			$assert_operation
 		);
 		$this->metadata               = new ProviderMetadata(
 			ProviderCode::parse( 'gh' ),
@@ -318,7 +381,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			. '/zipball/'
 			. rawurlencode( $ref );
 
-		$head_verifier = null;
+		$head_verifier = $this->assert_operation;
 		if ( null !== $expected_branch ) {
 			$head_verifier = function () use ( $repository, $expected_branch, $ref ): void {
 				$head = $this->browser->current_branch_head(
@@ -338,7 +401,11 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			$url,
 			$ref,
 			$this->archive_authorizer( $repository ),
-			$head_verifier
+			$head_verifier,
+			operation_guard: null === $this->assert_operation ? null : function (): bool {
+				$this->assert_operation?->__invoke();
+				return true;
+			}
 		);
 	}
 
@@ -699,8 +766,10 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			throw new RuntimeException( 'Choose a saved GitHub credential.', 400 );
 		}
 
+		$this->assert_operation?->__invoke();
 		$material = $this->credentials->credential_material( $credential_profile_id );
-		$secret   = is_array( $material ) && is_string( $material['secret'] ?? null ) ? trim( $material['secret'] ) : '';
+		$this->assert_operation?->__invoke();
+		$secret = is_array( $material ) && is_string( $material['secret'] ?? null ) ? trim( $material['secret'] ) : '';
 		if ( '' === $secret ) {
 			throw new RuntimeException( 'The selected GitHub credential is unavailable.', 400 );
 		}
@@ -736,8 +805,10 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 
 		$credential_id = $repository->credential_id;
-		$credential    = $this->credentials->credential_material( $credential_id );
-		$token         = is_array( $credential ) ? $credential['secret'] : '';
+		$this->assert_operation?->__invoke();
+		$credential = $this->credentials->credential_material( $credential_id );
+		$this->assert_operation?->__invoke();
+		$token = is_array( $credential ) ? $credential['secret'] : '';
 
 		if ( ! is_string( $token ) || '' === trim( $token ) ) {
 			if ( null !== $credential_id ) {
@@ -748,8 +819,16 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 
 		$authorization = 'Bearer ' . trim( $token );
+		$resolved_id   = $credential['id'] ?? null;
+		if ( null !== $this->assert_operation && ( ! is_string( $resolved_id ) || '' === $resolved_id ) ) {
+			throw new RuntimeException( 'The selected GitHub credential identity is unavailable.' );
+		}
 
-		return static function ( array $arguments ) use ( $authorization ): array {
+		return function ( array $arguments ) use ( $authorization, $resolved_id ): array {
+			$this->assert_operation?->__invoke();
+			if ( null !== $this->assert_operation ) {
+				$authorization = 'Bearer ' . $this->credential( is_string( $resolved_id ) ? $resolved_id : null );
+			}
 			$arguments['headers']['Authorization'] = $authorization;
 
 			return $arguments;
@@ -761,9 +840,19 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			return null;
 		}
 
-		return function () use ( $repository ): string {
-			$credential = $this->credentials->credential_material( $repository->credential_id );
-			$token      = is_array( $credential ) ? $credential['secret'] ?? null : null;
+		$resolved_id = $repository->credential_id;
+		return function () use ( &$resolved_id ): string {
+			$this->assert_operation?->__invoke();
+			$credential = $this->credentials->credential_material( $resolved_id );
+			$this->assert_operation?->__invoke();
+			if ( null !== $this->assert_operation ) {
+				$id = $credential['id'] ?? null;
+				if ( ! is_string( $id ) || '' === $id || ( null !== $resolved_id && $resolved_id !== $id ) ) {
+					throw new RuntimeException( 'The selected GitHub credential identity is unavailable.' );
+				}
+				$resolved_id = $id;
+			}
+			$token = is_array( $credential ) ? $credential['secret'] ?? null : null;
 			if ( ! is_string( $token ) || '' === trim( $token ) ) {
 				throw new RuntimeException( 'The selected GitHub credential is unavailable.', 400 );
 			}
@@ -790,7 +879,10 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	}
 
 	private function maximum_artifact_bytes(): ?int {
-		return null === $this->maximum_artifact_bytes ? null : ( $this->maximum_artifact_bytes )();
+		$this->assert_operation?->__invoke();
+		$maximum = null === $this->maximum_artifact_bytes ? null : ( $this->maximum_artifact_bytes )();
+		$this->assert_operation?->__invoke();
+		return $maximum;
 	}
 
 	private function ensure_direct_filesystem(): bool {

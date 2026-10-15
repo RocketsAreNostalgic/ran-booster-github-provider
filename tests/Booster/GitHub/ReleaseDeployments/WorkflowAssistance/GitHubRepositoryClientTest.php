@@ -11,6 +11,30 @@ use function RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\
 require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 
 final class GitHubRepositoryClientTest extends TestCase {
+	public function test_operation_guard_refuses_before_transport_and_discards_late_response(): void {
+		foreach ( array( false, true ) as $start_available ) {
+			$requests  = 0;
+			$available = $start_available;
+			$client    = new GitHubRepositoryClient(
+				static function () use ( &$requests, &$available ): array {
+					++$requests;
+					$available = false;
+					return array(
+						'response' => array( 'code' => 200 ),
+						'body'     => '{}',
+					);
+				},
+				static function () use ( &$available ): void {
+					if ( ! $available ) {
+						throw new \RuntimeException( 'Selection changed.' );
+					}
+				}
+			);
+			self::assertSame( 'remote_unavailable', $client->repository( 'owner/example' )['code'] );
+			self::assertSame( $start_available ? 1 : 0, $requests );
+		}
+	}
+
 	private const REPOSITORY = 'owner/example-plugin';
 	private const SHA        = '0123456789abcdef0123456789abcdef01234567';
 	private const TREE       = '1111111111111111111111111111111111111111';
