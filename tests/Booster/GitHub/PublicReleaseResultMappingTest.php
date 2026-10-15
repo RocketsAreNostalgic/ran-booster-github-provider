@@ -16,6 +16,55 @@ use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\NeutralReleaseUpda
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 
 final class PublicReleaseResultMappingTest extends TestCase {
+	public function test_late_limit_callback_selection_loss_discards_inspection_and_acquisition(): void {
+		foreach ( array( 'inspect_release', 'acquire_release' ) as $operation ) {
+			$path       = $this->archive();
+			$artifact   = new PublicReleaseArtifactFixture( $path );
+			$source     = new PublicReleaseSourceFixture(
+				$this->listing(),
+				$this->envelope( true, 'release_inspected', $this->facts(), 'complete' ),
+				$this->envelope(
+					true,
+					'release_acquired',
+					array(
+						'inspection' => $this->facts(),
+						'artifact'   => $artifact,
+					),
+					'retained'
+				)
+			);
+			$available  = true;
+			$calls      = 0;
+			$provider   = GitHubProvider::create(
+				new RepositoryResolverSecretsStub(),
+				new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
+				new PublicReleaseRegistrarFixture( $source ),
+				static function () use ( &$available, &$calls ): int {
+					$available = ++$calls < 2;
+					return 52428800;
+				},
+				static function () use ( &$available ): bool {
+					return $available; }
+			);
+			$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
+			try {
+				if ( 'acquire_release' === $operation ) {
+					$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
+				} else {
+					$provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
+				}
+				self::fail( 'Late selection loss must discard returned release evidence.' );
+			} catch ( \RuntimeException $failure ) {
+				self::assertSame( 502, $failure->getCode() );
+				if ( 'acquire_release' === $operation ) {
+					self::assertFileDoesNotExist( $path );
+				}
+			} finally {
+				$artifact->discard();
+			}
+		}
+	}
+
 	public function test_candidate_asset_names_preserve_the_certified_core_rejection_contract(): void {
 		foreach ( array( array( 1 => 'example.zip' ), array( 'asset' => 'example.zip' ), array( 42 ) ) as $names ) {
 			$listing = $this->listing();
@@ -258,6 +307,11 @@ final class PublicReleaseResultMappingTest extends TestCase {
 
 // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- This concrete public-artifact test double belongs beside the custody or mapping contract it exercises.
 final class PublicReleaseRegistrarFixture {
+	public ?\Closure $guard = null;
+	public function with_operation_guard( callable $guard ): object {
+		$this->guard = \Closure::fromCallable( $guard );
+		return $this;
+	}
 	public function __construct( private PublicReleaseSourceFixture $source ) {}
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Structural release-registrar fixture accepts the real contract arguments.
 	public function releases( mixed ...$arguments ): object {

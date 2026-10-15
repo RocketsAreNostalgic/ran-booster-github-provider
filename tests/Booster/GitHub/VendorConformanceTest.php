@@ -63,7 +63,7 @@ final class VendorConformanceTest extends TestCase {
 			->getConstructor()?->getParameters()[0] ?? null;
 
 		self::assertNotNull( $browser_parameter );
-		self::assertCount( 4, $provider_parameters );
+		self::assertCount( 7, $provider_parameters );
 		self::assertNotNull( $webhook_parameter );
 		self::assertSame( ProviderCredentialStore::class, (string) $browser_parameter->getType() );
 		self::assertSame( ProviderCredentialStore::class, (string) $provider_parameters[0]->getType() );
@@ -72,12 +72,21 @@ final class VendorConformanceTest extends TestCase {
 		self::assertSame( '?callable', (string) $provider_parameters[3]->getType() );
 		self::assertTrue( $provider_parameters[3]->isOptional() );
 		self::assertNull( $provider_parameters[3]->getDefaultValue() );
+		foreach ( array(
+			4 => 'operation_guard',
+			5 => 'native_mutation_begin',
+			6 => 'native_mutation_complete',
+		) as $index => $name ) {
+			self::assertSame( $name, $provider_parameters[ $index ]->getName() );
+			self::assertSame( '?callable', (string) $provider_parameters[ $index ]->getType() );
+			self::assertNull( $provider_parameters[ $index ]->getDefaultValue() );
+		}
 		self::assertSame( RepositoryProvider::class, (string) $composition_method->getReturnType() );
 		self::assertTrue( $composition_method->isPublic() );
 		self::assertTrue( $composition_method->isStatic() );
 		self::assertTrue( $provider_reflection->getConstructor()?->isPrivate() );
 		self::assertSame(
-			array( 'create' ),
+			array( 'compatibility_contract', 'create' ),
 			array_values(
 				array_map(
 					static fn ( ReflectionMethod $method ): string => $method->getName(),

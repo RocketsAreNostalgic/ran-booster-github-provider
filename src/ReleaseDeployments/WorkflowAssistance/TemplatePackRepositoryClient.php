@@ -22,7 +22,7 @@ final class TemplatePackRepositoryClient {
 	/** @var Closure(string,string,array<string,mixed>):mixed */
 	private Closure $send;
 
-	public function __construct( ?callable $send = null ) {
+	public function __construct( ?callable $send = null, private ?Closure $assert_operation = null ) {
 		$this->send = null === $send
 			? static fn ( string $method, string $url, array $args ): mixed => wp_safe_remote_request(
 				$url,
@@ -263,14 +263,15 @@ final class TemplatePackRepositoryClient {
 			$args['headers']['Authorization'] = 'Bearer ' . $token;
 		}
 		$redirect_scrubber = null;
-		if ( $redirects > 0 && '' !== $token ) {
+		if ( $redirects > 0 && ( '' !== $token || null !== $this->assert_operation ) ) {
 			$origin = self::API_ROOT . $path;
 			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- WordPress Requests redirect hook passes five positional arguments; only headers and original request are required.
-			$redirect_scrubber = static function ( mixed &$location, array &$headers, mixed $data, mixed $options, mixed $original ) use ( $origin ): void {
+			$redirect_scrubber = function ( mixed &$location, array &$headers, mixed $data, mixed $options, mixed $original ) use ( $origin ): void {
 				if ( ! is_object( $original ) || ! isset( $original->url ) || $origin !== $original->url ) {
 					return;
 				}
 
+				$this->assert_operation?->__invoke();
 				foreach ( array_keys( $headers ) as $name ) {
 					if ( 'authorization' === strtolower( (string) $name ) ) {
 						unset( $headers[ $name ] );
@@ -280,7 +281,9 @@ final class TemplatePackRepositoryClient {
 			add_action( self::REDIRECT_HOOK, $redirect_scrubber, 10, 5 );
 		}
 		try {
+			$this->assert_operation?->__invoke();
 			$response = ( $this->send )( 'GET', self::API_ROOT . $path, $args );
+			$this->assert_operation?->__invoke();
 		} catch ( Throwable ) {
 			return $this->error( 'template_pack_unavailable' );
 		} finally {

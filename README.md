@@ -1,6 +1,6 @@
 # RAN Booster GitHub Provider
 
-> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects immutable Core PR307 source candidate `3aea62a102a9c180467b34d7e61967c7bd039621`; this is not released-Core certification.
+> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects immutable held Core PR422 source candidate `0206609fe5524bba582eedcd9ab3fa83f6150663`; this is not released-Core certification.
 > Workflow V4 accepts optional progress-only handles. Core stores assessment and failure history; this package retains setup claims, previews and pull-request records.
 
 `ran/booster-github-provider` is the first-party GitHub implementation for
@@ -51,7 +51,7 @@ the host's installed composition.
 Do not infer host compatibility from matching version numbers.
 
 **Use the Provider version bundled with your chosen Booster release.** This API15
-candidate is qualified against the exact Core PR307 source revision pinned in CI,
+candidate is qualified against the exact held Core PR422 source revision pinned in CI,
 as identified in [the contribution guide](CONTRIBUTING.md). Earlier beta.31/API14
 certification does not qualify this composition. Source-host analysis and tests
 do not establish package publication or installed-site/UI acceptance.
@@ -184,3 +184,8 @@ Core now owns durable assessment/failure history. GitHub reports actual progress
 through the same public contract available to external providers. Source-host
 qualification precedes matching satellite releases and Core lock adoption; keep
 these proposals unmerged until their specific review and owner decisions.
+
+The [replacement compatibility contract](docs/replacement-compatibility.md)
+defines the passive bundled baseline, credential semantics, guarded operation
+lifetime and shared workflow-state ownership. It is groundwork for Core's
+replacement integration, not a standalone replacement plugin or activation claim.

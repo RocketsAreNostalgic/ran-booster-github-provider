@@ -37,6 +37,26 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
 	}
 
+	public function test_unavailable_workflow_refuses_cached_preview_and_revision_refresh_before_local_mutation(): void {
+		$records = new SetupRecordStore();
+		self::assertTrue( $records->save( $this->record() ) );
+		$before      = $GLOBALS['ran_booster_release_deployments_test_options'];
+		$credentials = new WorkflowCredentialStore();
+		$workflow    = $this->workflow( $credentials, $records, assert_operation: static fn (): never => throw new \RuntimeException( 'Selection unavailable.' ) );
+		$status      = WorkflowProviderFixtures::target( source_revision: 4 );
+		foreach ( array( 'preview', 'outcome' ) as $method ) {
+			try {
+				$workflow->{$method}( $status, 'eligible' );
+				self::fail( 'Unavailable selection must refuse before cached state or writes.' );
+			} catch ( \RuntimeException $failure ) {
+				self::assertSame( 'Selection unavailable.', $failure->getMessage() );
+			}
+		}
+		self::assertSame( $before, $GLOBALS['ran_booster_release_deployments_test_options'] );
+		self::assertSame( 0, $credentials->profile_reads );
+		self::assertSame( array(), $credentials->material_reads );
+	}
+
 	public function test_passive_status_uses_only_display_safe_profiles_and_exact_actions_url(): void {
 		$credentials = new WorkflowCredentialStore();
 		$workflow    = $this->workflow( $credentials );
@@ -197,11 +217,11 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		self::assertSame( array(), $credentials->material_reads );
 	}
 
-	private function workflow( WorkflowCredentialStore $credentials, ?SetupRecordStore $records = null, ?D23ApplicationTransport $transport = null ): GitHubRepositoryReleaseWorkflow {
+	private function workflow( WorkflowCredentialStore $credentials, ?SetupRecordStore $records = null, ?D23ApplicationTransport $transport = null, ?\Closure $assert_operation = null ): GitHubRepositoryReleaseWorkflow {
 		$records   ??= new SetupRecordStore();
 		$transport ??= new D23ApplicationTransport();
 		$coordinator = new WorkflowApplicationCoordinator( new GitHubRepositoryClient( $transport ), new TemplatePackRepositoryClient( $transport ), new SourceReadyAssessor(), $records );
-		return new GitHubRepositoryReleaseWorkflow( $credentials, $coordinator, $records );
+		return new GitHubRepositoryReleaseWorkflow( $credentials, $coordinator, $records, $assert_operation );
 	}
 
 	/**

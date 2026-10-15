@@ -17,7 +17,7 @@ final class GitHubRepositoryClient {
 	private const MAX_CHANGES             = 32;
 	/** @var Closure(string,string,array<string,mixed>):mixed */
 	private Closure $send;
-	public function __construct( ?callable $send = null ) {
+	public function __construct( ?callable $send = null, private ?Closure $assert_operation = null ) {
 		$this->send = null === $send
 			? static fn ( string $method, string $url, array $args ): mixed => wp_safe_remote_request(
 				$url,
@@ -455,7 +455,9 @@ final class GitHubRepositoryClient {
 			}
 		}
 		try {
+			$this->assert_operation?->__invoke();
 			$response = ( $this->send )( $method, self::API_ROOT . $path, $args );
+			$this->assert_operation?->__invoke();
 		} catch ( Throwable ) {
 			return $this->error( 'remote_unavailable' );
 		}

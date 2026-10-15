@@ -27,11 +27,11 @@ certified Booster checkout pinned in [CI](.github/workflows/ci.yml):
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the certified host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 3aea62a102a9c180467b34d7e61967c7bd039621 &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 0206609fe5524bba582eedcd9ab3fa83f6150663 &&
   composer check:host
 ```
 
-This exact host is the immutable Core PR307 source candidate, supplying
+This exact host is the immutable held Core PR422 source candidate, supplying
 Provider API 15 / workflow V4. It is not a released-Core certification. PHPStan blocks at level 8 over default-inclusive production and development
 profiles, including `tests/foundation-contract.php`, with unchanged WordPress extension, bootstrap
 files and PHPDoc certainty setting. No baseline or ignore list is introduced.
