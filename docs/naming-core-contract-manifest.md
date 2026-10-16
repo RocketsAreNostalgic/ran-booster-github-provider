@@ -2,8 +2,8 @@
 
 ## Operative API15 reporting contract
 
-Current source-host qualification pins Core PR307 commit
-`3aea62a102a9c180467b34d7e61967c7bd039621` in [CI](../.github/workflows/ci.yml),
+Current source-host qualification pins held Core PR435 commit
+`a0cd37ea9d78d40c6f7ce67e91db72f15f17ab23` in [CI](../.github/workflows/ci.yml),
 with Provider API15 and `RepositoryReleaseWorkflowManagementV4`. This candidate
 is not a released-Core certification; historical beta.31 evidence below does not
 qualify this revision. Publication, Core dependency adoption and installed/UI

@@ -24,7 +24,8 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 
 	public function __construct(
 		private ProviderWebhookProfileReader $webhook_profiles,
-		private AuthenticatedWebhookDeliveryEvidenceReader $delivery_evidence
+		private AuthenticatedWebhookDeliveryEvidenceReader $delivery_evidence,
+		private ?\Closure $assert_operation = null
 	) {
 		$this->policy = new WebhookPolicy();
 	}
@@ -97,6 +98,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 	}
 
 	public function normalize_webhook( WebhookRequest $request ): WebhookEnvelope {
+		$this->assert_operation?->__invoke();
 		if ( ! $request->get_provider()->equals( ProviderCode::parse( 'gh' ) ) ) {
 			throw new WebhookRejected( 400, 'Webhook provider does not match GitHub.' );
 		}
@@ -107,10 +109,12 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		$verification = $request->require_verification();
 
 		if ( 'ping' === $event ) {
+			$this->assert_operation?->__invoke();
 			return WebhookEnvelope::probe();
 		}
 
 		if ( 'push' !== $event ) {
+			$this->assert_operation?->__invoke();
 			return WebhookEnvelope::ignored();
 		}
 
@@ -122,6 +126,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		}
 
 		if ( $push['deleted'] || ! str_starts_with( $push['ref'], 'refs/heads/' ) ) {
+			$this->assert_operation?->__invoke();
 			return WebhookEnvelope::ignored();
 		}
 
@@ -131,9 +136,11 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		}
 
 		if ( ! $this->is_deployable_commit( $push['commit'] ) ) {
+			$this->assert_operation?->__invoke();
 			return WebhookEnvelope::ignored();
 		}
 
+		$this->assert_operation?->__invoke();
 		return WebhookEnvelope::events(
 			new PushEvent(
 				ProviderCode::parse( 'gh' ),

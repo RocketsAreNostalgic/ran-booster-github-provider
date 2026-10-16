@@ -29,6 +29,21 @@ final class WebhookNormalizerTest extends TestCase {
 	private const DELIVERY_ID      = 'delivery-one';
 	private const RETAINED_HEADERS = array( 'x-github-event', 'x-github-delivery', 'x-hub-signature-256' );
 
+	public function test_selection_loss_refuses_before_emitting_a_verified_push(): void {
+		$calls      = 0;
+		$normalizer = new WebhookNormalizer(
+			new WebhookProfileReaderStub(),
+			new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
+			static function () use ( &$calls ): void {
+				if ( ++$calls > 1 ) {
+					throw new \RuntimeException( 'Selection changed.' );
+				}
+			}
+		);
+		$this->expectExceptionMessage( 'Selection changed.' );
+		$normalizer->normalize_webhook( $this->request( $this->encode( $this->valid_push_payload() ) ) );
+	}
+
 	public function test_valid_push_is_normalized_to_the_exact_provider_neutral_shape(): void {
 		$body     = $this->encode( $this->valid_push_payload() );
 		$envelope = $this->normalizer()->normalize_webhook( $this->request( $body ) );

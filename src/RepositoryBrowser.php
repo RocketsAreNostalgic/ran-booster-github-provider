@@ -35,7 +35,7 @@ class RepositoryBrowser {
 
 	private ProviderCredentialStore $credentials;
 
-	public function __construct( ProviderCredentialStore $credentials ) {
+	public function __construct( ProviderCredentialStore $credentials, private ?\Closure $assert_operation = null ) {
 		$this->credentials = $credentials;
 	}
 
@@ -58,8 +58,10 @@ class RepositoryBrowser {
 		$headers   = $this->request_headers();
 
 		if ( null !== $credential_id || $authenticate_default ) {
+			$this->assert_operation?->__invoke();
 			$credential = $this->credentials->credential_material( $credential_id );
-			$token      = is_array( $credential ) && isset( $credential['secret'] ) && is_string( $credential['secret'] )
+			$this->assert_operation?->__invoke();
+			$token = is_array( $credential ) && isset( $credential['secret'] ) && is_string( $credential['secret'] )
 				? trim( $credential['secret'] )
 				: '';
 
@@ -80,7 +82,7 @@ class RepositoryBrowser {
 			$arguments['limit_response_size'] = $response_size;
 		}
 
-		$response = wp_remote_get(
+		$response = $this->guarded_get(
 			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ),
 			$arguments
 		);
@@ -166,7 +168,7 @@ class RepositoryBrowser {
 
 		$headers           = $this->authenticated_request_headers( $credential_id, $is_private );
 		$headers['Accept'] = 'application/vnd.github.sha';
-		$response          = wp_remote_get(
+		$response          = $this->guarded_get(
 			self::PUBLIC_API_BASE
 				. '/repos/'
 				. $this->encode_repository_name( $full_name )
@@ -231,7 +233,7 @@ class RepositoryBrowser {
 
 		$headers = $this->authenticated_request_headers( $credential_id, $is_private );
 
-		$response = wp_remote_get(
+		$response = $this->guarded_get(
 			self::PUBLIC_API_BASE
 				. '/repos/'
 				. $this->encode_repository_name( $full_name )
@@ -310,7 +312,7 @@ class RepositoryBrowser {
 			throw new RuntimeException( 'The GitHub repository path check is invalid.', 400 );
 		}
 
-		$response = wp_remote_get(
+		$response = $this->guarded_get(
 			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ) . '/contents/' . implode( '/', array_map( 'rawurlencode', explode( '/', $path ) ) ) . '?ref=' . rawurlencode( strtolower( $ref ) ),
 			array(
 				'timeout'             => 15,
@@ -355,8 +357,10 @@ class RepositoryBrowser {
 	}
 
 	public function validate_credential( string $credential_id, float $timeout = 15.0 ): CredentialValidationResult {
+		$this->assert_operation?->__invoke();
 		$credential = $this->credentials->credential_material( $credential_id );
-		$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
+		$this->assert_operation?->__invoke();
+		$token = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
 			: '';
 
@@ -364,7 +368,7 @@ class RepositoryBrowser {
 			return CredentialValidationResult::invalid();
 		}
 
-		$response = wp_remote_get(
+		$response = $this->guarded_get(
 			self::PUBLIC_API_BASE . '/user',
 			array(
 				'timeout'             => $timeout,
@@ -455,8 +459,10 @@ class RepositoryBrowser {
 
 	private function browse_accessible( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
 		$credential_id = (string) $request->get_credential_id();
-		$credential    = $this->credentials->credential_material( $credential_id );
-		$token         = is_array( $credential ) && is_string( $credential['secret'] ?? null )
+		$this->assert_operation?->__invoke();
+		$credential = $this->credentials->credential_material( $credential_id );
+		$this->assert_operation?->__invoke();
+		$token = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
 			: '';
 
@@ -485,8 +491,10 @@ class RepositoryBrowser {
 		$credential_id = $request->get_credential_id();
 		$headers       = $this->request_headers();
 		if ( null !== $credential_id ) {
+			$this->assert_operation?->__invoke();
 			$credential = $this->credentials->credential_material( $credential_id );
-			$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
+			$this->assert_operation?->__invoke();
+			$token = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 				? trim( $credential['secret'] )
 				: '';
 
@@ -579,7 +587,7 @@ class RepositoryBrowser {
 	 * @return array<array-key,mixed>
 	 */
 	private function browse_request( string $url, array $headers, RepositoryBrowseRequest $request ): array {
-		$response = wp_remote_get(
+		$response = $this->guarded_get(
 			$url,
 			array(
 				'timeout'             => $request->claim_remote_call(),
@@ -678,6 +686,14 @@ class RepositoryBrowser {
 		return false !== $retry_at && $retry_at->format( self::HTTP_DATE_FORMAT ) === $retry_after;
 	}
 
+	/** @param array<string,mixed> $arguments */
+	private function guarded_get( string $url, array $arguments ): mixed {
+		$this->assert_operation?->__invoke();
+		$response = wp_remote_get( $url, $arguments );
+		$this->assert_operation?->__invoke();
+		return $response;
+	}
+
 	/**
 	 * @return array<string, string>
 	 */
@@ -697,8 +713,10 @@ class RepositoryBrowser {
 			return $headers;
 		}
 
+		$this->assert_operation?->__invoke();
 		$credential = $this->credentials->credential_material( $credential_id );
-		$token      = is_array( $credential ) && is_string( $credential['secret'] ?? null )
+		$this->assert_operation?->__invoke();
+		$token = is_array( $credential ) && is_string( $credential['secret'] ?? null )
 			? trim( $credential['secret'] )
 			: '';
 

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "317dc15276c2c5d6c05d7887ce8a5c20",
+    "content-hash": "17187cc48cc8771f4db165c67605bfec",
     "packages": [
         {
             "name": "ran/updater-support",
@@ -83,16 +83,16 @@
         },
         {
             "name": "ran/wp-release-updater",
-            "version": "v1.0.0-beta.9",
+            "version": "v1.0.0-beta.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/RocketsAreNostalgic/ran-wp-release-updater.git",
-                "reference": "27889528442fc4e49ca060959218d5ec288c3055"
+                "reference": "4e89b6c61ae57ebf02a74cea697ab0ee06d95f66"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/RocketsAreNostalgic/ran-wp-release-updater/zipball/27889528442fc4e49ca060959218d5ec288c3055",
-                "reference": "27889528442fc4e49ca060959218d5ec288c3055",
+                "url": "https://api.github.com/repos/RocketsAreNostalgic/ran-wp-release-updater/zipball/4e89b6c61ae57ebf02a74cea697ab0ee06d95f66",
+                "reference": "4e89b6c61ae57ebf02a74cea697ab0ee06d95f66",
                 "shasum": ""
             },
             "require": {
@@ -114,7 +114,7 @@
             "type": "library",
             "autoload-dev": {
                 "psr-4": {
-                    "Tests\\": "tests/"
+                    "RAN\\WPReleaseUpdater\\V1\\Tests\\": "tests/"
                 }
             },
             "scripts": {
@@ -128,7 +128,9 @@
                     "@test"
                 ],
                 "analyze": [
-                    "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=1G"
+                    "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=1G",
+                    "phpstan analyse --configuration=phpstan-tools.neon --no-progress --memory-limit=1G",
+                    "php scripts/analyze-tests.php"
                 ],
                 "audit:composer": [
                     "composer audit --locked --no-interaction"
@@ -177,7 +179,7 @@
                 "security": "https://github.com/RocketsAreNostalgic/ran-wp-release-updater/security/advisories/new",
                 "source": "https://github.com/RocketsAreNostalgic/ran-wp-release-updater"
             },
-            "time": "2026-09-28T12:28:00+00:00"
+            "time": "2026-10-16T11:00:24+00:00"
         }
     ],
     "packages-dev": [

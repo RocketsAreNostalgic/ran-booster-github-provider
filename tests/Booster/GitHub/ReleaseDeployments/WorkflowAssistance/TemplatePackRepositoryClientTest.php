@@ -13,6 +13,30 @@ require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 
 final class TemplatePackRepositoryClientTest extends TestCase {
 
+	public function test_operation_guard_refuses_before_transport_and_discards_late_response(): void {
+		foreach ( array( false, true ) as $start_available ) {
+			$requests  = 0;
+			$available = $start_available;
+			$client    = new TemplatePackRepositoryClient(
+				static function () use ( &$requests, &$available ): array {
+					++$requests;
+					$available = false;
+					return array(
+						'response' => array( 'code' => 200 ),
+						'body'     => '{}',
+					);
+				},
+				static function () use ( &$available ): void {
+					if ( ! $available ) {
+						throw new \RuntimeException( 'Selection changed.' );
+					}
+				}
+			);
+			self::assertSame( 'template_pack_unavailable', $client->discover()['code'] );
+			self::assertSame( $start_available ? 1 : 0, $requests );
+		}
+	}
+
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit owns the lifecycle override name.
 	protected function setUp(): void {
 		\RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\template_pack_repository_actions_reset();
