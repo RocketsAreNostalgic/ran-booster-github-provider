@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.18](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.17...v1.0.0-beta.18) (2026-10-16)
+
+
+### Features
+
+* deliver replacement contracts and historical archives with protocol 6 ([#86](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/86)) ([3fb2c46](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/3fb2c46775baaa640374350a763958be0da61548))
+
 ## [1.0.0-beta.17](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.16...v1.0.0-beta.17) (2026-10-14)
 
 
