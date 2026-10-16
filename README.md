@@ -1,6 +1,6 @@
 # RAN Booster GitHub Provider
 
-> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects immutable held Core PR422 source candidate `0206609fe5524bba582eedcd9ab3fa83f6150663`; this is not released-Core certification.
+> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects immutable held Core PR435 source candidate `09b0dbb9330785048d996d250c11c73a4b812682`; this is not released-Core certification.
 > Workflow V4 accepts optional progress-only handles. Core stores assessment and failure history; this package retains setup claims, previews and pull-request records.
 
 `ran/booster-github-provider` is the first-party GitHub implementation for
@@ -51,7 +51,7 @@ the host's installed composition.
 Do not infer host compatibility from matching version numbers.
 
 **Use the Provider version bundled with your chosen Booster release.** This API15
-candidate is qualified against the exact held Core PR422 source revision pinned in CI,
+candidate is qualified against the exact held Core PR435 source revision pinned in CI,
 as identified in [the contribution guide](CONTRIBUTING.md). Earlier beta.31/API14
 certification does not qualify this composition. Source-host analysis and tests
 do not establish package publication or installed-site/UI acceptance.
@@ -189,3 +189,5 @@ The [replacement compatibility contract](docs/replacement-compatibility.md)
 defines the passive bundled baseline, credential semantics, guarded operation
 lifetime and shared workflow-state ownership. It is groundwork for Core's
 replacement integration, not a standalone replacement plugin or activation claim.
+
+Historical archive source candidate: `ProviderMetadata::archive_api_version` is 2, and the GitHub compatibility revision is 2. A selected commit must be a canonical lowercase 40-character GitHub SHA. The provider rechecks repository identity, current access and exact commit resolution both when preparing and immediately before mutation; it never substitutes the current branch head. Neutral 64-character identities are refused before credential or network access. This requires the matching Core `ArchiveRequest::selected_commit` contract; CI pins the matching held Core PR435 source candidate. Immutable delivery and installed qualification remain pending.

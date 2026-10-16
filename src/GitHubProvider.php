@@ -84,7 +84,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	public static function compatibility_contract(): array {
 		return array(
 			'implementation_id'      => 'ran/booster-github-provider',
-			'compatibility_revision' => '1',
+			'compatibility_revision' => '2',
 			'provider_api_version'   => 15,
 			'api_credential_formats' => array( 'github-classic-pat-v1', 'github-fine-grained-pat-v1' ),
 			'webhook_signing_format' => 'github-hmac-sha256-v1',
@@ -279,7 +279,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 					100
 				),
 				'owner/repository'
-			)
+			),
+			archive_api_version: 2
 		);
 	}
 
@@ -341,6 +342,10 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 
 	public function prepare_archive( ArchiveRequest $request ): PreparedArchive {
 		$repository = $request->repository;
+		$selected   = $request->selected_commit;
+		if ( null !== $selected && 1 !== preg_match( '/\A[0-9a-f]{40}\z/D', $selected ) ) {
+			throw new RuntimeException( 'GitHub does not support this selected commit identity.', 400 );
+		}
 
 		$ref             = $request->ref;
 		$expected_branch = $request->expected_branch;
@@ -350,7 +355,27 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			throw new RuntimeException( 'The managed GitHub repository does not have a stable provider identity.', 409 );
 		}
 
-		if ( null !== $expected_branch ) {
+		$historical_verifier = null;
+		if ( null !== $selected ) {
+			if ( $repository->private && null === $repository->credential_id ) {
+				$this->assert_operation?->__invoke();
+				$credential = $this->credentials->credential_material( null );
+				$this->assert_operation?->__invoke();
+				$id = $credential['id'] ?? null;
+				if ( ! is_string( $id ) || '' === $id ) {
+					throw new RuntimeException( 'The selected GitHub credential identity is unavailable.' );
+				}
+				$repository = new RepositoryReference( $repository->locator, $repository_id, true, $id );
+			}
+			$historical_verifier = function () use ( $repository, $repository_id, $selected ): void {
+				$resolved = $this->browser->immutable_ref( $repository->locator, $selected, $repository_id, $repository->credential_id, $repository->private );
+				if ( ! hash_equals( $selected, $resolved ) ) {
+					throw new StaleDeployment( 'GitHub did not resolve the selected commit exactly.', 409 );
+				}
+			};
+			$historical_verifier();
+			$ref = $selected;
+		} elseif ( null !== $expected_branch ) {
 			if ( 1 !== preg_match( '/^[0-9a-f]{40}$/i', $ref ) ) {
 				throw new RuntimeException( 'The GitHub deployment event does not contain a valid commit.', 400 );
 			}
@@ -381,8 +406,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			. '/zipball/'
 			. rawurlencode( $ref );
 
-		$head_verifier = $this->assert_operation;
-		if ( null !== $expected_branch ) {
+		$head_verifier = $historical_verifier ?? $this->assert_operation;
+		if ( null === $selected && null !== $expected_branch ) {
 			$head_verifier = function () use ( $repository, $expected_branch, $ref ): void {
 				$head = $this->browser->current_branch_head(
 					$repository->locator,

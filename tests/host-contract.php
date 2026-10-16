@@ -142,3 +142,19 @@ if ( 4 !== ( new ReflectionClass( RepositoryReleaseWorkflowManagementV4::class )
 if ( ! ( new ReflectionClass( RepositoryReleaseWorkflowManagementV4::class ) )->isSubclassOf( ProviderCapability::class ) ) {
 	throw new RuntimeException( 'Release workflow V4 must remain a provider capability.' );
 }
+
+// Historical selection is per-provider capability, not a global Provider API bump.
+( static function (): void {
+	foreach ( array( array( ArchiveRequest::class, 'selected_commit', '?string', null ), array( ProviderMetadata::class, 'archive_api_version', 'int', 1 ) ) as $contract ) {
+		$property    = new ReflectionProperty( $contract[0], $contract[1] );
+		$constructor = new ReflectionMethod( $contract[0], '__construct' );
+		$parameters  = $constructor->getParameters();
+		if ( array() === $parameters ) {
+			throw new RuntimeException( 'Historical archive host constructor is unavailable.' );
+		}
+		$parameter = $parameters[ array_key_last( $parameters ) ];
+		if ( ! $property->isPublic() || ran_booster_github_provider_type_name( $property->getType() ) !== $contract[2] || $parameter->getName() !== $contract[1] || ! $parameter->isDefaultValueAvailable() || $parameter->getDefaultValue() !== $contract[3] ) {
+			throw new RuntimeException( 'Historical archive host contract is unavailable.' );
+		}
+	}
+} )();

@@ -563,10 +563,9 @@ final class GitHubRepositoryClientTest extends TestCase {
 			)
 		);
 		$client    = new GitHubRepositoryClient( $transport );
-		self::assertSame( 'rate_limited', $client->repository( self::REPOSITORY )['code'] );
-		self::assertSame( 'unauthorised', $client->repository( self::REPOSITORY )['code'] );
-		self::assertSame( 'unauthorised', $client->repository( self::REPOSITORY )['code'] );
-		self::assertSame( 'rate_limited', $client->repository( self::REPOSITORY )['code'] );
+		foreach ( array( 'rate_limited', 'unauthorised', 'unauthorised', 'rate_limited' ) as $expected ) {
+			self::assertSame( $expected, $client->repository( self::REPOSITORY )['code'] );
+		}
 	}
 
 	/**
