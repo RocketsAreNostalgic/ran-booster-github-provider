@@ -100,14 +100,14 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: 09b0dbb9330785048d996d250c11c73a4b812682
+          ref: a0cd37ea9d78d40c6f7ce67e91db72f15f17ab23
           persist-credentials: false
           path: booster
 
       - name: Verify exact source and host revisions
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: 09b0dbb9330785048d996d250c11c73a4b812682
+          RAN_BOOSTER_HOST_SHA: a0cd37ea9d78d40c6f7ce67e91db72f15f17ab23
         run: |
           set -euo pipefail
           test -n "$RAN_EXPECTED_SHA"
@@ -198,14 +198,14 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster
-          ref: 09b0dbb9330785048d996d250c11c73a4b812682
+          ref: a0cd37ea9d78d40c6f7ce67e91db72f15f17ab23
           persist-credentials: false
           path: booster
 
       - name: Run certified-host quality aggregate
         env:
           RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          RAN_BOOSTER_HOST_SHA: 09b0dbb9330785048d996d250c11c73a4b812682
+          RAN_BOOSTER_HOST_SHA: a0cd37ea9d78d40c6f7ce67e91db72f15f17ab23
           RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/booster
           RAN_CI_PHASE_STATE: ${{ runner.temp }}/provider-phase-${{ matrix.php }}
         working-directory: provider
