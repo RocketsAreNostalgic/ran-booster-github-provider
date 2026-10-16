@@ -28,6 +28,7 @@ final class GitHubRepositoryClient {
 
 	/**
 	 * @return array<array-key,mixed>
+	 * @phpstan-impure Fresh HTTP responses may change between identical requests.
 	 */
 	public function repository( string $repository, string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) ) {

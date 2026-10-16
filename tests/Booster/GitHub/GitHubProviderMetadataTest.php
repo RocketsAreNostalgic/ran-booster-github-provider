@@ -35,7 +35,7 @@ final class GitHubProviderMetadataTest extends TestCase {
 		sort( $declared, SORT_STRING );
 		self::assertSame( $actual, $declared );
 		self::assertSame( 'ran/booster-github-provider', $contract['implementation_id'] );
-		self::assertSame( '1', $contract['compatibility_revision'] );
+		self::assertSame( '2', $contract['compatibility_revision'] );
 		self::assertSame( 15, $contract['provider_api_version'] );
 		self::assertSame( array( 'github-classic-pat-v1', 'github-fine-grained-pat-v1' ), $contract['api_credential_formats'] );
 		self::assertSame( 'github-hmac-sha256-v1', $contract['webhook_signing_format'] );

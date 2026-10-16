@@ -83,7 +83,7 @@ final class ProviderOperationGuardTest extends TestCase {
 	}
 
 	#[DataProvider( 'archive_privacy' )]
-	public function test_prepared_archive_refuses_late_use_and_cleans_up_after_selection_loss( bool $is_private ): void {
+	public function test_prepared_archive_refuses_late_use_and_cleans_up_after_selection_loss( bool $is_private, bool $historical ): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 			array(
 				$this->repository_response( $is_private ),
@@ -100,7 +100,7 @@ final class ProviderOperationGuardTest extends TestCase {
 			},
 			new RepositoryResolverSecretsStub( array( 'selected' => 'synthetic-private-material' ) )
 		);
-		$archive   = $provider->prepare_archive( new ArchiveRequest( new RepositoryReference( 'owner/example', '42', $is_private, $is_private ? 'selected' : null ), 'main' ) );
+		$archive   = $provider->prepare_archive( new ArchiveRequest( new RepositoryReference( 'owner/example', '42', $is_private, $is_private ? 'selected' : null ), $historical ? str_repeat( 'a', 40 ) : 'main', selected_commit: $historical ? str_repeat( 'a', 40 ) : null ) );
 		self::assertInstanceOf( AuthenticatedPreparedArchive::class, $archive );
 		$url       = $archive->get_url();
 		$available = false;
@@ -131,14 +131,16 @@ final class ProviderOperationGuardTest extends TestCase {
 		self::assertCount( 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
 
-	/** @return iterable<string,array{bool}> */
+	/** @return iterable<string,array{bool,bool}> */
 	public static function archive_privacy(): iterable {
-		yield 'anonymous' => array( false );
-		yield 'private' => array( true );
+		yield 'anonymous' => array( false, false );
+		yield 'private' => array( true, false );
+		yield 'historical-anonymous' => array( false, true );
+		yield 'historical-private' => array( true, true );
 	}
 
 	#[DataProvider( 'default_credential_identities' )]
-	public function test_private_archive_reacquires_exact_resolved_default_without_substitution( string $identity ): void {
+	public function test_private_archive_reacquires_exact_resolved_default_without_substitution( string $identity, bool $historical ): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 			array(
 				$this->repository_response( true ),
@@ -163,9 +165,22 @@ final class ProviderOperationGuardTest extends TestCase {
 			}
 		);
 		$provider = $this->provider( static fn (): bool => true, $store );
-		$archive  = $provider->prepare_archive( new ArchiveRequest( new RepositoryReference( 'owner/example', '42', true, null ), 'main' ) );
+		$archive  = $provider->prepare_archive( new ArchiveRequest( new RepositoryReference( 'owner/example', '42', true, null ), $historical ? str_repeat( 'a', 40 ) : 'main', selected_commit: $historical ? str_repeat( 'a', 40 ) : null ) );
 		self::assertInstanceOf( AuthenticatedPreparedArchive::class, $archive );
 		$state->changed = true;
+		if ( $historical ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+				array(
+					$this->repository_response( true ),
+					array(
+						'response' => array( 'code' => 200 ),
+						'body'     => str_repeat( 'a', 40 ),
+					),
+				)
+			);
+			$archive->verify_current_head();
+			self::assertSame( array( null ), array_values( array_filter( $lookups, static fn ( ?string $id ): bool => $identity !== $id ) ) );
+		}
 		try {
 			$result = $archive->authenticate_request( array(), $archive->get_url() );
 			self::assertTrue( 'Bearer synthetic-original-material' === ( $result['headers']['Authorization'] ?? null ) );
@@ -177,10 +192,12 @@ final class ProviderOperationGuardTest extends TestCase {
 		}
 	}
 
-	/** @return iterable<string,array{string}> */
+	/** @return iterable<string,array{string,bool}> */
 	public static function default_credential_identities(): iterable {
-		yield 'constant' => array( 'constant' );
-		yield 'sole-file' => array( 'saved-profile' );
+		yield 'constant' => array( 'constant', false );
+		yield 'sole-file' => array( 'saved-profile', false );
+		yield 'historical-constant' => array( 'constant', true );
+		yield 'historical-sole-file' => array( 'saved-profile', true );
 	}
 
 	public function test_release_token_supplier_binds_first_default_identity_without_eager_read(): void {
@@ -229,6 +246,90 @@ final class ProviderOperationGuardTest extends TestCase {
 		};
 		GitHubProvider::create( new RepositoryResolverSecretsStub(), new EmptyAuthenticatedWebhookDeliveryEvidenceReader(), $registrar, operation_guard: $guard, native_mutation_begin: $begin, native_mutation_complete: $complete );
 		self::assertSame( array( $guard, $begin, $complete ), $registrar->received );
+	}
+
+	public function test_historical_commit_is_resolved_exactly_again_before_mutation_without_branch_head(): void {
+		$sha      = str_repeat( 'a', 40 );
+		$response = array(
+			'response' => array( 'code' => 200 ),
+			'body'     => $sha,
+		);
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->repository_response(), $response, $this->repository_response(), $response ) );
+		$provider = $this->provider( static fn (): bool => true );
+		self::assertSame( 2, $provider->get_metadata()->archive_api_version );
+		self::assertSame( '2', GitHubProvider::compatibility_contract()['compatibility_revision'] );
+		$archive = $provider->prepare_archive( new ArchiveRequest( new RepositoryReference( 'owner/example', '42', false, null ), $sha, selected_commit: $sha ) );
+		try {
+			self::assertSame( $sha, $archive->get_resolved_ref() );
+			self::assertStringEndsWith( '/zipball/' . $sha, $archive->get_url() );
+			$archive->verify_current_head();
+			$urls = array_column( \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests(), 'url' );
+			self::assertSame( array( 'https://api.github.com/repos/owner/example', 'https://api.github.com/repos/owner/example/commits/' . $sha, 'https://api.github.com/repos/owner/example', 'https://api.github.com/repos/owner/example/commits/' . $sha ), $urls );
+		} finally {
+			$archive->cleanup();
+		}
+	}
+
+	public function test_historical_sha256_refuses_before_credentials_and_http(): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( array() );
+		$store = $this->createMock( ProviderCredentialStore::class );
+		$store->expects( self::never() )->method( 'credential_material' );
+		$provider = $this->provider( static fn (): bool => true, $store );
+		$sha      = str_repeat( 'a', 64 );
+		try {
+			$provider->prepare_archive( new ArchiveRequest( new RepositoryReference( 'owner/example', '42', true, 'selected' ), $sha, selected_commit: $sha ) );
+			self::fail( 'GitHub SHA-256 selection must refuse.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( 400, $failure->getCode() );
+		}
+		self::assertSame( array(), \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+	}
+
+	#[DataProvider( 'historical_refusals' )]
+	public function test_historical_fresh_verification_refuses_changed_identity_access_or_commit( string $stage, string $failure ): void {
+		$sha               = str_repeat( 'a', 40 );
+		$repository        = $this->repository_response();
+		$commit            = array(
+			'response' => array( 'code' => 200 ),
+			'body'     => $sha,
+		);
+		$failed_repository = $repository;
+		$failed_commit     = $commit;
+		if ( 'identity' === $failure ) {
+			$failed_repository['body'] = '{"id":43,"full_name":"owner/example","private":false,"default_branch":"main"}';
+		} elseif ( 'access' === $failure ) {
+			$failed_repository = array(
+				'response' => array( 'code' => 404 ),
+				'body'     => '{}',
+			);
+		} else {
+			$failed_commit['body'] = str_repeat( 'b', 40 );
+		}
+		$responses = array( $failed_repository, $failed_commit );
+		if ( 'final' === $stage ) {
+			$responses = array_merge( array( $repository, $commit ), $responses );
+		}
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( $responses );
+		$provider = $this->provider( static fn (): bool => true );
+		$archive  = null;
+		try {
+			$archive = $provider->prepare_archive( new ArchiveRequest( new RepositoryReference( 'owner/example', '42', false, null ), $sha, selected_commit: $sha ) );
+			$archive->verify_current_head();
+			self::fail( 'Changed historical authority must refuse.' );
+		} catch ( RuntimeException $failure_result ) {
+			self::assertNotSame( '', $failure_result->getMessage() );
+		} finally {
+			$archive?->cleanup();
+		}
+	}
+
+	/** @return iterable<string,array{string,string}> */
+	public static function historical_refusals(): iterable {
+		foreach ( array( 'initial', 'final' ) as $stage ) {
+			foreach ( array( 'identity', 'access', 'commit' ) as $failure ) {
+				yield $stage . '-' . $failure => array( $stage, $failure );
+			}
+		}
 	}
 
 	/** @return array<string,mixed> */

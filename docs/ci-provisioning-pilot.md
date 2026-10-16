@@ -30,7 +30,7 @@ Tracked source bytes (including locks, even with misleading index flags) and
 installed dependency file bytes/symlink targets are checked before and after the
 phases. Only a successful baseline admits the host phase for the same source.
 Host environment variables are scoped to that step. The current source host is
-immutable held Core PR422 candidate `0206609fe5524bba582eedcd9ab3fa83f6150663`,
+immutable held Core PR435 candidate `a0cd37ea9d78d40c6f7ce67e91db72f15f17ab23`,
 qualifying Provider API15 / workflow V4. It replaces the beta.31/API14 host;
 the provisioning boundaries are unchanged. Source qualification does not establish
 publication or installed-site acceptance. See the [historical recovery evidence](beta31-recovery-qualification.md).

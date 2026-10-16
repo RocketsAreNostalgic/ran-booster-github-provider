@@ -21,7 +21,7 @@ final class ReleaseUpdaterAdoptionTest extends TestCase {
 		$packages = array_values( array_filter( $lock['packages'], static fn ( array $package ): bool => 'ran/wp-release-updater' === $package['name'] ) );
 		self::assertCount( 1, $packages );
 		$copy = $this->read_json( $root . '/runtime-copy.json' );
-		self::assertSame( 5, $copy['runtime_protocol'] );
+		self::assertSame( 6, $copy['runtime_protocol'] );
 		self::assertSame( ltrim( $packages[0]['version'], 'v' ), $copy['package_version'] );
 		self::assertSame( $packages[0]['source']['reference'], \Composer\InstalledVersions::getReference( 'ran/wp-release-updater' ) );
 		$install_path = \Composer\InstalledVersions::getInstallPath( 'ran/wp-release-updater' );
@@ -49,7 +49,7 @@ final class ReleaseUpdaterAdoptionTest extends TestCase {
 		$root   = dirname( __DIR__, 3 ) . '/vendor/ran/wp-release-updater';
 		$first  = require $root . '/bootstrap.php';
 		$second = require $root . '/bootstrap.php';
-		self::assertSame( 5, $first->diagnostics()['protocol_version'] );
+		self::assertSame( 6, $first->diagnostics()['protocol_version'] );
 		self::assertSame( 1, $first->diagnostics()['candidate_count'] );
 		self::assertSame( $first->diagnostics(), $second->diagnostics() );
 		foreach ( array( $first, $second ) as $registrar ) {
