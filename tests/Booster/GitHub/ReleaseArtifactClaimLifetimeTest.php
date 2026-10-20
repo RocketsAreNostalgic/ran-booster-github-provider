@@ -15,6 +15,23 @@ use RAN\Deployment\ReleaseArtifactCustodian;
 use RuntimeException;
 
 final class ReleaseArtifactClaimLifetimeTest extends TestCase {
+	public function test_false_discard_before_handoff_can_retry_and_remove_the_source(): void {
+		$path     = $this->archive_path();
+		$source   = new StructuralReleaseArtifact( $path, array( false ) );
+		$artifact = $this->artifact_from_source( $source );
+
+		try {
+			self::assertFalse( $artifact->discard() );
+			self::assertSame( 1, $source->discard_calls );
+			self::assertFileExists( $path );
+			self::assertTrue( $artifact->discard() );
+			self::assertSame( 2, $source->discard_calls );
+			self::assertFileDoesNotExist( $path );
+		} finally {
+			$this->remove_exact_path( $path );
+		}
+	}
+
 	public function test_inaccessible_artifact_methods_preserve_retry_and_handoff_failure_state(): void {
 		$source = new class() {
 			private function inspect(): mixed {

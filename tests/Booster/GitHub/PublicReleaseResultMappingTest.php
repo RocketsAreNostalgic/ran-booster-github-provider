@@ -221,26 +221,94 @@ final class PublicReleaseResultMappingTest extends TestCase {
 	}
 
 	public function test_discards_malformed_retained_acquisition_before_rejecting_it(): void {
-		$fixture  = new PublicReleaseArtifactFixture( $this->archive() );
-		$provider = $this->provider(
-			new PublicReleaseSourceFixture(
-				$this->listing(),
-				$this->envelope( true, 'release_inspected', $this->facts(), 'complete' ),
-				$this->envelope(
-					true,
-					'release_acquired',
-					array(
-						'inspection' => $this->facts(),
-						'artifact'   => $fixture,
-						'unexpected' => true,
-					),
-					'retained'
-				)
+		$path    = $this->archive();
+		$fixture = new PublicReleaseArtifactFixture( $path );
+		$source  = new PublicReleaseSourceFixture(
+			$this->listing(),
+			$this->envelope( true, 'release_inspected', $this->facts(), 'complete' ),
+			$this->envelope(
+				true,
+				'release_acquired',
+				array(
+					'inspection' => $this->facts(),
+					'artifact'   => $fixture,
+					'unexpected' => true,
+				),
+				'retained'
 			)
 		);
 
-		$this->expectException( \RuntimeException::class );
-		$provider->acquire_release( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
+		try {
+			try {
+				$this->provider( $source )->acquire_release( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
+				self::fail( 'A malformed retained acquisition must be rejected.' );
+			} catch ( \RuntimeException $failure ) {
+				self::assertSame( 502, $failure->getCode() );
+			}
+			self::assertSame( 1, $source->acquire_calls );
+			self::assertSame( 1, $fixture->discard_calls );
+			self::assertFileDoesNotExist( $path );
+		} finally {
+			if ( is_file( $path ) ) {
+				unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Exact temporary structural-artifact fixture fallback cleanup.
+			}
+		}
+	}
+
+	public function test_malformed_acquisition_preserves_the_first_discard_failure(): void {
+		$path    = $this->archive();
+		$fixture = new PublicReleaseArtifactFixture( $path, true );
+		$source  = new PublicReleaseSourceFixture(
+			$this->listing(),
+			$this->envelope( true, 'release_inspected', $this->facts(), 'complete' ),
+			$this->envelope(
+				true,
+				'release_acquired',
+				array(
+					'inspection' => $this->facts(),
+					'artifact'   => $fixture,
+					'unexpected' => true,
+				),
+				'retained'
+			)
+		);
+
+		try {
+			try {
+				$this->provider( $source )->acquire_release( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
+				self::fail( 'A failed first discard must remain a cleanup failure.' );
+			} catch ( RepositoryReleaseAcquisitionRejected $failure ) {
+				self::assertSame( RepositoryReleaseAcquisitionRejected::CLEANUP_FAILED, $failure->reason );
+			}
+			self::assertSame( 1, $source->acquire_calls );
+			self::assertSame( 1, $fixture->discard_calls );
+			self::assertFileExists( $path );
+		} finally {
+			if ( is_file( $path ) ) {
+				unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Exact temporary structural-artifact fixture fallback cleanup.
+			}
+		}
+	}
+
+	public function test_inspection_rejects_a_different_configured_host_limit(): void {
+		$facts                           = $this->facts();
+		$facts['maximum_artifact_bytes'] = 1048576;
+		$source                          = new PublicReleaseSourceFixture( $this->listing(), $this->envelope( true, 'release_inspected', $facts, 'complete' ), array() );
+		$provider                        = GitHubProvider::create(
+			new RepositoryResolverSecretsStub(),
+			new EmptyAuthenticatedWebhookDeliveryEvidenceReader(),
+			new PublicReleaseRegistrarFixture( $source ),
+			static fn (): int => 52428800
+		);
+
+		try {
+			$provider->inspect_release( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'stable' );
+			self::fail( 'Inspection facts must match the configured host limit.' );
+		} catch ( \RuntimeException $failure ) {
+			self::assertSame( 502, $failure->getCode() );
+		}
+		self::assertSame( 1, $source->inspect_calls );
+		self::assertSame( 0, $source->acquire_calls );
 	}
 
 	private function provider( PublicReleaseSourceFixture $source ): GitHubProvider {
@@ -351,9 +419,15 @@ final class PublicReleaseSourceFixture {
 }
 // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- This concrete public-artifact test double belongs beside the custody or mapping contract it exercises.
 final class PublicReleaseArtifactFixture {
-	public function __construct( private string $path ) {} public function inspect( callable $reader ): mixed {
+	public int $discard_calls = 0;
+
+	public function __construct( private string $path, private bool $fail_first_discard = false ) {} public function inspect( callable $reader ): mixed {
 		return $reader( $this->path );
 	} public function discard(): bool {
+		++$this->discard_calls;
+		if ( $this->fail_first_discard && 1 === $this->discard_calls ) {
+			return false;
+		}
 		if ( is_file( $this->path ) ) {
 			unlink( $this->path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Exact temporary structural-artifact fixture.
 		} return ! file_exists( $this->path ); }
