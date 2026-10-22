@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.0-beta.19](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.18...v1.0.0-beta.19) (2026-10-22)
+
+
+### Features
+
+* isolate GitHub workflow state by namespace ([#92](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/92)) ([073e765](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/073e7658baebe50bad040612eac37c9268ec4806))
+
+
+### Bug Fixes
+
+* reject unsupported webhook branch references ([#91](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/91)) ([be141dc](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/be141dc9bdca1659d319bd6b2fa85a69352a5e3d))
+
 ## [1.0.0-beta.18](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.17...v1.0.0-beta.18) (2026-10-16)
 
 
