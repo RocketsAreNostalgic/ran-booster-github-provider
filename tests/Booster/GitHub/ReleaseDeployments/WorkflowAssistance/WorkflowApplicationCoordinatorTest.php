@@ -148,6 +148,60 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
 	}
 
+	public function test_two_namespaces_keep_previews_and_records_separate_for_the_same_remote_repository(): void {
+		$transport     = new D23ApplicationTransport();
+		$status        = WorkflowProviderFixtures::target();
+		$first_records = new SetupRecordStore( new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowAssistanceState( 'example_one' ) );
+		$other_records = new SetupRecordStore( new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowAssistanceState( 'example_two' ) );
+		$first         = $this->coordinator( new D23ReleaseFacade(), $transport, $first_records );
+		$other         = $this->coordinator( new D23ReleaseFacade(), $transport, $other_records );
+		$preview       = $first->inspect( $status, 'stable', $this->ready_preflight(), 'synthetic-token' );
+
+		self::assertSame( 'workflow_inspected', $preview['code'] );
+		self::assertNull( $other->preview( $preview['preview_key'], $status ) );
+		self::assertSame( 'workflow_invalid_request', $other->setup( $status, $preview['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'synthetic-token' )['code'] );
+		self::assertSame( 0, array_sum( $transport->write_counts ) );
+		self::assertNotNull( $first->preview( $preview['preview_key'], $status ) );
+		self::assertSame( 'workflow_setup_open', $first->setup( $status, $preview['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'synthetic-token' )['code'] );
+		self::assertNotNull( $first_records->find( '101' ) );
+		self::assertNull( $other_records->find( '101' ) );
+		self::assertNull( $first->preview( $preview['preview_key'], $status ) );
+		self::assertTrue( $other_records->workflow_state()->remove_durable_state() );
+		self::assertTrue( $other_records->workflow_state()->remove_ephemeral_state() );
+		self::assertNotNull( $first_records->find( '101' ) );
+	}
+
+	public function test_empty_custom_namespace_preserves_remote_automation_conflicts_for_plugin_and_theme(): void {
+		foreach ( array( 'plugin', 'theme' ) as $type ) {
+			$transport = new D23ApplicationTransport( false, $type );
+			$transport->mutate_default_document( '.github/workflows/publish-release.yml', "steps:\n  - uses: softprops/action-gh-release@v2\n" );
+			$records     = new SetupRecordStore( new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowAssistanceState( 'empty_' . $type ) );
+			$coordinator = $this->coordinator( new D23ReleaseFacade(), $transport, $records );
+			$status      = WorkflowProviderFixtures::target( $type, 'theme' === $type ? 'example-theme' : 'example-plugin/example-plugin.php' );
+			$result      = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'synthetic-token' );
+			self::assertSame( 'workflow_release_automation_conflict', $result['code'], $type );
+			self::assertSame( '', $result['preview_key'] );
+			self::assertFalse( $records->occupied( '101' ) );
+			self::assertSame( 0, array_sum( $transport->write_counts ) );
+		}
+	}
+
+	public function test_custom_namespace_lost_acknowledgement_uses_readback_and_consumes_only_its_preview(): void {
+		$transport   = new D23ApplicationTransport( true );
+		$state       = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowAssistanceState( 'lost_ack' );
+		$records     = new SetupRecordStore( $state );
+		$coordinator = $this->coordinator( new D23ReleaseFacade(), $transport, $records );
+		$status      = WorkflowProviderFixtures::target();
+		$preview     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'synthetic-token' );
+		self::assertSame( 'workflow_setup_recovered', $coordinator->setup( $status, $preview['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'synthetic-token' )['code'] );
+		$writes = $transport->write_counts;
+		self::assertSame( 1, $writes['ref'] );
+		self::assertSame( 1, $writes['pull'] );
+		self::assertSame( 'workflow_invalid_request', $coordinator->setup( $status, $preview['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'synthetic-token' )['code'] );
+		self::assertSame( $writes, $transport->write_counts );
+		self::assertNotNull( $records->find( '101' ) );
+	}
+
 	public function test_complete_api_three_bootstrap_uses_exact_preview_git_objects_readback_and_schema_three(): void {
 		$transport   = new D23ApplicationTransport();
 		$facade      = new D23ReleaseFacade();

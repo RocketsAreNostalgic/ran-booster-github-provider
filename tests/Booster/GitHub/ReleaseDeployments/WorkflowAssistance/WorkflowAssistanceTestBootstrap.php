@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
+require_once dirname( __DIR__, 4 ) . '/Support/workflow-cache.php';
+
 final class SetupClaimDatabase {
 	public string $options        = 'wp_options';
 	public string $last_error     = '';
@@ -29,14 +31,16 @@ final class SetupClaimDatabase {
 
 	public function get_var( string $query ): string|null {
 		$this->last_error = '';
+		preg_match( "/\('([^']+)'/", $query, $matches );
+		$key = $matches[1] ?? '';
 		if ( str_starts_with( $query, 'SELECT GET_LOCK(' ) ) {
 			++$this->lock_acquisitions;
-			$owner = $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null;
+			$owner = $GLOBALS['ran_booster_release_deployments_test_lock_owner'][ $key ] ?? null;
 			if ( null !== $owner && $owner !== $this->connection_id ) {
 				return '0';
 			}
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
-			$GLOBALS['ran_booster_release_deployments_test_lock_owner'] = $this->connection_id;
+			$GLOBALS['ran_booster_release_deployments_test_lock_owner'][ $key ] = $this->connection_id;
 			$callback = $GLOBALS['ran_booster_release_deployments_test_lock_acquired_callback'] ?? null;
 			if ( is_callable( $callback ) ) {
 				$callback();
@@ -48,23 +52,25 @@ final class SetupClaimDatabase {
 				$this->last_error = 'release failed';
 				return null;
 			}
-			if ( ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null ) !== $this->connection_id ) {
+			if ( ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'][ $key ] ?? null ) !== $this->connection_id ) {
 				return '0';
 			}
-			unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
+			unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'][ $key ] );
 			return '1';
 		}
 		return null;
 	}
 
 	public function disconnect(): void {
-		if ( ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null ) === $this->connection_id ) {
-			unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] );
+		foreach ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? array() as $key => $owner ) {
+			if ( $owner === $this->connection_id ) {
+				unset( $GLOBALS['ran_booster_release_deployments_test_lock_owner'][ $key ] );
+			}
 		}
 	}
 
 	public function is_lock_held(): bool {
-		return ( $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? null ) === $this->connection_id;
+		return in_array( $this->connection_id, $GLOBALS['ran_booster_release_deployments_test_lock_owner'] ?? array(), true );
 	}
 }
 
@@ -250,6 +256,9 @@ if ( ! function_exists( __NAMESPACE__ . '\\get_transient' ) ) {
 
 if ( ! function_exists( __NAMESPACE__ . '\\delete_transient' ) ) {
 	function delete_transient( string $key ): bool {
+		if ( ( $GLOBALS['ran_booster_github_provider_test_transient_delete_failure'] ?? null ) === $key ) {
+			return false;
+		}
 		$callback = $GLOBALS['ran_booster_release_deployments_test_transient_delete_callback'] ?? null;
 		if ( is_callable( $callback ) ) {
 			$callback( $key );

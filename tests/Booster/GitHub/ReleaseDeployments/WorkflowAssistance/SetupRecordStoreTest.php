@@ -9,6 +9,7 @@ require_once __DIR__ . '/WorkflowAssistanceTestBootstrap.php';
 
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupRecordStore;
+use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowAssistanceState;
 
 final class SetupRecordStoreTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
@@ -303,6 +304,64 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertFalse( ( new SetupRecordStore() )->save( array_replace( $this->record(), array( 'repo_id' => '101' ) ) ) );
 		self::assertTrue( ( new SetupRecordStore() )->save( array_replace( $this->record(), array( 'repo_id' => '100' ) ) ) );
 	}
+	public function test_same_repository_records_and_cache_invalidations_are_namespace_local(): void {
+		$first_state  = new WorkflowAssistanceState( 'github-example' );
+		$second_state = new WorkflowAssistanceState( 'other_example' );
+		$first        = new SetupRecordStore( $first_state );
+		$second       = new SetupRecordStore( $second_state );
+		$bundled      = new SetupRecordStore();
+		$record       = $this->record();
+		$other_record = array_replace( $record, array( 'pr_number' => 99 ) );
+		$GLOBALS['ran_booster_github_provider_test_cache_deletes'] = array();
+
+		self::assertTrue( $first->save( $record ) );
+		self::assertNull( $second->find( '123456789' ) );
+		self::assertFalse( $second->occupied( '123456789' ) );
+		self::assertNull( $bundled->find( '123456789' ) );
+		self::assertTrue( $second->save( $other_record ) );
+		self::assertSame( $record, $first->find( '123456789' ) );
+		self::assertSame( $other_record, $second->find( '123456789' ) );
+		self::assertSame( $first_state, $first->workflow_state() );
+		self::assertNotNull( $first->refresh_source_revision( '123456789', 'plugin', 'example-plugin/example-plugin.php', 4 ) );
+		$second_record = $second->find( '123456789' );
+		self::assertNotNull( $second_record );
+		self::assertSame( 3, $second_record['source_revision'] );
+		self::assertContains( array( $first_state->setup_option(), 'options' ), $GLOBALS['ran_booster_github_provider_test_cache_deletes'] );
+		self::assertContains( array( $second_state->setup_option(), 'options' ), $GLOBALS['ran_booster_github_provider_test_cache_deletes'] );
+		self::assertNotContains( array( WorkflowAssistanceState::SETUP_OPTION, 'options' ), $GLOBALS['ran_booster_github_provider_test_cache_deletes'] );
+		self::assertTrue( $first_state->remove_durable_state() );
+		self::assertNull( $first->find( '123456789' ) );
+		self::assertSame( $other_record, $second->find( '123456789' ) );
+	}
+
+	public function test_namespace_claims_are_independent_and_exact_connection_owned(): void {
+		$first            = new SetupRecordStore( new WorkflowAssistanceState( 'github-example' ) );
+		$second           = new SetupRecordStore( new WorkflowAssistanceState( 'other_example' ) );
+		$same_namespace   = new SetupRecordStore( new WorkflowAssistanceState( 'github-example' ) );
+		$bundled          = new SetupRecordStore();
+		$first_connection = $GLOBALS['wpdb'];
+		$first_claim      = $first->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
+		self::assertNotNull( $first_claim );
+		$second_connection = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Switch connection to prove namespace isolation without same-connection advisory-lock reentrancy.
+		$GLOBALS['wpdb'] = $second_connection;
+		self::assertNull( $same_namespace->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 ) );
+		self::assertFalse( $first->release_claim( '123456789', $first_claim ) );
+		$second_claim = $second->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
+		self::assertNotNull( $second_claim );
+		self::assertFalse( $second->release_claim( '123456789', $first_claim ) );
+		self::assertTrue( $second->release_claim( '123456789', $second_claim ) );
+		$bundled_claim = $bundled->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
+		self::assertNotNull( $bundled_claim );
+		self::assertTrue( $bundled->release_claim( '123456789', $bundled_claim ) );
+		self::assertTrue( $first_connection->is_lock_held() );
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the owner connection; stale store authority must not reappear.
+		$GLOBALS['wpdb'] = $first_connection;
+		self::assertFalse( $first->release_claim( '123456789', $first_claim ) );
+		$first_connection->disconnect();
+		$second_connection->disconnect();
+	}
+
 	/** @return array<string,int|string|list<array<string,string>>> */
 	private function record(): array {
 		return array(

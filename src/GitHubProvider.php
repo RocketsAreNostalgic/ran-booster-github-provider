@@ -70,6 +70,7 @@ use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupReco
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SourceReadyAssessor;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplatePackRepositoryClient;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowApplicationCoordinator;
+use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowAssistanceState;
 use RuntimeException;
 
 final class GitHubProvider implements RepositoryProvider, RepositoryPathInspector, CredentialValidator, CredentialedPublicRepositoryBrowser, WebhookNormalizerContract, ProviderCredentialPolicySupplier, RepositoryWebhookSettingsLink, RepositoryWebhookFitness, RepositoryWebhookManagement, RepositoryReleaseMetadata, RepositoryReleaseCandidateListing, RepositoryReleaseInspector, RepositoryReleaseAcquirer, RepositoryReleaseNativeTargets, RepositoryReleaseWorkflowManagementV4 {
@@ -134,8 +135,10 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		?callable $maximum_artifact_bytes = null,
 		?callable $operation_guard = null,
 		?callable $native_mutation_begin = null,
-		?callable $native_mutation_complete = null
+		?callable $native_mutation_complete = null,
+		string $workflow_namespace = 'bundled'
 	): RepositoryProvider {
+		$workflow_state   = new WorkflowAssistanceState( $workflow_namespace );
 		$assert_operation = null === $operation_guard ? null : static function () use ( $operation_guard ): void {
 			try {
 				if ( true === $operation_guard() ) {
@@ -168,7 +171,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			new RepositoryWebhookClient( $assert_operation ),
 			$registrar,
 			$maximum_artifact_bytes,
-			$assert_operation
+			$assert_operation,
+			$workflow_state
 		);
 	}
 
@@ -179,7 +183,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		RepositoryWebhookClient $webhook_client,
 		object $registrar,
 		?callable $maximum_artifact_bytes = null,
-		private ?Closure $assert_operation = null
+		private ?Closure $assert_operation = null,
+		?WorkflowAssistanceState $workflow_state = null
 	) {
 		$this->registrar              = $registrar;
 		$this->maximum_artifact_bytes = null === $maximum_artifact_bytes ? null : Closure::fromCallable( $maximum_artifact_bytes );
@@ -189,7 +194,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		$this->webhook_client         = $webhook_client;
 		$this->diagnostics            = new Diagnostics( $browser );
 		$this->credential_policy      = new CredentialPolicy();
-		$workflow_records             = new SetupRecordStore();
+		$workflow_records             = new SetupRecordStore( $workflow_state );
 		$this->release_workflow       = new GitHubRepositoryReleaseWorkflow(
 			$credentials,
 			new WorkflowApplicationCoordinator(

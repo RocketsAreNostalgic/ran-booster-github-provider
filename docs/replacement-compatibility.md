@@ -39,16 +39,23 @@ Core's adoption confirmation must cover the retained signing relationship.
 
 ## Private workflow state
 
-The library's `WorkflowAssistanceState` owns
-`ran_booster_github_provider_release_workflow_setup_records` and the
-`ran_booster_github_provider_release_workflow_preview_` transient prefix.
-Bundling this same library in a wrapper does not create a separate namespace.
-An official wrapper must intentionally share this state and must not call
-`remove_durable_state()` on its uninstall while Core or another active owner
-retains the relationship. Deactivation is not cleanup authorization. Third-party
-implementations own their own private namespace; there is no automatic private
-state transfer or remote cleanup promise. No official wrapper is supplied here;
-its uninstall qualification remains a prerequisite for advertising one.
+`WorkflowAssistanceState` supplies an immutable, validated storage namespace.
+The default `bundled` owner retains its existing option, preview transient prefix
+and advisory-lock names. A wrapper must explicitly pass a distinct stable
+`workflow_namespace` to `GitHubProvider::create()`; merely bundling another copy
+of this library does not isolate state. The namespace is independent of `gh`,
+plugin basename and replacement-manifest identity.
+
+Records, preview keys, cache invalidation and site-scoped advisory locks follow
+that namespace. Custom cleanup cannot remove bundled or retired bundled state.
+Deactivation retains state; uninstall may remove only the deleted composition's
+known namespace. No state migration, read-through, synchronization or dual write
+occurs when switching. See [workflow storage](workflow-storage.md) for construction,
+cleanup, bounds and remote-automation caveats.
+
+No official runtime wrapper is supplied by this library. The example requires
+separate exact Core/provider/updater qualification, including public native
+mutation coordination, explicit adoption and dependency-copy attribution.
 
 ## Operation lifetime
 
