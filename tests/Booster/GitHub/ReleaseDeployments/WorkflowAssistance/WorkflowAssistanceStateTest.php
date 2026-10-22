@@ -44,7 +44,7 @@ final class WorkflowAssistanceStateTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function tearDown(): void {
 		$GLOBALS['wpdb']->disconnect();
-		unset( $GLOBALS['ran_booster_github_provider_test_option_delete_failure'] );
+		unset( $GLOBALS['ran_booster_github_provider_test_option_delete_failure'], $GLOBALS['ran_booster_github_provider_test_option_read_callback'], $GLOBALS['ran_booster_github_provider_test_index_query_callback'], $GLOBALS['ran_booster_github_provider_test_transient_set_callback'] );
 	}
 
 	public function test_durable_cleanup_removes_current_and_retired_provider_state_and_is_repeatable(): void {
@@ -296,6 +296,82 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		self::assertFalse( $state->store_preview( $key, array( 'unsafe' => true ), 900 ) );
 		self::assertFalse( $state->read_preview( $key ) );
 		self::assertArrayNotHasKey( 'ran_booster_gh_wf_github-example_preview_keys', $GLOBALS['ran_booster_release_deployments_test_options'] );
+	}
+
+
+	public function test_reconnect_during_index_read_or_write_cannot_overwrite_a_new_owner(): void {
+		foreach ( array( 'read', 'write' ) as $boundary ) {
+			$state    = new WorkflowAssistanceState( 'reconnect_' . $boundary );
+			$original = $GLOBALS['wpdb'];
+			$nested   = null;
+			$callback = static function () use ( $state, $original, &$nested ): void {
+				unset( $GLOBALS['ran_booster_github_provider_test_option_read_callback'], $GLOBALS['ran_booster_github_provider_test_index_query_callback'] );
+				$original->disconnect();
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- A new database connection writes its own index after the original advisory lock is lost.
+				$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
+				$nested          = $state->store_preview( str_repeat( 'b', 32 ), array( 'nested' => true ), 900 );
+			};
+			$GLOBALS[ 'ran_booster_github_provider_test_' . ( 'read' === $boundary ? 'option_read_callback' : 'index_query_callback' ) ] = $callback;
+			self::assertFalse( $state->store_preview( str_repeat( 'a', 32 ), array( 'stale' => true ), 900 ), $boundary );
+			self::assertTrue( $nested, $boundary );
+			self::assertFalse( $state->read_preview( str_repeat( 'a', 32 ) ) );
+			self::assertSame( array( 'nested' => true ), $state->read_preview( str_repeat( 'b', 32 ) ) );
+			self::assertTrue( $state->remove_ephemeral_state() );
+			self::assertFalse( $state->read_preview( str_repeat( 'b', 32 ) ) );
+		}
+	}
+
+	public function test_reconnect_during_index_delete_preserves_new_owners_cleanup_evidence(): void {
+		$state = new WorkflowAssistanceState( 'reconnect_delete' );
+		self::assertTrue( $state->store_preview( str_repeat( 'a', 32 ), array( 'old' => true ), 900 ) );
+		$original = $GLOBALS['wpdb'];
+		$nested   = null;
+		$GLOBALS['ran_booster_github_provider_test_index_query_callback'] = static function () use ( $state, $original, &$nested ): void {
+			unset( $GLOBALS['ran_booster_github_provider_test_index_query_callback'] );
+			$original->disconnect();
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The replacement connection creates a new receipt while stale cleanup tries to remove its index.
+			$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
+			$nested          = $state->store_preview( str_repeat( 'b', 32 ), array( 'nested' => true ), 900 );
+		};
+		self::assertFalse( $state->remove_ephemeral_state() );
+		self::assertTrue( $nested );
+		self::assertSame( array( 'nested' => true ), $state->read_preview( str_repeat( 'b', 32 ) ) );
+		self::assertTrue( $state->remove_ephemeral_state() );
+		self::assertFalse( $state->read_preview( str_repeat( 'b', 32 ) ) );
+	}
+
+	public function test_reconnect_inside_transient_creation_compensates_only_its_new_key(): void {
+		$state          = new WorkflowAssistanceState( 'reconnect_transient' );
+		$original       = $GLOBALS['wpdb'];
+		$nested_cleanup = null;
+		$nested_store   = null;
+		$GLOBALS['ran_booster_github_provider_test_transient_set_callback'] = static function () use ( $state, $original, &$nested_cleanup, &$nested_store ): void {
+			unset( $GLOBALS['ran_booster_github_provider_test_transient_set_callback'] );
+			$original->disconnect();
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Model a reconnect and another owner finishing cleanup before the original transient write completes.
+			$GLOBALS['wpdb'] = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
+			$nested_cleanup  = $state->remove_ephemeral_state();
+			$nested_store    = $state->store_preview( str_repeat( 'b', 32 ), array( 'nested' => true ), 900 );
+		};
+		self::assertFalse( $state->store_preview( str_repeat( 'a', 32 ), array( 'stale' => true ), 900 ) );
+		self::assertTrue( $nested_cleanup );
+		self::assertTrue( $nested_store );
+		self::assertFalse( $state->read_preview( str_repeat( 'a', 32 ) ) );
+		self::assertSame( array( 'nested' => true ), $state->read_preview( str_repeat( 'b', 32 ) ) );
+		self::assertTrue( $state->remove_ephemeral_state() );
+		self::assertFalse( $state->read_preview( str_repeat( 'b', 32 ) ) );
+	}
+
+	public function test_server_reconnect_inside_same_database_wrapper_refuses_index_write(): void {
+		$state      = new WorkflowAssistanceState( 'same_wrapper' );
+		$connection = $GLOBALS['wpdb'];
+		$GLOBALS['ran_booster_github_provider_test_index_query_callback'] = static function () use ( $connection ): void {
+			unset( $GLOBALS['ran_booster_github_provider_test_index_query_callback'] );
+			$connection->reconnect();
+		};
+		self::assertFalse( $state->store_preview( str_repeat( 'a', 32 ), array( 'stale' => true ), 900 ) );
+		self::assertFalse( $state->read_preview( str_repeat( 'a', 32 ) ) );
+		self::assertArrayNotHasKey( 'ran_booster_gh_wf_same_wrapper_preview_keys', $GLOBALS['ran_booster_release_deployments_test_options'] );
 	}
 
 	private function seed_option( string $key, mixed $value ): void {

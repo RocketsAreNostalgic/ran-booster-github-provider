@@ -25,7 +25,11 @@ bound. Existing exact connection-local claim and release rules remain active.
 Custom previews retain the existing 15-minute review lifetime and exact preview
 validation. A non-autoloaded, namespace-owned index holds at most 100 exact
 preview keys and expiries. A separate advisory lock serializes index changes;
-index persistence/readback precedes transient creation. Expired known keys are
+index persistence/readback precedes transient creation. Index changes compare the exact previous stored bytes and require the captured
+server connection to still own the advisory lock inside the SQL mutation itself.
+A reconnect cannot authorize a stale overwrite or deletion. Reusing an occupied
+live preview key refuses; ownership loss during transient creation removes only
+the newly created key and reports failure. Expired known keys are
 deleted before pruning. Malformed or oversized indexes refuse new writes and
 cleanup; their contents never authorize arbitrary option deletion. This bounded
 index lets `delete_transient()` reach both database and persistent object-cache
