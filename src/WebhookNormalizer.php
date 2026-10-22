@@ -6,6 +6,7 @@ namespace RAN\BoosterGitHubProvider\V1;
 
 use JsonException;
 use RAN\RepositoryProvider\AuthenticatedWebhookDeliveryEvidenceReader;
+use RAN\RepositoryProvider\GitReferenceSyntax;
 use RAN\RepositoryProvider\ProviderCode;
 use RAN\RepositoryProvider\ProviderDiagnosticResult;
 use RAN\RepositoryProvider\ProviderWebhookPolicy;
@@ -131,7 +132,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		}
 
 		$branch = substr( $push['ref'], strlen( 'refs/heads/' ) );
-		if ( '' === $branch ) {
+		if ( ! GitReferenceSyntax::is_valid_named_reference( $branch ) ) {
 			throw new WebhookRejected( 400, 'GitHub push payload is invalid.' );
 		}
 
