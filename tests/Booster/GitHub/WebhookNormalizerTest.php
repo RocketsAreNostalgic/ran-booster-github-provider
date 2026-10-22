@@ -44,9 +44,12 @@ final class WebhookNormalizerTest extends TestCase {
 		$normalizer->normalize_webhook( $this->request( $this->encode( $this->valid_push_payload() ) ) );
 	}
 
-	public function test_valid_push_is_normalized_to_the_exact_provider_neutral_shape(): void {
-		$body     = $this->encode( $this->valid_push_payload() );
-		$envelope = $this->normalizer()->normalize_webhook( $this->request( $body ) );
+	#[DataProvider( 'valid_branch_provider' )]
+	public function test_valid_push_is_normalized_to_the_exact_provider_neutral_shape( string $branch ): void {
+		$payload        = $this->valid_push_payload();
+		$payload['ref'] = 'refs/heads/' . $branch;
+		$body           = $this->encode( $payload );
+		$envelope       = $this->normalizer()->normalize_webhook( $this->request( $body ) );
 
 		self::assertTrue( $envelope->has_events() );
 		self::assertSame(
@@ -54,11 +57,66 @@ final class WebhookNormalizerTest extends TestCase {
 				'provider'               => 'gh',
 				'repository'             => self::REPOSITORY,
 				'provider_repository_id' => self::REPOSITORY_ID,
-				'branch'                 => 'release/alpha',
+				'branch'                 => $branch,
 				'commit'                 => self::COMMIT,
 				'delivery_id'            => self::DELIVERY_ID,
 			),
 			$envelope->get_events()[0]->to_array()
+		);
+	}
+
+	/** @return iterable<string, array{string}> */
+	public static function valid_branch_provider(): iterable {
+		yield 'main' => array( 'main' );
+		yield 'topic' => array( 'feature/topic' );
+		yield 'release' => array( 'release/alpha' );
+		yield 'Unicode' => array( 'feature/café' );
+		yield '255 bytes' => array( str_repeat( 'a', 255 ) );
+	}
+
+	#[DataProvider( 'invalid_branch_provider' )]
+	public function test_invalid_live_branches_are_rejected_before_emitting_events( string $branch ): void {
+		$payload        = $this->valid_push_payload();
+		$payload['ref'] = 'refs/heads/' . $branch;
+		$body           = $this->encode( $payload );
+
+		try {
+			$this->normalizer()->normalize_webhook( $this->request( $body ) );
+			self::fail( 'Invalid live branch must not emit an event.' );
+		} catch ( WebhookRejected $exception ) {
+			self::assertSame( 400, $exception->get_status_code() );
+			self::assertSame( 'GitHub push payload is invalid.', $exception->getMessage() );
+		}
+	}
+
+	/** @return iterable<string, array{string}> */
+	public static function invalid_branch_provider(): iterable {
+		yield 'empty' => array( '' );
+		yield 'encoded segment' => array( 'feature/%41' );
+		yield 'double dot' => array( 'bad..branch' );
+		yield 'lock suffix' => array( 'foo.lock' );
+		yield 'uppercase lock suffix' => array( 'feature/foo.LOCK' );
+		yield 'leading option' => array( '-flag' );
+		yield 'space' => array( 'feature/ space' );
+		yield '256 bytes' => array( str_repeat( 'a', 256 ) );
+		yield 'Unicode over byte limit' => array( str_repeat( 'é', 128 ) );
+		yield 'control byte' => array( "feature/\x7Ftopic" );
+		yield 'leading slash' => array( '/main' );
+		yield 'trailing slash' => array( 'main/' );
+		yield 'empty segment' => array( 'feature//topic' );
+		yield 'dot segment' => array( 'feature/.topic' );
+		yield 'trailing dot' => array( 'main.' );
+		yield 'reflog expression' => array( 'main@{1}' );
+	}
+
+	public function test_invalid_branch_does_not_bypass_repository_authority(): void {
+		$payload        = $this->valid_push_payload();
+		$payload['ref'] = 'refs/heads/bad..branch';
+		$body           = $this->encode( $payload );
+
+		$this->assert_rejected(
+			401,
+			fn (): WebhookEnvelope => $this->normalizer()->normalize_webhook( $this->verified_request( $body, 'repository', 'RocketsAreNostalgic/other-plugin' ) )
 		);
 	}
 
@@ -451,10 +509,14 @@ final class WebhookNormalizerTest extends TestCase {
 		$payload            = $valid;
 		$payload['deleted'] = true;
 		yield 'deleted branch' => array( $payload );
+		$payload['ref'] = 'refs/heads/bad..branch';
+		yield 'deleted malformed branch' => array( $payload );
 
 		$payload        = $valid;
 		$payload['ref'] = 'refs/tags/v1.0.0';
 		yield 'tag push' => array( $payload );
+		$payload['ref'] = 'refs/tags/foo.lock';
+		yield 'tag outside supported branch syntax' => array( $payload );
 
 		$payload          = $valid;
 		$payload['after'] = 'not-an-immutable-commit';
