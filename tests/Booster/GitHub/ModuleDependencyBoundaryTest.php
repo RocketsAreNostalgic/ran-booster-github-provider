@@ -33,6 +33,7 @@ final class ModuleDependencyBoundaryTest extends TestCase {
 		'RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SourceReadyAssessor',
 		'RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplatePackRepositoryClient',
 		'RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowApplicationCoordinator',
+		'RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowAssistanceState',
 		'RAN\UpdaterSupport\V1\RepositoryRelativePath',
 		'RAN\RepositoryProvider\Admin\CredentialFieldMetadata',
 		'RAN\RepositoryProvider\Admin\CredentialKindMetadata',

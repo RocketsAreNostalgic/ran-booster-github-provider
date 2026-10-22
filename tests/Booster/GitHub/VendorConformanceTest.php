@@ -63,7 +63,7 @@ final class VendorConformanceTest extends TestCase {
 			->getConstructor()?->getParameters()[0] ?? null;
 
 		self::assertNotNull( $browser_parameter );
-		self::assertCount( 7, $provider_parameters );
+		self::assertCount( 8, $provider_parameters );
 		self::assertNotNull( $webhook_parameter );
 		self::assertSame( ProviderCredentialStore::class, (string) $browser_parameter->getType() );
 		self::assertSame( ProviderCredentialStore::class, (string) $provider_parameters[0]->getType() );
@@ -81,6 +81,9 @@ final class VendorConformanceTest extends TestCase {
 			self::assertSame( '?callable', (string) $provider_parameters[ $index ]->getType() );
 			self::assertNull( $provider_parameters[ $index ]->getDefaultValue() );
 		}
+		self::assertSame( 'workflow_namespace', $provider_parameters[7]->getName() );
+		self::assertSame( 'string', (string) $provider_parameters[7]->getType() );
+		self::assertSame( 'bundled', $provider_parameters[7]->getDefaultValue() );
 		self::assertSame( RepositoryProvider::class, (string) $composition_method->getReturnType() );
 		self::assertTrue( $composition_method->isPublic() );
 		self::assertTrue( $composition_method->isStatic() );
@@ -100,6 +103,17 @@ final class VendorConformanceTest extends TestCase {
 			)
 		);
 		self::assertSame( ProviderWebhookProfileReader::class, (string) $webhook_parameter->getType() );
+	}
+
+	public function test_invalid_storage_namespace_refuses_before_credentials_or_registrar_composition(): void {
+		$credentials = $this->createMock( ProviderCredentialStore::class );
+		$credentials->expects( self::never() )->method( 'credential_profiles' );
+		$credentials->expects( self::never() )->method( 'credential_material' );
+		$delivery = $this->createMock( AuthenticatedWebhookDeliveryEvidenceReader::class );
+		$delivery->expects( self::never() )->method( 'latest_authenticated_delivery' );
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Invalid GitHub workflow storage namespace.' );
+		GitHubProvider::create( $credentials, $delivery, new \stdClass(), operation_guard: static fn (): bool => true, workflow_namespace: '../bundled' );
 	}
 
 	#[RunInSeparateProcess]

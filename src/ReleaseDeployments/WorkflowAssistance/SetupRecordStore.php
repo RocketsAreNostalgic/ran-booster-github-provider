@@ -6,7 +6,6 @@ namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 /** Stores exact, bounded, non-secret setup pull-request evidence. */
 final class SetupRecordStore {
-	private const OPTION          = WorkflowAssistanceState::SETUP_OPTION;
 	private const MAX_RECORDS     = 100;
 	private const FIELDS          = array(
 		'schema_version',
@@ -40,9 +39,22 @@ final class SetupRecordStore {
 	);
 	private const IDENTITY_FIELDS = array( 'repo_id', 'repository', 'package_type', 'package_identifier', 'source_revision', 'default_branch', 'setup_branch', 'head_sha', 'pr_number' );
 
+	private readonly WorkflowAssistanceState $state;
+
+	public function __construct( ?WorkflowAssistanceState $state = null ) {
+		$this->state = $state ?? new WorkflowAssistanceState();
+	}
+
+	public function workflow_state(): WorkflowAssistanceState {
+		return $this->state;
+	}
+
 	private ?string $claim_token      = null;
 	private ?string $claim_connection = null;
-	/** @return array<string,mixed>|null */
+	/**
+	 * @return array<string,mixed>|null
+	 * @phpstan-impure Reads mutable shared WordPress option state.
+	 */
 	public function find( string $repository_id ): ?array {
 		$raw = $this->raw( $repository_id );
 		if ( null === $raw || 3 !== ( $raw['schema_version'] ?? null ) ) {
@@ -51,12 +63,16 @@ final class SetupRecordStore {
 		$record = $this->normalize( $raw );
 		return null !== $record && hash_equals( $repository_id, $record['repo_id'] ) ? $record : null;
 	}
-	/** Any existing value owns its repository key, including unknown or malformed evidence. */
+	/**
+	 * Any existing value owns its repository key, including unknown or malformed evidence.
+	 *
+	 * @phpstan-impure Reads mutable shared WordPress option state.
+	 */
 	public function occupied( string $repository_id ): bool {
 		if ( ! $this->text( $repository_id, 191 ) ) {
 			return false;
 		}
-		$all = get_option( self::OPTION, array() );
+		$all = get_option( $this->state->setup_option(), array() );
 		return is_array( $all ) && array_key_exists( $repository_id, $all );
 	}
 	/**
@@ -78,7 +94,7 @@ final class SetupRecordStore {
 		$this->claim_token      = $claim;
 		$this->claim_connection = $this->connection_fingerprint();
 		if ( function_exists( 'wp_cache_delete' ) ) {
-			wp_cache_delete( self::OPTION, 'options' );
+			wp_cache_delete( $this->state->setup_option(), 'options' );
 		}
 		if ( $this->occupied( $repository_id ) ) {
 			$this->release_claim( $repository_id, $claim );
@@ -133,7 +149,7 @@ final class SetupRecordStore {
 			return false;
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Connection-local advisory lock serializes remote setup and the shared evidence option.
-		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', self::claim_lock_name() ) );
+		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $this->state->setup_lock_name() ) );
 		return '' === trim( (string) ( $wpdb->last_error ?? '' ) ) && '1' === (string) $result;
 	}
 
@@ -143,13 +159,10 @@ final class SetupRecordStore {
 			return false;
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Connection-local advisory locks are released automatically if the database connection closes.
-		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', self::claim_lock_name() ) );
+		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $this->state->setup_lock_name() ) );
 		return '' === trim( (string) ( $wpdb->last_error ?? '' ) ) && '1' === (string) $result;
 	}
 
-	private static function claim_lock_name(): string {
-		return WorkflowAssistanceState::claim_lock_name();
-	}
 	/**
 	 * Refresh only the monotonic Core source revision for the same exact package record.
 	 *
@@ -203,7 +216,7 @@ final class SetupRecordStore {
 
 	/** @param array<string,mixed> $record */
 	private function persist_record( array $record ): bool {
-		$all = get_option( self::OPTION, array() );
+		$all = get_option( $this->state->setup_option(), array() );
 		if ( ! is_array( $all ) || count( $all ) > self::MAX_RECORDS
 			|| ( ! array_key_exists( $record['repo_id'], $all ) && count( $all ) >= self::MAX_RECORDS ) ) {
 			return false;
@@ -217,13 +230,13 @@ final class SetupRecordStore {
 			}
 		}
 		$all[ $record['repo_id'] ] = $record;
-		update_option( self::OPTION, $all, false );
+		update_option( $this->state->setup_option(), $all, false );
 		return $this->find( $record['repo_id'] ) === $record;
 	}
 
 	private function refresh_record_cache(): void {
 		if ( function_exists( 'wp_cache_delete' ) ) {
-			wp_cache_delete( self::OPTION, 'options' );
+			wp_cache_delete( $this->state->setup_option(), 'options' );
 		}
 	}
 	/** @return array<string,mixed>|null */
@@ -231,7 +244,7 @@ final class SetupRecordStore {
 		if ( ! $this->text( $repository_id, 191 ) ) {
 			return null;
 		}
-		$all = get_option( self::OPTION, array() );
+		$all = get_option( $this->state->setup_option(), array() );
 		return is_array( $all ) && count( $all ) <= self::MAX_RECORDS && is_array( $all[ $repository_id ] ?? null ) ? $all[ $repository_id ] : null;
 	}
 	/**

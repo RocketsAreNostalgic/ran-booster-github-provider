@@ -11,7 +11,6 @@ use Throwable;
 
 /** GitHub initial-only API 3 assessment, preview, mutation, readback and outcome owner. */
 final class WorkflowApplicationCoordinator {
-	private const PREVIEW_PREFIX         = WorkflowAssistanceState::PREVIEW_PREFIX;
 	private const PREVIEW_FIELDS         = array( 'schema_version', 'kind', 'user_id', 'type', 'identifier', 'revision', 'repo_id', 'repository', 'default_branch', 'base_sha', 'preflight_channel', 'profile_id', 'pack_version', 'manifest_hash', 'template_identity', 'bundle_hash', 'changed_path_hash', 'allowlist_hash', 'changes' );
 	private const IDENTITY_FIELDS        = array( 'repository_name', 'repository_id', 'release_id', 'release_tag', 'release_commit', 'release_target', 'tag_target', 'release_draft', 'release_prerelease', 'release_immutable', 'asset_count', 'asset_id', 'asset_name', 'asset_state', 'asset_content_type', 'asset_size', 'asset_digest', 'asset_sha256' );
 	private const PREFLIGHT_REASON_CODES = array( 'provider_unavailable', 'no_releases', 'invalid_release', 'release_identity_mismatch', 'release_incompatible', 'release_version_mismatch', 'package_header_missing', 'package_header_invalid', 'package_archive_unreadable', 'package_zip_extension_unavailable', 'package_archive_size_invalid', 'package_archive_too_large', 'package_archive_path_unsafe', 'package_archive_path_duplicate', 'package_archive_root_invalid', 'package_archive_entry_duplicate', 'package_archive_entry_limit', 'release_version_invalid', 'package_update_uri_missing', 'package_update_uri_invalid', 'package_compatibility_missing', 'package_compatibility_invalid', 'package_header_ambiguous' );
@@ -48,7 +47,7 @@ final class WorkflowApplicationCoordinator {
 		} catch ( Throwable ) {
 			return $this->result( $status, 'remote_unavailable', false, '', 'unexpected' );
 		}
-		return set_transient( self::PREVIEW_PREFIX . $key, $preview, 15 * MINUTE_IN_SECONDS )
+		return $this->records->workflow_state()->store_preview( $key, $preview, 15 * MINUTE_IN_SECONDS )
 			? $this->result( $status, 'inspected', true, $key ) : $this->result( $status, 'remote_unavailable', false, '', 'preview_storage' );
 	}
 
@@ -153,7 +152,7 @@ final class WorkflowApplicationCoordinator {
 	 * @return array<array-key,mixed>|null
 	 */
 	public function preview( string $key, RepositoryReleaseWorkflowTarget $status ): ?array {
-		$preview        = get_transient( self::PREVIEW_PREFIX . $key );
+		$preview        = $this->records->workflow_state()->read_preview( $key );
 		$valid_identity = static function ( mixed $identity ): bool {
 			if ( ! is_array( $identity ) || array_keys( $identity ) !== self::IDENTITY_FIELDS
 				|| 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates' !== $identity['repository_name']
@@ -297,7 +296,7 @@ final class WorkflowApplicationCoordinator {
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
 	private function open_claimed_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, string $token ): array {
-		if ( ! delete_transient( self::PREVIEW_PREFIX . $preview_key ) ) {
+		if ( ! $this->records->workflow_state()->consume_preview( $preview_key ) ) {
 			return $this->result( $status, 'invalid_request', false, $preview_key );
 		}
 		$bundle = $remote['bundle'];
