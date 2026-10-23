@@ -83,6 +83,11 @@ for the additional required host-backed checks and exact candidate checkout.
 Composer installation alone does not provide WordPress, Booster's interfaces,
 registration or an operational standalone application.
 
+When changing the Provider-owned GitHub documentation or its translations, also
+run `bash scripts/check-documentation-catalog.sh`. It requires WP-CLI 2.12 and
+GNU gettext (`msgfmt` and `msgunfmt`) to regenerate and compare the package POT,
+compile its test-only localization fixtures, and inspect the committed release archive.
+
 A custom Composer root must declare the required VCS repositories and explicit
 prerelease allowances itself: Composer does not inherit dependency repository
 configuration. Use the package's metadata and the selected host's locked

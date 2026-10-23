@@ -164,7 +164,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		if ( ! is_object( $registrar ) ) {
 			throw new RuntimeException( 'The guarded release registrar is incompatible.' );
 		}
-		return new self(
+		$provider = new self(
 			$credentials,
 			new RepositoryBrowser( $credentials, $assert_operation ),
 			new WebhookNormalizer( $credentials, $delivery_evidence, $assert_operation ),
@@ -174,6 +174,11 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			$assert_operation,
 			$workflow_state
 		);
+		if ( function_exists( 'add_filter' ) ) {
+			( new GitHubDocumentation( $provider->get_metadata() ) )->register();
+		}
+
+		return $provider;
 	}
 
 	private function __construct(
