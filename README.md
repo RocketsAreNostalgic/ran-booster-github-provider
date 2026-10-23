@@ -83,6 +83,16 @@ for the additional required host-backed checks and exact candidate checkout.
 Composer installation alone does not provide WordPress, Booster's interfaces,
 registration or an operational standalone application.
 
+When changing the Provider-owned GitHub documentation or its translations, also
+run `bash scripts/check-documentation-catalog.sh`. It requires WP-CLI 2.12 and
+GNU gettext (`msgfmt` and `msgunfmt`) to regenerate and compare the package POT,
+compile its test-only localization fixtures, and inspect the committed release archive.
+The package ships English source strings and the POT only. Its package-relative
+loader can resolve a future `languages/ran-booster-github-provider-*.mo` runtime
+catalog, but no production translation or locale delivery is claimed here. The
+French and Spanish PO files under `tests/fixtures/documentation-i18n` are test
+fixtures compiled into temporary MOs by that check.
+
 A custom Composer root must declare the required VCS repositories and explicit
 prerelease allowances itself: Composer does not inherit dependency repository
 configuration. Use the package's metadata and the selected host's locked
@@ -151,10 +161,15 @@ development contracts.
 
 ## Passive construction and later operations
 
-`GitHubProvider::create()` constructs collaborators and metadata. It does not
-register WordPress hooks, activate a plugin, bootstrap the updater, fetch GitHub
-data or write workflow state. The host supplies an already composed registrar;
-construction merely stores it and the lazy policy callable.
+`GitHubProvider::create()` constructs collaborators and metadata. When WordPress
+filter functions are available, it also attaches one package-local documentation
+callback bound to that exact immutable metadata object. The callback contributes
+only when Core supplies the same object as the optional ownership argument; it
+does not read credentials, inspect selection, contact GitHub, or write state.
+Construction does not otherwise register operational hooks, activate a plugin,
+bootstrap the updater, fetch GitHub data or write workflow state. The host
+supplies an already composed registrar; construction merely stores it and the
+lazy policy callable.
 
 Registration and later capability calls are separate lifecycle steps. Explicit
 operations may read credentials, make network requests, persist workflow state

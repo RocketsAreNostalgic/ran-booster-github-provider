@@ -38,8 +38,10 @@ if ( ! function_exists( 'add_action' ) ) {
 }
 
 if ( ! function_exists( 'add_filter' ) ) {
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
-	function add_filter( string $hook, callable $callback, int $priority = 10, int $arguments = 1 ): void {}
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed, WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- WordPress signature is preserved; this fixture only models the registration result asserted by callers. The WordPress stand-in must retain the exact global function name called by the code under test.
+	function add_filter( string $hook, callable $callback, int $priority = 10, int $arguments = 1 ): bool {
+		return true;
+	}
 }
 
 if ( ! function_exists( 'doing_action' ) ) {
