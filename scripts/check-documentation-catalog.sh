@@ -19,9 +19,9 @@ cmp "$temp/generated.pot" "$temp/committed.pot"
 for locale in fr_FR es_ES; do
 	fixture="tests/fixtures/documentation-i18n/$domain-$locale.po"
 	msgfmt -o "$temp/$domain-$locale.mo" "$fixture"
-	msgunfmt "$temp/$domain-$locale.mo" | rg -F 'GitHub releases and webhooks' >/dev/null
+	msgunfmt "$temp/$domain-$locale.mo" | grep -F 'GitHub releases and webhooks' >/dev/null
 done
 
 expected=$'languages/ran-booster-github-provider.pot\nsrc/GitHubDocumentation.php\nsrc/GitHubTranslations.php'
-actual=$(git archive --format=tar HEAD | tar -tf - | rg '^(src/GitHubDocumentation\.php|src/GitHubTranslations\.php|languages/ran-booster-github-provider\.pot)$' | sort)
+actual=$(git archive --format=tar HEAD | tar -tf - | grep -E '^(src/GitHubDocumentation\.php|src/GitHubTranslations\.php|languages/ran-booster-github-provider\.pot)$' | sort)
 test "$actual" = "$expected"
