@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.20](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.19...v1.0.0-beta.20) (2026-10-23)
+
+
+### Features
+
+* **provider:** own GitHub release and webhook guidance ([#94](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/94)) ([c389c13](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/c389c1305952d62ea803c983baef94fe3b990941))
+
 ## [1.0.0-beta.19](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.18...v1.0.0-beta.19) (2026-10-22)
 
 
