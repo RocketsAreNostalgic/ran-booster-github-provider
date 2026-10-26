@@ -21,6 +21,10 @@ then runs the host aggregate. `.github/workflows/ci.yml` and
 controls. Its baseline preserves `quality-php-library-v2.yml` at immutable
 `788f783d2998994f7aab9691710911ed1bd762c9`; review later baseline changes deliberately.
 The independent host-contract, classification and terminal `quality` gates remain.
+The Example-owned consumer proof additionally tests the exact package candidate
+in disposable WordPress; see `RELEASING.md#example-consumer-proof` when changing
+its assembly, CI pin or installed assertions. Core source changes are outside
+that consumer-test setup.
 See [`docs/ci-provisioning-pilot.md`](docs/ci-provisioning-pilot.md) for measurements,
 shared-runner limitations and rollback. No shared-recipe pin is required.
 
