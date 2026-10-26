@@ -118,7 +118,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: RocketsAreNostalgic/ran-booster-github-example
-          ref: cc615f17e79ea9699d3ef594e8d7eb3e5411c3b3
+          ref: 632b4baeb4bf71c018abd9643717aa93812a762c
           persist-credentials: false
           path: example
 
