@@ -146,11 +146,12 @@ The host supplies these capabilities deliberately:
 Booster registers the returned aggregate as `gh` with
 `ProviderRegistry::registerWithCredentialStore( 'gh', $factory )` before firing
 `ran_booster_register_providers`, then seals the registry. An external
-composition must check the exact API-13 marker and supported runtime mode before
+composition must check the exact API-15 marker and supported runtime mode before
 loading the implementation. Ordinary Booster already owns `gh`: trying to
 register it again is rejected before the second factory receives credentials.
-The Core [external composition fixture](https://github.com/RocketsAreNostalgic/ran-booster/tree/main/tests/fixtures/ran-booster-github-provider-extension)
-is a controlled integration example, not a supported second GitHub installation.
+The [Example plugin](https://github.com/RocketsAreNostalgic/ran-booster-github-example)
+is the maintained Composer consumer. It uses Core's explicit replacement selection
+and consent boundary rather than registering a second `gh` implementation.
 
 For the complete contract and lifecycle, use Core's
 [Provider extension contract](https://github.com/RocketsAreNostalgic/ran-booster/blob/main/docs/provider-extension-contract.md),

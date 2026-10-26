@@ -54,14 +54,14 @@ test("Provider pilot preserves phase ordering, runtime matrix and fail-closed te
   assert.doesNotMatch(implementation, /continue-on-error|secrets: inherit|actions\/cache@|contents: write/);
   assert.match(ciWorkflow, /host-contract:[\s\S]*run: php tests\/host-contract.php/);
   const terminal = ciWorkflow.slice(ciWorkflow.indexOf("  quality:"));
-  for (const lane of ["release-classification", "host-contract", "implementation"]) assert.match(terminal, new RegExp(`- ${lane}`));
-  for (const result of ["CLASSIFICATION_RESULT", "HOST_CONTRACT_RESULT", "IMPLEMENTATION_RESULT"]) assert.ok(terminal.includes(`test "$${result}" = success`));
+  for (const lane of ["release-classification", "host-contract", "implementation", "consumer"]) assert.match(terminal, new RegExp(`- ${lane}`));
+  for (const result of ["CLASSIFICATION_RESULT", "HOST_CONTRACT_RESULT", "IMPLEMENTATION_RESULT", "CONSUMER_RESULT"]) assert.ok(terminal.includes(`test "$${result}" = success`));
 });
 
 test("actual terminal shell rejects failed, skipped, cancelled and missing prerequisites", () => {
   const terminal = ciWorkflow.slice(ciWorkflow.indexOf("  quality:"));
   const shell = terminal.slice(terminal.indexOf("        run: |\n") + "        run: |\n".length).replace(/^          /gm, "");
-  const passed = { CLASSIFICATION_RESULT: "success", HOST_CONTRACT_RESULT: "success", IMPLEMENTATION_RESULT: "success" };
+  const passed = { CLASSIFICATION_RESULT: "success", HOST_CONTRACT_RESULT: "success", IMPLEMENTATION_RESULT: "success", CONSUMER_RESULT: "success" };
   assert.equal(spawnSync("bash", ["-e", "-c", shell], { env: { ...process.env, ...passed } }).status, 0);
   for (const lane of Object.keys(passed)) {
     for (const result of ["failure", "cancelled", "skipped", ""]) {
@@ -69,4 +69,19 @@ test("actual terminal shell rejects failed, skipped, cancelled and missing prere
       assert.notEqual(r.status, 0, `${lane}=${result} must block quality`);
     }
   }
+});
+
+test("one Example consumer proves the exact unreleased package in a disposable host", () => {
+  const consumer = ciWorkflow.slice(ciWorkflow.indexOf("  consumer:"), ciWorkflow.indexOf("  host-contract:"));
+  assert.match(consumer, /php: \['8.2', '8.5'\]/);
+  assert.match(consumer, /repository: RocketsAreNostalgic\/ran-booster-github-example\n\s+ref: [a-f0-9]{40}\n/);
+  assert.match(consumer, /github\.event\.pull_request\.head\.sha \|\| github\.sha/);
+  assert.match(consumer, /example\/host-contract\.json/);
+  assert.match(consumer, /prepare-provider-candidate\.py/);
+  assert.match(consumer, /--provider-sha "\$RAN_EXPECTED_SHA"/);
+  assert.match(consumer, /--host-sha "\$RAN_BOOSTER_HOST_SHA"/);
+  assert.match(consumer, /consumer-installed-smoke\.sh/);
+  assert.match(consumer, /tools: composer:v2, wp-cli:2\.12\.0/);
+  assert.match(consumer, /contents: read/);
+  assert.doesNotMatch(consumer, /continue-on-error|secrets: inherit|contents: write|pull_request_target|gh release/);
 });

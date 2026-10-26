@@ -83,6 +83,86 @@ jobs:
           RAN_RELEASE_PR_TITLE: ${{ github.event_name == 'pull_request' && github.event.pull_request.title || steps.dispatch-pr.outputs.title }}
         run: node scripts/release-classification.mjs
 
+  consumer:
+    name: Example consumer PHP ${{ matrix.php }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.5']
+    permissions:
+      contents: read
+    services:
+      database:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: ran_example_test
+          MYSQL_ROOT_PASSWORD: disposable
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --password=disposable"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - name: Check out exact package candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          path: provider
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check out Example consumer source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: RocketsAreNostalgic/ran-booster-github-example
+          ref: cc615f17e79ea9699d3ef594e8d7eb3e5411c3b3
+          persist-credentials: false
+          path: example
+
+      - name: Read the Example's supported host revision
+        id: host
+        run: |
+          set -euo pipefail
+          test "$(jq -er .repository example/host-contract.json)" = RocketsAreNostalgic/ran-booster
+          host_commit="$(jq -er .commit example/host-contract.json)"
+          [[ "$host_commit" =~ ^[0-9a-f]{40}$ ]]
+          printf 'commit=%s\n' "$host_commit" >> "$GITHUB_OUTPUT"
+
+      - name: Check out supported Core test host
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: RocketsAreNostalgic/ran-booster
+          ref: ${{ steps.host.outputs.commit }}
+          persist-credentials: false
+          path: consumer-host
+
+      - name: Set up PHP and WP-CLI
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: zip, mysqli
+          coverage: none
+          tools: composer:v2, wp-cli:2.12.0
+
+      - name: Assemble the unreleased candidate as a real Composer dependency
+        env:
+          RAN_EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          RAN_BOOSTER_HOST_SHA: ${{ steps.host.outputs.commit }}
+        run: |
+          set -euo pipefail
+          python3 example/scripts/prepare-provider-candidate.py \
+            --provider-root "$GITHUB_WORKSPACE/provider" --provider-sha "$RAN_EXPECTED_SHA" \
+            --host-root "$GITHUB_WORKSPACE/consumer-host" --host-sha "$RAN_BOOSTER_HOST_SHA" \
+            --output "$RUNNER_TEMP/consumer-candidate"
+
+      - name: Prove candidate discovery, installation and Example activation
+        env:
+          RAN_PROVIDER_CONSUMER_ASSEMBLY: ${{ runner.temp }}/consumer-candidate
+        run: bash example/scripts/consumer-installed-smoke.sh
+
   host-contract:
     name: Booster host contract
     runs-on: ubuntu-24.04
@@ -218,6 +298,7 @@ jobs:
       - release-classification
       - host-contract
       - implementation
+      - consumer
     runs-on: ubuntu-24.04
     steps:
       - name: Require all quality lanes
@@ -225,8 +306,10 @@ jobs:
           CLASSIFICATION_RESULT: ${{ needs.release-classification.result }}
           HOST_CONTRACT_RESULT: ${{ needs.host-contract.result }}
           IMPLEMENTATION_RESULT: ${{ needs.implementation.result }}
+          CONSUMER_RESULT: ${{ needs.consumer.result }}
         run: |
-          printf 'classification=%s\nhost-contract=%s\nimplementation=%s\n' "$CLASSIFICATION_RESULT" "$HOST_CONTRACT_RESULT" "$IMPLEMENTATION_RESULT"
+          printf 'classification=%s\nhost-contract=%s\nimplementation=%s\nconsumer=%s\n' "$CLASSIFICATION_RESULT" "$HOST_CONTRACT_RESULT" "$IMPLEMENTATION_RESULT" "$CONSUMER_RESULT"
           test "$CLASSIFICATION_RESULT" = success
           test "$HOST_CONTRACT_RESULT" = success
           test "$IMPLEMENTATION_RESULT" = success
+          test "$CONSUMER_RESULT" = success
