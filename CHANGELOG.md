@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.21](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.20...v1.0.0-beta.21) (2026-11-04)
+
+
+### Bug Fixes
+
+* verify durable workflow state deletion against the database ([#99](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/99)) ([b29388e](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/b29388e66ec091ca7634d44697f375ed8ab2d21e))
+
 ## [1.0.0-beta.20](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.19...v1.0.0-beta.20) (2026-10-23)
 
 
