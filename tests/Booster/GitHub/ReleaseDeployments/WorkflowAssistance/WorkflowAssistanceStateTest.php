@@ -44,6 +44,7 @@ final class WorkflowAssistanceStateTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Preserve PHPUnit lifecycle override names.
 	protected function tearDown(): void {
 		$GLOBALS['wpdb']->disconnect();
+		unset( $GLOBALS['ran_booster_github_provider_test_notoptions'], $GLOBALS['ran_booster_github_provider_test_verification_error'] );
 		unset( $GLOBALS['ran_booster_github_provider_test_option_delete_failure'], $GLOBALS['ran_booster_github_provider_test_option_read_callback'], $GLOBALS['ran_booster_github_provider_test_index_query_callback'], $GLOBALS['ran_booster_github_provider_test_transient_set_callback'] );
 	}
 
@@ -75,6 +76,27 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		self::assertTrue( $state->remove_durable_state() );
 		self::assertArrayNotHasKey( $option, $GLOBALS['ran_booster_release_deployments_test_options'] );
 		self::assertSame( 'preserved', $GLOBALS['ran_booster_release_deployments_test_options']['unrelated_option'] );
+	}
+
+	public function test_custom_cleanup_reports_failed_delete_hidden_by_negative_cache_and_retries(): void {
+		$state  = new WorkflowAssistanceState( 'custom' );
+		$option = $state->setup_option();
+		$this->seed_option( $option, array( 'custom' => true ) );
+		$GLOBALS['ran_booster_github_provider_test_option_delete_failure'] = $option;
+		self::assertFalse( $state->remove_durable_state() );
+		self::assertArrayHasKey( $option, $GLOBALS['ran_booster_release_deployments_test_options'] );
+		unset( $GLOBALS['ran_booster_github_provider_test_option_delete_failure'] );
+		self::assertTrue( $state->remove_durable_state() );
+		self::assertArrayNotHasKey( $option, $GLOBALS['ran_booster_release_deployments_test_options'] );
+	}
+
+	public function test_durable_cleanup_fails_closed_when_verification_errors(): void {
+		foreach ( array( new WorkflowAssistanceState(), new WorkflowAssistanceState( 'custom' ) ) as $state ) {
+			$GLOBALS['ran_booster_github_provider_test_verification_error'] = true;
+			self::assertFalse( $state->remove_durable_state() );
+			unset( $GLOBALS['ran_booster_github_provider_test_verification_error'] );
+			self::assertTrue( $state->remove_durable_state() );
+		}
 	}
 
 	public function test_lock_and_preview_names_are_provider_owned(): void {
