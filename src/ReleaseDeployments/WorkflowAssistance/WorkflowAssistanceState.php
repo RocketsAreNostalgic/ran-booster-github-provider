@@ -255,13 +255,15 @@ final readonly class WorkflowAssistanceState {
 
 	/** Remove current and retired provider-owned durable workflow-assistance state. */
 	public function remove_durable_state(): bool {
-		$missing = new \stdClass();
+		global $wpdb;
+		if ( ! is_object( $wpdb ) || ! isset( $wpdb->options ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) ) {
+			return false;
+		}
 		foreach ( $this->cleanup_options() as $option ) {
 			delete_option( $option );
-			if ( function_exists( 'wp_cache_delete' ) ) {
-				wp_cache_delete( $option, 'options' );
-			}
-			if ( get_option( $option, $missing ) !== $missing ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- WordPress can cache a failed deletion as absent; verify the durable row directly.
+			$remaining = $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE option_name = %s LIMIT 1', $wpdb->options, $option ) );
+			if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || null !== $remaining ) {
 				return false;
 			}
 		}

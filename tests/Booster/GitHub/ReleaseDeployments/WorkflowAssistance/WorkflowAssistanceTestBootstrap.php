@@ -38,6 +38,14 @@ final class SetupClaimDatabase {
 
 	public function get_var( string $query ): string|null {
 		$this->last_error = '';
+		if ( str_starts_with( $query, 'SELECT 1 FROM ' ) ) {
+			if ( ! empty( $GLOBALS['ran_booster_github_provider_test_verification_error'] ) ) {
+				$this->last_error = 'verification failed';
+				return null;
+			}
+			$option = (string) $this->prepared_arguments[ $query ][1][1];
+			return array_key_exists( $option, $GLOBALS['ran_booster_release_deployments_test_options'] ) ? '1' : null;
+		}
 		preg_match( "/(?:GET_LOCK|RELEASE_LOCK)\('([^']+)'/", $query, $matches );
 		$key = $matches[1] ?? '';
 		if ( str_contains( $query, 'GET_LOCK(' ) ) {
@@ -260,8 +268,8 @@ if ( ! function_exists( __NAMESPACE__ . '\\wp_parse_url' ) ) {
 
 if ( ! function_exists( __NAMESPACE__ . '\\get_option' ) ) {
 	function get_option( string $option, mixed $fallback = false ): mixed {
-				$value = $GLOBALS['ran_booster_release_deployments_test_options'][ $option ] ?? $fallback;
-		$callback      = $GLOBALS['ran_booster_github_provider_test_option_read_callback'] ?? null;
+		$value    = ! empty( $GLOBALS['ran_booster_github_provider_test_notoptions'][ $option ] ) ? $fallback : ( $GLOBALS['ran_booster_release_deployments_test_options'][ $option ] ?? $fallback );
+		$callback = $GLOBALS['ran_booster_github_provider_test_option_read_callback'] ?? null;
 		if ( is_callable( $callback ) ) {
 			$callback( $option );
 		}
@@ -301,10 +309,11 @@ if ( ! function_exists( __NAMESPACE__ . '\\add_option' ) ) {
 
 if ( ! function_exists( __NAMESPACE__ . '\\delete_option' ) ) {
 	function delete_option( string $option ): bool {
-		if ( ( $GLOBALS['ran_booster_github_provider_test_option_delete_failure'] ?? null ) === $option ) {
+		if ( ! array_key_exists( $option, $GLOBALS['ran_booster_release_deployments_test_options'] ) ) {
 			return false;
 		}
-		if ( ! array_key_exists( $option, $GLOBALS['ran_booster_release_deployments_test_options'] ) ) {
+		$GLOBALS['ran_booster_github_provider_test_notoptions'][ $option ] = true;
+		if ( ( $GLOBALS['ran_booster_github_provider_test_option_delete_failure'] ?? null ) === $option ) {
 			return false;
 		}
 		unset( $GLOBALS['ran_booster_release_deployments_test_options'][ $option ] );
