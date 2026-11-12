@@ -78,6 +78,17 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		self::assertSame( 'provider_unavailable', $result['diagnostic_code'] );
 	}
 
+	public function test_asset_reason_codes_published_by_the_certified_core_are_safe_diagnostics(): void {
+		foreach ( array( 'package_asset_missing', 'package_asset_ambiguous' ) as $reason ) {
+			$coordinator = $this->coordinator( new D23ReleaseFacade(), new D23ApplicationTransport(), new SetupRecordStore() );
+			$preflight   = WorkflowProviderFixtures::preflight( RepositoryReleaseWorkflowPreflight::PREFLIGHT_UNAVAILABLE, $reason );
+
+			$result = $coordinator->inspect( WorkflowProviderFixtures::target(), 'stable', $preflight, 'token' );
+
+			self::assertSame( $reason, $result['diagnostic_code'] );
+		}
+	}
+
 	public function test_rejected_preflight_retains_the_release_preflight_diagnostic_for_inspection_and_setup(): void {
 		$facade      = new D23ReleaseFacade();
 		$coordinator = $this->coordinator( $facade, new D23ApplicationTransport(), new SetupRecordStore() );

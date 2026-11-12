@@ -77,8 +77,9 @@ final class ArchiveLimitBoundaryTest extends TestCase {
 			$provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' )->fingerprint
 		);
 		self::assertSame( 2, $limit_reads );
-		self::assertCount( 7, $registrar->arguments );
+		self::assertCount( 8, $registrar->arguments );
 		self::assertSame( 1048576, $registrar->arguments[6] );
+		self::assertTrue( $registrar->arguments['rejection_reasons'] );
 	}
 
 	public function test_release_source_forwards_api11_host_limit(): void {
