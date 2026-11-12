@@ -2,8 +2,8 @@
 
 ## Operative API15 reporting contract
 
-Current source-host qualification pins held Core PR835 commit
-`d7dc68b63d010b53d754c19e1258141a71fe5efa` in [CI](../.github/workflows/ci.yml),
+Current source-host qualification pins merged Core #835 commit
+`6c4c3d79abff8e94623be5374d43b0364dc6ebdd` in [CI](../.github/workflows/ci.yml),
 with Provider API15 and `RepositoryReleaseWorkflowManagementV4`. This candidate
 is not a released-Core certification; historical beta.31 evidence below does not
 qualify this revision. Publication, Core dependency adoption and installed/UI

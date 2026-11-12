@@ -1,6 +1,6 @@
 # RAN Booster GitHub Provider
 
-> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects immutable held Core PR835 source candidate `d7dc68b63d010b53d754c19e1258141a71fe5efa`; this is not released-Core certification.
+> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects merged Core #835 source revision `6c4c3d79abff8e94623be5374d43b0364dc6ebdd`; this is not released-Core certification.
 > Workflow V4 accepts optional progress-only handles. Core stores assessment and failure history; this package retains setup claims, previews and pull-request records.
 
 `ran/booster-github-provider` is the first-party GitHub implementation for
@@ -51,7 +51,7 @@ the host's installed composition.
 Do not infer host compatibility from matching version numbers.
 
 **Use the Provider version bundled with your chosen Booster release.** This API15
-candidate is qualified against the exact held Core PR835 source revision pinned in CI,
+candidate is qualified against the exact merged Core #835 source revision pinned in CI,
 as identified in [the contribution guide](CONTRIBUTING.md). Earlier beta.31/API14
 certification does not qualify this composition. Source-host analysis and tests
 do not establish package publication or installed-site/UI acceptance.
@@ -206,4 +206,4 @@ defines the passive bundled baseline, credential semantics, guarded operation
 lifetime and shared workflow-state ownership. It is groundwork for Core's
 replacement integration, not a standalone replacement plugin or activation claim.
 
-Historical archive source candidate: `ProviderMetadata::archive_api_version` is 2, and the GitHub compatibility revision is 2. A selected commit must be a canonical lowercase 40-character GitHub SHA. The provider rechecks repository identity, current access and exact commit resolution both when preparing and immediately before mutation; it never substitutes the current branch head. Neutral 64-character identities are refused before credential or network access. This requires the matching Core `ArchiveRequest::selected_commit` contract; CI pins the matching held Core PR835 source candidate. Immutable delivery and installed qualification remain pending.
+Historical archive source candidate: `ProviderMetadata::archive_api_version` is 2, and the GitHub compatibility revision is 2. A selected commit must be a canonical lowercase 40-character GitHub SHA. The provider rechecks repository identity, current access and exact commit resolution both when preparing and immediately before mutation; it never substitutes the current branch head. Neutral 64-character identities are refused before credential or network access. This requires the matching Core `ArchiveRequest::selected_commit` contract; CI pins the matching merged Core #835 source revision. Immutable delivery and installed qualification remain pending.
