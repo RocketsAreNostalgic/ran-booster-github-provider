@@ -120,6 +120,36 @@ final class ReleaseArtifactClaimLifetimeTest extends TestCase {
 		}
 	}
 
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_saved_general_preference_sets_the_limit_the_custodian_enforces(): void {
+		require_once __DIR__ . '/GeneralSettingsFunctions.php';
+		$this->reset_filesystem_hooks();
+		$size = 1048577;
+		$path = tempnam( sys_get_temp_dir(), 'ran-booster-limit-artifact-' );
+		self::assertIsString( $path );
+		file_put_contents( $path, str_repeat( 'a', $size ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test-only artifact just above the smallest saved limit.
+		chmod( $path, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Test-only custody fixture.
+		$digest = hash_file( 'sha256', $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_hash_file -- Test-only artifact identity.
+		self::assertIsString( $digest );
+		$artifact = static fn (): GitHubReleaseArtifact => new GitHubReleaseArtifact( new StructuralReleaseArtifact( $path ), '1.2.3', str_repeat( 'a', 40 ), 'example', 'example.php', $size, 52428800, $digest );
+
+		try {
+			self::assertSame( \RAN\PackageArtifactLimit::DEFAULT_MAXIMUM_ARTIFACT_BYTES, \RAN\PackageArtifactLimit::resolve() );
+			$prepared = ReleaseArtifactCustodian::claim( $artifact()->handoff_to_core() );
+			$prepared->cleanup();
+
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Process-local saved-option binding read by the test-only get_option stand-in.
+			$GLOBALS['ran_booster_test_saved_options'] = array( 'ran_booster_general_settings' => array( 'max_download_bytes' => 1048576 ) );
+			self::assertSame( 1048576, \RAN\PackageArtifactLimit::resolve() );
+			$this->expectException( RuntimeException::class );
+			$this->expectExceptionMessage( 'The release artifact could not be transferred to Core.' );
+			ReleaseArtifactCustodian::claim( $artifact()->handoff_to_core() );
+		} finally {
+			$this->remove_exact_path( $path );
+		}
+	}
+
 		#[RunInSeparateProcess]
 		#[PreserveGlobalState( false )]
 	public function test_mkdir_collision_never_removes_preexisting_directory(): void {

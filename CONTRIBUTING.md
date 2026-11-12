@@ -27,7 +27,7 @@ certified Booster checkout pinned in [CI](.github/workflows/ci.yml):
 ```bash
 export RAN_BOOSTER_CORE_PATH=/path/to/ran-booster
 # Match the certified host pinned in .github/workflows/ci.yml.
-test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 96be1ab497acf3e05df724296cf51d3f22b8bc9d &&
+test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = d7dc68b63d010b53d754c19e1258141a71fe5efa &&
   composer check:host
 ```
 
