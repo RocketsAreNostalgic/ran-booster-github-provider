@@ -1,6 +1,6 @@
 # RAN Booster GitHub Provider
 
-> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects immutable held Core PR435 source candidate `a0cd37ea9d78d40c6f7ce67e91db72f15f17ab23`; this is not released-Core certification.
+> Reporting candidate: requires Provider API 15 / Add-on API 17. CI selects merged Core #835 source revision `6c4c3d79abff8e94623be5374d43b0364dc6ebdd`; this is not released-Core certification.
 > Workflow V4 accepts optional progress-only handles. Core stores assessment and failure history; this package retains setup claims, previews and pull-request records.
 
 `ran/booster-github-provider` is the first-party GitHub implementation for
@@ -37,7 +37,7 @@ WordPress and Provider API requirements are host contracts, not Composer checks.
 | Outer Provider API | Exactly `15`; not compatible with API 14 or earlier |
 | Release-workflow capability | Initial-only `RepositoryReleaseWorkflowManagementV4` |
 | Shared repository paths | `ran/updater-support ^1.0.0-beta.4` |
-| Release updater | `ran/wp-release-updater ~1.0.0-beta.9`, locked beta.9 / runtime protocol 5 |
+| Release updater | `ran/wp-release-updater ~1.0.0-beta.9`, locked beta.18 / runtime protocol 7 |
 
 The package version, `V1` PHP namespace, outer Provider API, workflow V4,
 template-pack API 3 and updater runtime protocol are separate contracts.
@@ -45,13 +45,13 @@ template-pack API 3 and updater runtime protocol are separate contracts.
 The host and Provider must resolve the same released updater dependency. Composer
 installs that shared dependency once; the host supplies its bootstrap registrar.
 Other plugins or themes may bundle physical updater copies, whose runtime
-selection belongs to the updater. Protocol-4 and protocol-5 copies cannot share
+selection belongs to the updater. Copies of an older runtime protocol cannot share
 an active runtime and fail closed; upgrading this package alone does not qualify
 the host's installed composition.
 Do not infer host compatibility from matching version numbers.
 
 **Use the Provider version bundled with your chosen Booster release.** This API15
-candidate is qualified against the exact held Core PR435 source revision pinned in CI,
+candidate is qualified against the exact merged Core #835 source revision pinned in CI,
 as identified in [the contribution guide](CONTRIBUTING.md). Earlier beta.31/API14
 certification does not qualify this composition. Source-host analysis and tests
 do not establish package publication or installed-site/UI acceptance.
@@ -206,4 +206,4 @@ defines the passive bundled baseline, credential semantics, guarded operation
 lifetime and shared workflow-state ownership. It is groundwork for Core's
 replacement integration, not a standalone replacement plugin or activation claim.
 
-Historical archive source candidate: `ProviderMetadata::archive_api_version` is 2, and the GitHub compatibility revision is 2. A selected commit must be a canonical lowercase 40-character GitHub SHA. The provider rechecks repository identity, current access and exact commit resolution both when preparing and immediately before mutation; it never substitutes the current branch head. Neutral 64-character identities are refused before credential or network access. This requires the matching Core `ArchiveRequest::selected_commit` contract; CI pins the matching held Core PR435 source candidate. Immutable delivery and installed qualification remain pending.
+Historical archive source candidate: `ProviderMetadata::archive_api_version` is 2, and the GitHub compatibility revision is 2. A selected commit must be a canonical lowercase 40-character GitHub SHA. The provider rechecks repository identity, current access and exact commit resolution both when preparing and immediately before mutation; it never substitutes the current branch head. Neutral 64-character identities are refused before credential or network access. This requires the matching Core `ArchiveRequest::selected_commit` contract; CI pins the matching merged Core #835 source revision. Immutable delivery and installed qualification remain pending.

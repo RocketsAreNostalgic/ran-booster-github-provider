@@ -75,7 +75,7 @@ insufficient. Cleanup remains available after authority loss.
 Release operations use the registrar's `with_operation_guard()`; native updates
 also receive `with_native_mutation_callbacks(begin, complete)`. The exact callable
 identities are retained. A guarded factory rejects an older registrar lacking
-these seams. The negotiated protocol-6 runtime owns acquisition, native mutation
+these seams. The negotiated protocol-7 runtime owns acquisition, native mutation
 and cleanup. Core owns begin's durable marker and complete's exact-owner verified
 success/uncertainty decision. Source qualification against the new host/runtime
 and immutable release adoption are separate from declaring this contract.

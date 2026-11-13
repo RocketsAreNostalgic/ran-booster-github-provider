@@ -61,6 +61,11 @@ spl_autoload_register(
 			require $ran_booster_root . '/RAN/PackageArtifactLimit.php';
 			return;
 		}
+		if ( 'RAN\\Settings\\GeneralPreferenceStore' === $class_name ) {
+			// PackageArtifactLimit::resolve() reads the saved download limit through this store.
+			require $ran_booster_root . '/RAN/Settings/GeneralPreferenceStore.php';
+			return;
+		}
 		if ( 'RAN\\Deployment\\ReleaseArtifactCustodian' === $class_name ) {
 			require $ran_booster_root . '/RAN/Deployment/ReleaseArtifactCustodian.php';
 			return;

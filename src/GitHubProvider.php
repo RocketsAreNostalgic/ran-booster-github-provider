@@ -602,14 +602,23 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			if ( ! $this->ensure_direct_filesystem() ) {
 				throw new RuntimeException();
 			}
-			$source = $this->release_source( $package_type, $repository, $channel );
+			$source = $this->release_source( $package_type, $repository, $channel, true );
 			if ( ! is_callable( array( $source, 'inspect' ) ) ) {
 				throw new RuntimeException( 'The public release source is incompatible.' );
 			}
 			$result = $source->inspect( $provider_release_id, $tag );
+			if ( $this->failure( $this->without_rejection( $result )[0], 'inspect', 'invalid_configuration' ) ) {
+				// An older updater runtime rejects the opt-in; inspect again without it.
+				$source = $this->release_source( $package_type, $repository, $channel );
+				if ( ! is_callable( array( $source, 'inspect' ) ) ) {
+					throw new RuntimeException( 'The public release source is incompatible.' );
+				}
+				$result = $source->inspect( $provider_release_id, $tag );
+			}
 		} catch ( \Throwable ) {
 			throw new RuntimeException( 'GitHub release inspection is unavailable.', 503 );
 		}
+		[ $result, $rejection ] = $this->without_rejection( $result );
 		if ( $this->read_unavailable( $result, 'inspect' ) ) {
 			throw new RepositoryReleaseReadUnavailable( 'GitHub release inspection access is unavailable.', 502 );
 		}
@@ -618,7 +627,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				throw RepositoryReleaseInspectionRejected::invalid_release();
 			}
 			if ( $this->failure( $result, 'inspect', 'package_incompatible' ) ) {
-				throw RepositoryReleaseInspectionRejected::incompatible();
+				throw RepositoryReleaseInspectionRejected::incompatible( $this->rejection_detail( $rejection ) );
 			}
 			throw new RuntimeException( 'GitHub could not inspect the selected release.', 502 );
 		}
@@ -896,7 +905,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		};
 	}
 
-	private function release_source( string $package_type, RepositoryReference $repository, string $channel ): object {
+	private function release_source( string $package_type, RepositoryReference $repository, string $channel, bool $rejection_reasons = false ): object {
 		$repository_id = $repository->provider_repository_id;
 		if ( null === $repository_id ) {
 			throw new InvalidArgumentException( 'The GitHub release service configuration is unavailable.' );
@@ -910,7 +919,71 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		if ( ! is_callable( array( $this->registrar, 'releases' ) ) ) {
 			throw new RuntimeException( 'The public release registrar is incompatible.' );
 		}
+		if ( $rejection_reasons ) {
+			try {
+				return $this->registrar->releases( ...$arguments, rejection_reasons: true );
+			} catch ( \Error ) {
+				return $this->registrar->releases( ...$arguments ); // A registrar that predates the opt-in has no such parameter.
+			}
+		}
+
 		return $this->registrar->releases( ...$arguments );
+	}
+
+	/**
+	 * Splits the opt-in sixth `rejection` key from a six-key inspect envelope.
+	 *
+	 * A malformed six-key shape is returned unchanged so the strict decoders reject it.
+	 *
+	 * @return array{0:mixed,1:mixed}
+	 */
+	private function without_rejection( mixed $result ): array {
+		if ( ! is_array( $result ) || 6 !== count( $result ) || ! array_key_exists( 'rejection', $result ) ) {
+			return array( $result, null );
+		}
+		$rejection = $result['rejection'];
+		unset( $result['rejection'] );
+		if ( null !== $rejection && ( false !== ( $result['ok'] ?? null ) || 'package_incompatible' !== ( $result['code'] ?? null ) ) ) {
+			$result['rejection'] = $rejection;
+			return array( $result, null );
+		}
+
+		return array( $result, $rejection );
+	}
+
+	/**
+	 * Maps a bounded updater rejection reason to an existing Core reason code.
+	 *
+	 * The updater's free-text detail is deliberately not carried.
+	 */
+	private function rejection_detail( mixed $rejection ): ?string {
+		if ( ! is_array( $rejection ) || 2 !== count( $rejection ) || ! is_string( $rejection['reason'] ?? null )
+			|| 1 !== preg_match( '/\A[a-z][a-z0-9_]{0,63}\z/D', $rejection['reason'] )
+			|| ! array_key_exists( 'detail', $rejection )
+			|| ( null !== $rejection['detail'] && ( ! is_string( $rejection['detail'] ) || 1 !== preg_match( '/\A[\x20-\x7E]{1,120}\z/D', $rejection['detail'] ) ) ) ) {
+			return null;
+		}
+
+		return match ( $rejection['reason'] ) {
+			'tag_not_version' => 'release_version_invalid',
+			'no_package_zip' => 'package_asset_missing',
+			'multiple_package_zips' => 'package_asset_ambiguous',
+			'asset_too_large', 'archive_size_limit' => 'package_archive_too_large',
+			'download_size_mismatch' => 'package_archive_size_invalid',
+			'archive_unreadable' => 'package_archive_unreadable',
+			'archive_entry_limit' => 'package_archive_entry_limit',
+			'archive_path_unsafe' => 'package_archive_path_unsafe',
+			'archive_path_duplicate' => 'package_archive_path_duplicate',
+			'archive_root_not_single' => 'package_archive_root_invalid',
+			'no_package_header', 'header_name_missing' => 'package_header_missing',
+			'header_plugin_ambiguous', 'header_duplicate' => 'package_header_ambiguous',
+			'header_invalid' => 'package_header_invalid',
+			'header_update_uri_missing' => 'package_update_uri_missing',
+			'header_update_uri_mismatch' => 'package_update_uri_invalid',
+			'header_version_mismatch' => 'release_version_mismatch',
+			'header_requires_php_unmet', 'header_requires_wp_unmet' => 'package_compatibility_invalid',
+			default => null,
+		};
 	}
 
 	private function maximum_artifact_bytes(): ?int {
