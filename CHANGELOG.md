@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.22](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.21...v1.0.0-beta.22) (2026-11-13)
+
+
+### Features
+
+* **releases:** carry the exact release rejection reason ([#102](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/102)) ([936d50e](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/936d50ef029627a39a2f935265a671f8e0a2d9a6))
+
 ## [1.0.0-beta.21](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.20...v1.0.0-beta.21) (2026-11-04)
 
 
