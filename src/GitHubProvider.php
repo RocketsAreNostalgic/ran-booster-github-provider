@@ -923,7 +923,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			try {
 				return $this->registrar->releases( ...$arguments, rejection_reasons: true );
 			} catch ( \Error ) {
-				$rejection_reasons = false; // A registrar that predates the opt-in has no such parameter.
+				return $this->registrar->releases( ...$arguments ); // A registrar that predates the opt-in has no such parameter.
 			}
 		}
 

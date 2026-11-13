@@ -195,7 +195,10 @@ final class ReleaseRejectionReasonTest extends TestCase {
 				$this->provider( new RejectionRegistrarFixture( new RejectionSourceFixture( $result ) ) )->inspect_release( 'plugin', $this->repository(), '42', 'v1.2.3', 'stable' );
 				self::fail( 'A failure carrying a rejection under another code was accepted.' );
 			} catch ( RepositoryReleaseInspectionRejected | \RuntimeException $failure ) {
-				self::assertNotSame( 'package_asset_missing', $failure instanceof RepositoryReleaseInspectionRejected ? $failure->detail : null );
+				if ( $failure instanceof RepositoryReleaseInspectionRejected ) {
+					self::assertSame( RepositoryReleaseInspectionRejected::INVALID_RELEASE, $failure->reason );
+					self::assertNull( $failure->detail );
+				}
 			}
 		}
 		// A non-null rejection beside a success is malformed and is not accepted.
@@ -206,6 +209,7 @@ final class ReleaseRejectionReasonTest extends TestCase {
 			),
 		);
 		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'GitHub could not inspect the selected release.' );
 		$this->provider( new RejectionRegistrarFixture( new RejectionSourceFixture( $success ) ) )->inspect_release( 'plugin', $this->repository(), '42', 'v1.2.3', 'stable' );
 	}
 
