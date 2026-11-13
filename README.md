@@ -37,7 +37,7 @@ WordPress and Provider API requirements are host contracts, not Composer checks.
 | Outer Provider API | Exactly `15`; not compatible with API 14 or earlier |
 | Release-workflow capability | Initial-only `RepositoryReleaseWorkflowManagementV4` |
 | Shared repository paths | `ran/updater-support ^1.0.0-beta.4` |
-| Release updater | `ran/wp-release-updater ~1.0.0-beta.9`, locked beta.9 / runtime protocol 5 |
+| Release updater | `ran/wp-release-updater ~1.0.0-beta.9`, locked beta.18 / runtime protocol 7 |
 
 The package version, `V1` PHP namespace, outer Provider API, workflow V4,
 template-pack API 3 and updater runtime protocol are separate contracts.
@@ -45,7 +45,7 @@ template-pack API 3 and updater runtime protocol are separate contracts.
 The host and Provider must resolve the same released updater dependency. Composer
 installs that shared dependency once; the host supplies its bootstrap registrar.
 Other plugins or themes may bundle physical updater copies, whose runtime
-selection belongs to the updater. Protocol-4 and protocol-5 copies cannot share
+selection belongs to the updater. Copies of an older runtime protocol cannot share
 an active runtime and fail closed; upgrading this package alone does not qualify
 the host's installed composition.
 Do not infer host compatibility from matching version numbers.

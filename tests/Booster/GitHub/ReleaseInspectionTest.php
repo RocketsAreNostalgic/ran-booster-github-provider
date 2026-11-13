@@ -68,6 +68,24 @@ final class ReleaseInspectionTest extends TestCase {
 		self::assertSame( 'style.css', $result->main_file );
 	}
 
+	public function test_real_updater_rejection_reason_reaches_core_as_its_reason_code(): void {
+		NeutralReleaseUpdaterFixtures::queue( NeutralReleaseUpdaterFixtures::proof( 'plugin', 'owner/example', 'v1.2.3', '1.2.4' ) );
+
+		try {
+			$this->provider()->inspect_release(
+				'plugin',
+				new RepositoryReference( 'owner/example', '123456789', false, null ),
+				'42',
+				'v1.2.3',
+				'stable'
+			);
+			self::fail( 'A package whose header version differs from its tag was inspected.' );
+		} catch ( RepositoryReleaseInspectionRejected $rejection ) {
+			self::assertSame( RepositoryReleaseInspectionRejected::INCOMPATIBLE, $rejection->reason );
+			self::assertSame( 'release_version_mismatch', $rejection->detail );
+		}
+	}
+
 	public function test_opaque_core_identity_is_rejected_by_the_git_hub_service_without_http(): void {
 		try {
 			$this->provider()->inspect_release(

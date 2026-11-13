@@ -85,7 +85,7 @@ final class NeutralReleaseUpdaterFixtures {
 		return array(
 			self::response( 200, array( 'id' => 123456789 ) ),
 			self::response( 200, $release ),
-			self::response( 200, array( 'sha' => str_repeat( 'a', 40 ) ) ),
+			array_replace( self::response( 200, null ), array( 'body' => str_repeat( 'a', 40 ) ) ), // The sha media type returns the bare commit identity.
 			self::response( 200, array( 'id' => 123456789 ) ),
 			self::response( 200, null, array(), $archive ),
 			self::response( 200, array( 'id' => 123456789 ) ),
