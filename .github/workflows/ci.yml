@@ -291,6 +291,25 @@ jobs:
         working-directory: provider
         run: bash scripts/ci-quality-phase.sh host
 
+      - name: Check out failure-carrier proof host
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: RocketsAreNostalgic/ran-booster
+          ref: 67267de6d95db86188e20a3854bcd6cb3df18f86
+          persist-credentials: false
+          path: carrier-host
+
+      - name: Prove anonymous lookup with the released failure carrier
+        working-directory: provider
+        env:
+          RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/carrier-host
+        run: |
+          set -euo pipefail
+          test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 67267de6d95db86188e20a3854bcd6cb3df18f86
+          test -f "$RAN_BOOSTER_CORE_PATH/RAN/RepositoryProvider/ProviderFailure.php"
+          test -f "$RAN_BOOSTER_CORE_PATH/RAN/RepositoryProvider/ProviderRequestFailed.php"
+          vendor/bin/phpunit --configuration phpunit.xml --filter RepositoryResolverTest --fail-on-phpunit-deprecation
+
   quality:
     name: quality
     if: ${{ always() }}

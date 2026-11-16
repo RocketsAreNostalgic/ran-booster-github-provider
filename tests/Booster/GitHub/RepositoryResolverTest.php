@@ -217,6 +217,41 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
+	public function test_anonymous_lookup_carries_only_valid_numeric_rate_limit_facts(): void {
+		foreach ( array( array( '120', '2000000000', 120, 2000000000 ), array( 'header-canary', '999999999999999999999999', null, null ), array( '0', '-1', null, null ), array( '86401', '1', null, 1 ) ) as $facts ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
+				$this->error_response(
+					403,
+					array(
+						'X-RateLimit-Remaining' => '0',
+						'Retry-After'           => $facts[0],
+						'X-RateLimit-Reset'     => $facts[1],
+					)
+				)
+			);
+			try {
+				( new RepositoryBrowser( new RepositoryResolverSecretsStub() ) )->repository( 'fixture/rate-limited' );
+				self::fail( 'Rate-limited lookup must fail.' );
+			} catch ( RuntimeException $exception ) {
+				self::assertSame( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ? 403 : 429, $exception->getCode() );
+				self::assertStringNotContainsString( 'header-canary', $exception->getMessage() );
+				self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
+				if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
+					self::assertInstanceOf( \RAN\RepositoryProvider\ProviderRequestFailed::class, $exception );
+					$failure = \RAN\RepositoryProvider\ProviderFailure::from_throwable( $exception );
+					self::assertNotNull( $failure );
+					self::assertSame( 'rate_limited', $failure->reason );
+					self::assertSame( 403, $failure->http_status );
+					self::assertSame( $facts[2], $failure->retry_after );
+					self::assertSame( $facts[3], $failure->reset_at );
+				} else {
+					self::assertSame( RuntimeException::class, $exception::class );
+					self::assertSame( 'GitHub API rate limit has been reached. Try again later.', $exception->getMessage() );
+				}
+			}
+		}
+	}
+
 	/**
 	 * @param array<array-key,mixed> $headers
 	 */
@@ -235,7 +270,7 @@ final class RepositoryResolverTest extends TestCase {
 			$browser->repository( 'RocketsAreNostalgic/rate-limited-plugin' );
 			self::fail( 'A failed exact-repository request must not return repository data.' );
 		} catch ( RuntimeException $exception ) {
-			self::assertSame( $expected_status, $exception->getCode() );
+			self::assertSame( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ? $status : $expected_status, $exception->getCode() );
 			self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
 			self::assertStringNotContainsString( 'header-canary', $exception->getMessage() );
 		}
