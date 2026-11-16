@@ -97,6 +97,11 @@ class RepositoryBrowser {
 		}
 
 		if ( $this->is_rate_limited_response( $response, $status ) ) {
+			if ( null === $credential_id && ! $authenticate_default && class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
+				$retry = $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'retry-after' ), 86400 );
+				$reset = $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'x-ratelimit-reset' ), PHP_INT_MAX );
+				throw new \RAN\RepositoryProvider\ProviderRequestFailed( new \RAN\RepositoryProvider\ProviderFailure( 'rate_limited', $status, $retry, $reset ) );
+			}
 			throw new RuntimeException( 'GitHub API rate limit has been reached. Try again later.', 429 );
 		}
 
@@ -647,6 +652,23 @@ class RepositoryBrowser {
 		};
 
 		return new RepositoryBrowseResult( $repositories, $reason );
+	}
+
+	private function rate_limit_integer( mixed $value, int $maximum ): ?int {
+		if ( ! is_string( $value ) || ! preg_match( '/\A[0-9]+\z/', $value ) ) {
+			return null;
+		}
+		$number = filter_var(
+			$value,
+			FILTER_VALIDATE_INT,
+			array(
+				'options' => array(
+					'min_range' => 1,
+					'max_range' => $maximum,
+				),
+			)
+		);
+		return false === $number ? null : $number;
 	}
 
 	private function is_rate_limited_response( mixed $response, int $status ): bool {
