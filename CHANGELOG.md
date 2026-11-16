@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0-beta.23](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.22...v1.0.0-beta.23) (2026-11-16)
+
+
+### Features
+
+* **github:** carry anonymous lookup rate-limit facts ([a345abf](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/a345abff2a9513414fe350032cf1bace6bc63918))
+* **github:** carry anonymous lookup rate-limit facts ([#118](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/118)) ([113174b](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/113174b9728f793afb4a1653c99bea5daf3f82f4))
+
 ## [1.0.0-beta.22](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.21...v1.0.0-beta.22) (2026-11-13)
 
 
