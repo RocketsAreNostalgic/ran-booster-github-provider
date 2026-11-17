@@ -1076,9 +1076,18 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 		if ( $this->read_unavailable( $result, 'list' ) ) {
 			if ( 'rate_limited' === $code && class_exists( ProviderFailure::class ) && property_exists( RepositoryReleaseReadUnavailable::class, 'failure' ) ) {
+				$provider_failure = property_exists( ProviderFailure::class, 'source_code' )
+					? ( new \ReflectionClass( ProviderFailure::class ) )->newInstanceArgs(
+						array(
+							'reason'      => 'rate_limited',
+							'retry_after' => $result['retry_after'],
+							'source_code' => 'release_updater.' . $code,
+						)
+					)
+					: new ProviderFailure( 'rate_limited', retry_after: $result['retry_after'] );
 				// The certified older host has only RuntimeException's three constructor arguments.
 				$failure = ( new \ReflectionClass( RepositoryReleaseReadUnavailable::class ) )->newInstanceArgs(
-					array( $message, 502, null, new ProviderFailure( 'rate_limited', retry_after: $result['retry_after'] ) )
+					array( $message, 502, null, $provider_failure )
 				);
 				throw $failure;
 			}

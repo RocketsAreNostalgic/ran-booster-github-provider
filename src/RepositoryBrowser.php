@@ -86,7 +86,7 @@ class RepositoryBrowser {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached. Please try again.', 502 );
+			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached. Please try again.', 502, source_code: $this->http_source_code( $response ) );
 		}
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
@@ -182,7 +182,7 @@ class RepositoryBrowser {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached to resolve the repository revision.', 502 );
+			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached to resolve the repository revision.', 502, source_code: $this->http_source_code( $response ) );
 		}
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
@@ -247,7 +247,7 @@ class RepositoryBrowser {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached to resolve the repository branch.', 502 );
+			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached to resolve the repository branch.', 502, source_code: $this->http_source_code( $response ) );
 		}
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
@@ -357,7 +357,7 @@ class RepositoryBrowser {
 			)
 		);
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached to check the repository path.', 502 );
+			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached to check the repository path.', 502, source_code: $this->http_source_code( $response ) );
 		}
 		$status = (int) wp_remote_retrieve_response_code( $response );
 		if ( 404 === $status ) {
@@ -422,7 +422,7 @@ class RepositoryBrowser {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			return $this->validation_failure( 'unavailable', $this->transport_reason( $response ) );
+			return $this->validation_failure( 'unavailable', $this->transport_reason( $response ), source_code: $this->http_source_code( $response ) );
 		}
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
@@ -634,7 +634,7 @@ class RepositoryBrowser {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached. Please try again.', 504 );
+			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached. Please try again.', 504, source_code: $this->http_source_code( $response ) );
 		}
 
 		$body   = wp_remote_retrieve_body( $response );
@@ -740,7 +740,7 @@ class RepositoryBrowser {
 	}
 
 	/** Throw the optional request carrier while preserving an older host's exception. */
-	private function fail_request( string $reason, string $message, int $legacy_code, ?int $http_status = null, #[\SensitiveParameter] mixed $response = null, ?string $expires_at = null ): never {
+	private function fail_request( string $reason, string $message, int $legacy_code, ?int $http_status = null, #[\SensitiveParameter] mixed $response = null, ?string $expires_at = null, #[\SensitiveParameter] ?string $source_code = null ): never {
 		if ( ! class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) || ! class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
 			throw new RuntimeException( $message, $legacy_code );
 		}
@@ -750,17 +750,38 @@ class RepositoryBrowser {
 			$retry = $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'retry-after' ), 86400 );
 			$reset = $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'x-ratelimit-reset' ), PHP_INT_MAX );
 		}
-		throw new \RAN\RepositoryProvider\ProviderRequestFailed(
-			new \RAN\RepositoryProvider\ProviderFailure( $reason, $http_status, $retry, $reset, $expires_at )
-		);
+		$failure = property_exists( \RAN\RepositoryProvider\ProviderFailure::class, 'source_code' )
+			? ( new \ReflectionClass( \RAN\RepositoryProvider\ProviderFailure::class ) )->newInstanceArgs(
+				array(
+					'reason'                => $reason,
+					'http_status'           => $http_status,
+					'retry_after'           => $retry,
+					'reset_at'              => $reset,
+					'credential_expires_at' => $expires_at,
+					'source_code'           => $source_code,
+				)
+			)
+			: new \RAN\RepositoryProvider\ProviderFailure( $reason, $http_status, $retry, $reset, $expires_at );
+		throw new \RAN\RepositoryProvider\ProviderRequestFailed( $failure );
 	}
 
 	/** @param 'invalid'|'unavailable'|'rate_limited'|'invalid_response' $factory */
-	private function validation_failure( string $factory, string $reason, ?int $http_status = null, #[\SensitiveParameter] mixed $response = null, ?string $expires_at = null ): CredentialValidationResult {
+	private function validation_failure( string $factory, string $reason, ?int $http_status = null, #[\SensitiveParameter] mixed $response = null, ?string $expires_at = null, #[\SensitiveParameter] ?string $source_code = null ): CredentialValidationResult {
 		if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
 			$retry   = 'rate_limited' === $reason && is_array( $response ) ? $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'retry-after' ), 86400 ) : null;
 			$reset   = 'rate_limited' === $reason && is_array( $response ) ? $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'x-ratelimit-reset' ), PHP_INT_MAX ) : null;
-			$failure = new \RAN\RepositoryProvider\ProviderFailure( $reason, $http_status, $retry, $reset, $expires_at );
+			$failure = property_exists( \RAN\RepositoryProvider\ProviderFailure::class, 'source_code' )
+				? ( new \ReflectionClass( \RAN\RepositoryProvider\ProviderFailure::class ) )->newInstanceArgs(
+					array(
+						'reason'                => $reason,
+						'http_status'           => $http_status,
+						'retry_after'           => $retry,
+						'reset_at'              => $reset,
+						'credential_expires_at' => $expires_at,
+						'source_code'           => $source_code,
+					)
+				)
+				: new \RAN\RepositoryProvider\ProviderFailure( $reason, $http_status, $retry, $reset, $expires_at );
 			// The certified legacy host predates this optional public factory argument.
 			$result = ( new \ReflectionMethod( CredentialValidationResult::class, $factory ) )->invoke( null, $failure );
 			if ( ! $result instanceof CredentialValidationResult ) {
@@ -778,6 +799,11 @@ class RepositoryBrowser {
 			$status >= 500 && $status <= 599 => 'http_5xx',
 			default => 'response_invalid',
 		};
+	}
+
+	private function http_source_code( #[\SensitiveParameter] mixed $error ): ?string {
+		$code = is_object( $error ) && is_callable( array( $error, 'get_error_code' ) ) ? $error->get_error_code() : null;
+		return is_string( $code ) ? 'wp_http.' . $code : null;
 	}
 
 	private function transport_reason( #[\SensitiveParameter] mixed $error ): string {

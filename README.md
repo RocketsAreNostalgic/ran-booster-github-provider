@@ -249,6 +249,25 @@ unexpected failure for Core to log without showing its message.
 The remaining proof boundaries are recorded on
 [#114](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/114#issuecomment-6950091280).
 
+On hosts exposing `ProviderFailure::source_code`, transport failures carry
+`wp_http.` followed by the original string from `WP_Error::get_error_code()`.
+This origin identifies WordPress's HTTP layer: a filter or another plugin can
+supply that error code. It does not establish that WordPress core authored it.
+The existing listing rate-limit carrier similarly reports
+`release_updater.rate_limited` from the validated updater failure envelope.
+
+Core screens each whole reference, including its origin, without changing its
+spelling. Its 64-byte limit includes the origin. Rejected, non-string and
+overlong diagnostics are omitted; the provider does not trim, lowercase,
+truncate, coerce or retry another spelling.
+The reference never changes the closed failure reason, legacy code, retry facts
+or wording. Other HTTP-status and local failures keep an absent source code;
+GitHub messages, headers, bodies and exception codes do not supply one.
+
+Older hosts retain their existing carrier constructor or plain-exception path.
+The certified hosted checks predate this field and prove fallback compatibility;
+emission needs a focused pass against Core #1012 or later with its real screen.
+
 Release listings forward `search_exhausted` and the diagnostics report unchanged
 only when the updater supplies both fields and Core exposes both corresponding
 properties. Core owns normalization and screening. Older runtimes or hosts keep
