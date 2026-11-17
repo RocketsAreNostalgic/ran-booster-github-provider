@@ -27,6 +27,7 @@ use RAN\RepositoryProvider\ProviderCredentialStore;
 use RAN\RepositoryProvider\ProviderDiagnosticResult;
 use RAN\RepositoryProvider\ProviderDiagnostics;
 use RAN\RepositoryProvider\ProviderMetadata;
+use RAN\RepositoryProvider\ProviderFailure;
 use RAN\RepositoryProvider\ProviderWebhookPolicy;
 use RAN\RepositoryProvider\PublicRepositoryBrowseMetadata;
 use RAN\RepositoryProvider\RepositoryBrowseRequest;
@@ -543,9 +544,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		} catch ( \Throwable ) {
 			throw new RuntimeException( 'GitHub release candidate listing is unavailable.', 503 );
 		}
-		if ( $this->read_unavailable( $result, 'list' ) ) {
-			throw new RepositoryReleaseReadUnavailable( 'GitHub release candidate access is unavailable.', 502 );
-		}
+		$this->listing_failure( $result );
 		if ( ! $this->success( $result, 'releases_listed', 'not_applicable' )
 			|| ! is_array( $result['value']['candidates'] ?? null )
 			|| ! empty( $result['value']['not_modified'] ) ) {
@@ -1026,6 +1025,51 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		return $this->failure( $result, $operation, 'credential_unavailable' )
 			|| $this->failure( $result, $operation, 'repository_access_unavailable' )
 			|| $this->failure( $result, $operation, 'rate_limited' );
+	}
+
+	private function listing_failure( mixed $result ): void {
+		if ( ! is_array( $result ) ) {
+			return;
+		}
+		$code    = $result['code'] ?? null;
+		$message = match ( $code ) {
+			'invalid_configuration' => 'GitHub release listing configuration is invalid.',
+			'invalid_release' => 'The requested GitHub release is invalid.',
+			'runtime_not_ready' => 'GitHub release listing runtime is not ready.',
+			'runtime_unavailable' => 'GitHub release listing runtime is unavailable.',
+			'provider_unavailable' => 'GitHub release provider is unavailable.',
+			'filesystem_unsupported' => 'GitHub release listing requires a direct filesystem.',
+			'credential_unavailable' => 'GitHub release listing credentials are unavailable.',
+			'repository_access_unavailable' => 'GitHub release candidate access is unavailable.',
+			'rate_limited' => 'GitHub release listing is rate limited.',
+			'release_unavailable' => 'The requested GitHub release is unavailable.',
+			'package_incompatible' => 'The GitHub release package is incompatible.',
+			'release_changed' => 'The GitHub release changed.',
+			'operation_failed' => 'GitHub release candidate listing failed.',
+			'cleanup_failed' => 'GitHub release listing cleanup failed.',
+			default => null,
+		};
+		if ( null === $message ) {
+			return;
+		}
+		// Bound only listing retries; inspect/acquire keep their existing protocol checks.
+		if ( 'rate_limited' === $code && is_int( $result['retry_after'] ?? null ) && 86400 < $result['retry_after'] ) {
+			$result['retry_after'] = 86400;
+		}
+		if ( ! $this->failure( $result, 'list', $code ) ) {
+			return;
+		}
+		if ( $this->read_unavailable( $result, 'list' ) ) {
+			if ( 'rate_limited' === $code && class_exists( ProviderFailure::class ) && property_exists( RepositoryReleaseReadUnavailable::class, 'failure' ) ) {
+				// The certified older host has only RuntimeException's three constructor arguments.
+				$failure = ( new \ReflectionClass( RepositoryReleaseReadUnavailable::class ) )->newInstanceArgs(
+					array( $message, 502, null, new ProviderFailure( 'rate_limited', retry_after: $result['retry_after'] ) )
+				);
+				throw $failure;
+			}
+			throw new RepositoryReleaseReadUnavailable( $message, 502 );
+		}
+		throw new RuntimeException( $message, 502 );
 	}
 
 	private function failure( mixed $result, string $operation, string $code ): bool {

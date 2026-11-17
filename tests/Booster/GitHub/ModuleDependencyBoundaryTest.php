@@ -60,6 +60,7 @@ final class ModuleDependencyBoundaryTest extends TestCase {
 		'RAN\RepositoryProvider\ProviderDiagnosticRequest',
 		'RAN\RepositoryProvider\ProviderDiagnosticResult',
 		'RAN\RepositoryProvider\ProviderDiagnostics',
+		'RAN\RepositoryProvider\ProviderFailure',
 		'RAN\RepositoryProvider\ProviderMetadata',
 		'RAN\RepositoryProvider\ProviderWebhookPolicy',
 		'RAN\RepositoryProvider\ProviderWebhookProfileReader',

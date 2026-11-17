@@ -181,6 +181,133 @@ final class PublicReleaseResultMappingTest extends TestCase {
 			self::assertSame( RepositoryReleaseAcquisitionRejected::CLEANUP_FAILED, $failure->reason ); }
 	}
 
+	public function test_known_listing_failures_keep_fixed_meanings(): void {
+		$messages = array(
+			'invalid_configuration'         => 'GitHub release listing configuration is invalid.',
+			'invalid_release'               => 'The requested GitHub release is invalid.',
+			'runtime_not_ready'             => 'GitHub release listing runtime is not ready.',
+			'runtime_unavailable'           => 'GitHub release listing runtime is unavailable.',
+			'provider_unavailable'          => 'GitHub release provider is unavailable.',
+			'filesystem_unsupported'        => 'GitHub release listing requires a direct filesystem.',
+			'credential_unavailable'        => 'GitHub release listing credentials are unavailable.',
+			'repository_access_unavailable' => 'GitHub release candidate access is unavailable.',
+			'rate_limited'                  => 'GitHub release listing is rate limited.',
+			'release_unavailable'           => 'The requested GitHub release is unavailable.',
+			'package_incompatible'          => 'The GitHub release package is incompatible.',
+			'release_changed'               => 'The GitHub release changed.',
+			'operation_failed'              => 'GitHub release candidate listing failed.',
+			'cleanup_failed'                => 'GitHub release listing cleanup failed.',
+		);
+		foreach ( $messages as $code => $message ) {
+			$result = $this->envelope( false, $code, null );
+			if ( 'rate_limited' === $code ) {
+				$result['retry_after'] = 30;
+			}
+			$provider = $this->provider( new PublicReleaseSourceFixture( array_reverse( $result, true ), array(), array() ) );
+			try {
+				$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+				self::fail( 'A failed listing must not become a candidate list.' );
+			} catch ( \RuntimeException $failure ) {
+				self::assertSame( $message, $failure->getMessage(), $code );
+				self::assertSame( 502, $failure->getCode() );
+				self::assertSame( in_array( $code, array( 'credential_unavailable', 'repository_access_unavailable', 'rate_limited' ), true ), $failure instanceof RepositoryReleaseReadUnavailable );
+				self::assertNull( $failure->getPrevious() );
+			}
+		}
+	}
+
+	public function test_listing_retry_bounds_preserve_rate_limit_and_carrier_facts(): void {
+		foreach ( array(
+			array( null, null ),
+			array( 1, 1 ),
+			array( 30, 30 ),
+			array( 86400, 86400 ),
+			array( 86401, 86400 ),
+			array( PHP_INT_MAX, 86400 ),
+		) as [ $retry, $expected_retry ] ) {
+			$result                = $this->envelope( false, 'rate_limited', null );
+			$result['retry_after'] = $retry;
+			$provider              = $this->provider( new PublicReleaseSourceFixture( $result, array(), array() ) );
+			try {
+				$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+				self::fail( 'Rate limits must preserve the read fallback.' );
+			} catch ( RepositoryReleaseReadUnavailable $failure ) {
+				self::assertSame( 'GitHub release listing is rate limited.', $failure->getMessage() );
+				self::assertSame( 502, $failure->getCode() );
+				if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+					$carried = \RAN\RepositoryProvider\ProviderFailure::carried( $failure );
+					self::assertNotNull( $carried );
+					self::assertSame( 'rate_limited', $carried->reason );
+					self::assertSame( $expected_retry, $carried->retry_after );
+					self::assertNull( $carried->http_status );
+					self::assertNull( $carried->reset_at );
+					self::assertNull( $carried->credential_expires_at );
+				} else {
+					self::assertArrayNotHasKey( 'failure', get_object_vars( $failure ) );
+				}
+			}
+		}
+	}
+
+	public function test_malformed_listing_failures_remain_invalid_candidates(): void {
+		$base                = $this->envelope( false, 'rate_limited', null );
+		$base['retry_after'] = 86401;
+		$cases               = array(
+			array_replace( $base, array( 'code' => 'unknown-upstream-secret-message' ) ),
+			array_replace( $base, array( 'ok' => 0 ) ),
+			array_replace( $base, array( 'value' => array( 'message' => 'upstream-secret-message' ) ) ),
+			array_replace( $base, array( 'cleanup_status' => 'complete' ) ),
+			array_replace( $base, array( 'cleanup_status' => 'failed' ) ),
+			array_replace( $base, array( 'cleanup_status' => 'retained' ) ),
+			$base + array( 'message' => 'upstream-secret-message' ),
+		);
+		foreach ( array( 0, -1, '30', 30.0, true, array() ) as $retry ) {
+			$cases[] = array_replace( $base, array( 'retry_after' => $retry ) );
+		}
+		foreach ( array( 'ok', 'code', 'value', 'retry_after', 'cleanup_status' ) as $key ) {
+			$missing = $base;
+			unset( $missing[ $key ] );
+			$cases[] = $missing;
+		}
+		$cases[] = array_replace(
+			$base,
+			array(
+				'code'        => 'operation_failed',
+				'retry_after' => 30,
+			)
+		);
+		foreach ( $cases as $result ) {
+			$provider = $this->provider( new PublicReleaseSourceFixture( $result, array(), array() ) );
+			try {
+				$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+				self::fail( 'Malformed failed envelopes must be rejected.' );
+			} catch ( \RuntimeException $failure ) {
+				self::assertNotInstanceOf( RepositoryReleaseReadUnavailable::class, $failure );
+				self::assertSame( 'GitHub returned invalid release candidates.', $failure->getMessage() );
+				self::assertNull( $failure->getPrevious() );
+			}
+		}
+	}
+
+	public function test_listing_retry_clamp_does_not_change_inspection_or_acquisition(): void {
+		$result                = $this->envelope( false, 'rate_limited', null );
+		$result['retry_after'] = 86401;
+		$provider              = $this->provider( new PublicReleaseSourceFixture( $this->listing(), $result, $result ) );
+		$repository            = new RepositoryReference( 'owner/example', '123456789', false, null );
+		foreach ( array( 'inspect', 'acquire' ) as $operation ) {
+			try {
+				if ( 'inspect' === $operation ) {
+					$provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
+				} else {
+					$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' );
+				}
+				self::fail( 'Other operations must retain their strict retry validation.' );
+			} catch ( \RuntimeException $failure ) {
+				self::assertNotInstanceOf( RepositoryReleaseReadUnavailable::class, $failure );
+			}
+		}
+	}
+
 	public function test_rate_limit_with_null_retry_uses_existing_read_fallback(): void {
 		$provider = $this->provider( new PublicReleaseSourceFixture( array_reverse( $this->envelope( false, 'rate_limited', null ), true ), $this->envelope( true, 'release_inspected', $this->facts(), 'complete' ), $this->envelope( false, 'operation_failed', null ) ) );
 		$this->expectException( RepositoryReleaseReadUnavailable::class );
