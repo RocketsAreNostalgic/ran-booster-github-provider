@@ -23,8 +23,11 @@ construction bridges the old three-argument and new four-argument constructors.
 
 Tests run the public provider through the locked updater with GitHub HTTP 429,
 401/403/404, HTTP 500 and WordPress transport-error fixtures. Separate public
-source-envelope tests cover all published failure codes, malformed shapes and
-oversized delays: the locked updater currently normalises oversized delays to
-`operation_failed`, so those boundary fixtures do not claim an end-to-end retry
-delay that the current producer cannot publish. CI also runs both listing suites
+source-envelope tests cover all published failure codes and malformed shapes.
+Null retries, oversized delays and the listing-inapplicable `invalid_release`,
+`package_incompatible`, `release_changed` and `cleanup_failed` codes are defensive
+provider-boundary cases, not native listing results from the locked updater.
+Its bootstrap rejects null retries and those four listing codes; its runtime
+normalises oversized delays to `operation_failed`. These fixtures do not prove
+native outcomes the producer cannot publish. CI also runs both listing suites
 against the released Core carrier. Skipped-release reporting remains separate.
