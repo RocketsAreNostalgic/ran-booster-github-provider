@@ -299,7 +299,7 @@ jobs:
           persist-credentials: false
           path: carrier-host
 
-      - name: Prove anonymous lookup with the released failure carrier
+      - name: Prove provider failures with the released carrier
         working-directory: provider
         env:
           RAN_BOOSTER_CORE_PATH: ${{ github.workspace }}/carrier-host
@@ -308,7 +308,8 @@ jobs:
           test "$(git -C "$RAN_BOOSTER_CORE_PATH" rev-parse HEAD)" = 67267de6d95db86188e20a3854bcd6cb3df18f86
           test -f "$RAN_BOOSTER_CORE_PATH/RAN/RepositoryProvider/ProviderFailure.php"
           test -f "$RAN_BOOSTER_CORE_PATH/RAN/RepositoryProvider/ProviderRequestFailed.php"
-          vendor/bin/phpunit --configuration phpunit.xml --filter RepositoryResolverTest --fail-on-phpunit-deprecation
+          composer install --working-dir="$RAN_BOOSTER_CORE_PATH" --no-dev --no-interaction --prefer-dist --no-progress
+          vendor/bin/phpunit --configuration phpunit.xml --filter 'RepositoryResolverTest|DiagnosticsTest|CredentialExpiryValidationTest' --fail-on-phpunit-deprecation
 
   quality:
     name: quality

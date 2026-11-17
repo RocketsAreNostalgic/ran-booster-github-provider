@@ -188,7 +188,7 @@ final class RepositoryResolverTest extends TestCase {
 			$browser->repository( 'RocketsAreNostalgic/private-plugin', 'missing-profile' );
 			self::fail( 'A missing selected credential must not become an anonymous request.' );
 		} catch ( RuntimeException $exception ) {
-			self::assertSame( 400, $exception->getCode() );
+			self::assertSame( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ? 401 : 400, $exception->getCode() );
 			self::assertStringNotContainsString( 'missing-profile', $exception->getMessage() );
 			self::assertSame( array(), \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 		}
@@ -296,7 +296,7 @@ final class RepositoryResolverTest extends TestCase {
 			$browser->browse( RepositoryBrowseRequest::accessible( 'listing-profile' ) );
 			self::fail( 'A failed authenticated listing must not return repository data.' );
 		} catch ( RuntimeException $exception ) {
-			self::assertSame( $expected_status, $exception->getCode() );
+			self::assertSame( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ? $status : $expected_status, $exception->getCode() );
 			self::assertStringNotContainsString( self::TOKEN, $exception->getMessage() );
 			self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
 			self::assertStringNotContainsString( 'header-canary', $exception->getMessage() );
@@ -321,7 +321,7 @@ final class RepositoryResolverTest extends TestCase {
 			$browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic' ) );
 			self::fail( 'A failed public listing must not return repository data.' );
 		} catch ( RuntimeException $exception ) {
-			self::assertSame( $expected_status, $exception->getCode() );
+			self::assertSame( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ? $status : $expected_status, $exception->getCode() );
 			self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
 			self::assertStringNotContainsString( 'header-canary', $exception->getMessage() );
 		}
@@ -421,7 +421,7 @@ final class RepositoryResolverTest extends TestCase {
 			$browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic', 'missing-profile' ) );
 			self::fail( 'A missing public lookup profile must not become an anonymous request.' );
 		} catch ( RuntimeException $exception ) {
-			self::assertSame( 400, $exception->getCode() );
+			self::assertSame( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ? 401 : 400, $exception->getCode() );
 			self::assertStringNotContainsString( 'missing-profile', $exception->getMessage() );
 			self::assertSame( array( 'missing-profile' ), $secrets->lookups );
 			self::assertSame( array(), \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
@@ -447,7 +447,7 @@ final class RepositoryResolverTest extends TestCase {
 			self::fail( 'An authenticated public lookup denial must fail closed.' );
 		} catch ( RuntimeException $exception ) {
 			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
-			self::assertSame( $expected_status, $exception->getCode() );
+			self::assertSame( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ? $status : $expected_status, $exception->getCode() );
 			self::assertCount( 1, $requests );
 			self::assertSame( 'Bearer ' . self::TOKEN, $requests[0]['arguments']['headers']['Authorization'] );
 		}
@@ -649,7 +649,7 @@ final class RepositoryResolverTest extends TestCase {
 			$browser->browse( RepositoryBrowseRequest::accessible( 'listing-profile' ) );
 			self::fail( 'An invalid repository-list response must not be accepted.' );
 		} catch ( RuntimeException $exception ) {
-			self::assertSame( 422, $exception->getCode() );
+			self::assertSame( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ? 502 : 422, $exception->getCode() );
 			self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
 		}
 	}
@@ -770,7 +770,11 @@ final class RepositoryResolverTest extends TestCase {
 				$browser->path_exists( 'RocketsAreNostalgic/example-plugin', $ref, 'packages/example' );
 				self::fail( 'Unexpected successful GitHub path responses must fail closed.' );
 			} catch ( RuntimeException $failure ) {
-				self::assertSame( 'GitHub could not check the repository path.', $failure->getMessage() );
+				if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+					self::assertSame( 'response_invalid', \RAN\RepositoryProvider\ProviderFailure::carried( $failure )?->reason );
+				} else {
+					self::assertSame( 'GitHub could not check the repository path.', $failure->getMessage() );
+				}
 				self::assertSame( 502, $failure->getCode() );
 			}
 		}
@@ -956,6 +960,323 @@ final class RepositoryResolverTest extends TestCase {
 				self::assertSame( 502, $failure->getCode() );
 			}
 			self::assertCount( 1, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+		}
+	}
+
+	/** @return array<string, array{int, array<string, string>, string, int}> */
+	public static function documented_failure_responses(): array {
+		// GitHub documents 401/403, private-resource 404 and primary rate-limit headers.
+		// https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api
+		return array(
+			'rejected credential'        => array( 401, array(), 'credential_rejected', 401 ),
+			'permission denied'          => array( 403, array(), 'permission_denied', 403 ),
+			'private resource ambiguity' => array( 404, array(), 'repository_not_found_or_no_access', 404 ),
+			'primary rate limit'         => array(
+				403,
+				array(
+					'x-ratelimit-remaining' => '0',
+					'retry-after'           => '120',
+					'x-ratelimit-reset'     => '2000000000',
+				),
+				'rate_limited',
+				429,
+			),
+			'explicit rate limit'        => array( 429, array( 'retry-after' => '120' ), 'rate_limited', 429 ),
+			'bad input'                  => array( 400, array(), 'http_4xx_other', 502 ),
+			'validation failure'         => array( 422, array(), 'http_4xx_other', 502 ),
+			'upstream unavailable'       => array( 503, array(), 'http_5xx', 502 ),
+			'upstream timeout status'    => array( 504, array(), 'http_5xx', 502 ),
+			'refused redirect'           => array( 301, array( 'location' => 'https://example.invalid/remote-canary' ), 'redirect_blocked', 502 ),
+		);
+	}
+
+	/** @param array<string, string> $headers */
+	#[DataProvider( 'documented_failure_responses' )]
+	public function test_repository_reads_and_browse_carry_documented_http_failures( int $status, array $headers, string $reason, int $legacy_status ): void {
+		$has_carrier = class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class );
+		foreach ( array( 'lookup', 'browse', 'branch', 'revision', 'path' ) as $operation ) {
+			if ( 'path' === $operation && 404 === $status ) {
+				continue; // Path absence retains its separate existing contract.
+			}
+			$responses   = 'revision' === $operation ? array( $this->repository_identity_response() ) : array();
+			$responses[] = $this->error_response( $status, $headers );
+			if ( 'branch' === $operation && 404 === $status ) {
+				$responses[] = $this->error_response( 404, array() );
+			}
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( $responses );
+			$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'read-profile' => self::TOKEN ) ) );
+			try {
+				if ( 'lookup' === $operation ) {
+					$browser->repository( 'owner/example', 'read-profile' );
+				} elseif ( 'browse' === $operation ) {
+					$browser->browse( RepositoryBrowseRequest::accessible( 'read-profile' ) );
+				} elseif ( 'branch' === $operation ) {
+					$browser->current_branch_head( 'owner/example', 'main', 'read-profile' );
+				} elseif ( 'revision' === $operation ) {
+					$browser->immutable_ref( 'RocketsAreNostalgic/example-plugin', 'main', '987654321', 'read-profile' );
+				} else {
+					$browser->path_exists( 'owner/example', str_repeat( 'a', 40 ), 'packages/example', 'read-profile' );
+				}
+				self::fail( 'A documented failed response must not become a success.' );
+			} catch ( RuntimeException $exception ) {
+				if ( $has_carrier ) {
+					$failure = \RAN\RepositoryProvider\ProviderFailure::carried( $exception );
+					self::assertNotNull( $failure );
+					self::assertSame( $reason, $failure->reason );
+					self::assertSame( 'redirect_blocked' === $reason ? null : $status, $failure->http_status );
+					self::assertSame( isset( $headers['retry-after'] ) ? 120 : null, $failure->retry_after );
+				} else {
+					self::assertSame( RuntimeException::class, $exception::class );
+					self::assertSame( 400 === $status && in_array( $operation, array( 'branch', 'revision' ), true ) ? 400 : $legacy_status, $exception->getCode() );
+				}
+				self::assertStringNotContainsString( self::TOKEN, $exception->getMessage() );
+				self::assertStringNotContainsString( 'remote-canary', $exception->getMessage() );
+				self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
+			}
+		}
+	}
+
+	public function test_word_press_error_codes_keep_only_provable_transport_causes(): void {
+		// WordPress wraps Requests exceptions and invalid URLs as http_request_failed.
+		// https://developer.wordpress.org/reference/classes/wp_http/request/
+		foreach ( array(
+			'http_request_not_executed' => 'blocked_by_site',
+			'http_request_failed'       => 'transport_other',
+			'unknown_canary'            => 'transport_other',
+		) as $code => $reason ) {
+			foreach ( array( 'lookup', 'browse', 'branch', 'revision', 'path' ) as $operation ) {
+				$responses   = 'revision' === $operation ? array( $this->repository_identity_response() ) : array();
+				$responses[] = new \RAN\BoosterGitHubProvider\V1\RepositoryResolverWpError( $code );
+				\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( $responses );
+				$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub() );
+				try {
+					match ( $operation ) {
+						'lookup' => $browser->repository( 'RocketsAreNostalgic/example-plugin' ),
+						'browse' => $browser->browse( RepositoryBrowseRequest::public_owner( 'RocketsAreNostalgic' ) ),
+						'branch' => $browser->current_branch_head( 'RocketsAreNostalgic/example-plugin', 'main' ),
+						'revision' => $browser->immutable_ref( 'RocketsAreNostalgic/example-plugin', 'main', '987654321' ),
+						'path' => $browser->path_exists( 'RocketsAreNostalgic/example-plugin', str_repeat( 'a', 40 ), 'packages/example' ),
+					};
+					self::fail( 'A transport failure must not become success.' );
+				} catch ( RuntimeException $exception ) {
+					if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+						$failure = \RAN\RepositoryProvider\ProviderFailure::carried( $exception );
+						self::assertNotNull( $failure );
+						self::assertSame( $reason, $failure->reason );
+						self::assertNull( $failure->http_status );
+					} else {
+						self::assertSame( RuntimeException::class, $exception::class );
+						self::assertSame( 'browse' === $operation ? 504 : 502, $exception->getCode() );
+					}
+					self::assertStringNotContainsString( $code, $exception->getMessage() );
+				}
+			}
+		}
+	}
+
+	/** @return array<string, array{int, array<string, string>, string}> */
+	public static function credential_failure_responses(): array {
+		return array(
+			'rejected'         => array( 401, array(), 'credential_rejected' ),
+			'denied'           => array( 403, array(), 'permission_denied' ),
+			'not found'        => array( 404, array(), 'http_4xx_other' ),
+			'primary rate'     => array(
+				403,
+				array(
+					'x-ratelimit-remaining' => '0',
+					'retry-after'           => '120',
+				),
+				'rate_limited',
+			),
+			'rate'             => array( 429, array( 'retry-after' => '120' ), 'rate_limited' ),
+			'bad input'        => array( 400, array(), 'http_4xx_other' ),
+			'validation'       => array( 422, array(), 'http_4xx_other' ),
+			'upstream'         => array( 503, array(), 'http_5xx' ),
+			'upstream timeout' => array( 504, array(), 'http_5xx' ),
+			'redirect'         => array( 301, array(), 'redirect_blocked' ),
+		);
+	}
+
+	/** @param array<string, string> $headers */
+	#[DataProvider( 'credential_failure_responses' )]
+	public function test_credential_validation_preserves_factory_and_attaches_known_cause( int $status, array $headers, string $reason ): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->error_response( $status, $headers ) );
+		$result  = ( new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'read-profile' => self::TOKEN ) ) ) )->validate_credential( 'read-profile' );
+		$failure = get_object_vars( $result )['failure'] ?? null;
+		self::assertSame( 'rate_limited' === $reason ? 'rate_limited' : ( in_array( $status, array( 401, 403 ), true ) ? 'invalid' : 'unavailable' ), $result->reason );
+		if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+			self::assertInstanceOf( \RAN\RepositoryProvider\ProviderFailure::class, $failure );
+			self::assertSame( $reason, $failure->reason );
+			self::assertSame( 'redirect_blocked' === $reason ? null : $status, $failure->http_status );
+			self::assertSame( isset( $headers['retry-after'] ) ? 120 : null, $failure->retry_after );
+		}
+		self::assertStringNotContainsString( self::TOKEN, (string) $result->get_display_message() );
+		self::assertStringNotContainsString( 'upstream-response-canary', (string) $result->get_display_message() );
+	}
+
+	public function test_missing_credentials_and_failed_transport_keep_safe_validation_causes(): void {
+		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'read-profile' => self::TOKEN ) ) );
+		$result  = $browser->validate_credential( 'missing-profile' );
+		$failure = get_object_vars( $result )['failure'] ?? null;
+		self::assertSame( 'invalid', $result->reason );
+		if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+			self::assertInstanceOf( \RAN\RepositoryProvider\ProviderFailure::class, $failure );
+			self::assertSame( 'credential_missing', $failure->reason );
+		}
+		self::assertSame( array(), \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+		foreach ( array(
+			'http_request_not_executed' => 'blocked_by_site',
+			'http_request_failed'       => 'transport_other',
+		) as $code => $reason ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( new \RAN\BoosterGitHubProvider\V1\RepositoryResolverWpError( $code ) );
+			$result  = $browser->validate_credential( 'read-profile' );
+			$failure = get_object_vars( $result )['failure'] ?? null;
+			self::assertSame( 'unavailable', $result->reason );
+			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+				self::assertInstanceOf( \RAN\RepositoryProvider\ProviderFailure::class, $failure );
+				self::assertSame( $reason, $failure->reason );
+				self::assertNull( $failure->http_status );
+			}
+		}
+	}
+
+	public function test_expiration_fact_does_not_overrule_a_success_or_permission_denial(): void {
+		foreach ( array( 200, 401, 403 ) as $status ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
+				array(
+					'response' => array( 'code' => $status ),
+					'headers'  => array( 'GitHub-Authentication-Token-Expiration' => '2020-01-02 03:04:05 UTC' ),
+					'body'     => '{"login":"octocat"}',
+				)
+			);
+			$result  = ( new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'read-profile' => self::TOKEN ) ) ) )->validate_credential( 'read-profile' );
+			$failure = get_object_vars( $result )['failure'] ?? null;
+			self::assertSame( 200 === $status, $result->is_valid() );
+			if ( 200 === $status ) {
+				self::assertSame( '2020-01-02T03:04:05Z', $result->expiry?->expires_at );
+			} elseif ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+				self::assertInstanceOf( \RAN\RepositoryProvider\ProviderFailure::class, $failure );
+				self::assertSame( 401 === $status ? 'credential_expired' : 'permission_denied', $failure->reason );
+				self::assertSame( 401 === $status ? '2020-01-02T03:04:05Z' : null, $failure->credential_expires_at );
+			}
+		}
+	}
+
+	public function test_credential_store_failure_is_not_a_rejected_credential_and_guards_still_propagate(): void {
+		$store_error = new RuntimeException( self::TOKEN );
+		$store       = new class( $store_error ) implements \RAN\RepositoryProvider\ProviderCredentialStore {
+			public function __construct( private RuntimeException $failure ) {
+			}
+			public function credential_profiles(): array {
+				return array();
+			}
+			public function credential_material( ?string $id = null ): ?array {
+				unset( $id );
+				throw $this->failure;
+			}
+			public function has_webhook_profile(): bool {
+				return false;
+			}
+		};
+		foreach ( array( 'lookup', 'browse', 'validation' ) as $operation ) {
+			$browser = new RepositoryBrowser( $store );
+			try {
+				if ( 'lookup' === $operation ) {
+					$browser->repository( 'owner/example', 'read-profile' );
+				} elseif ( 'browse' === $operation ) {
+					$browser->browse( RepositoryBrowseRequest::accessible( 'read-profile' ) );
+				} else {
+					$result  = $browser->validate_credential( 'read-profile' );
+					$failure = get_object_vars( $result )['failure'] ?? null;
+					self::assertSame( 'unavailable', $result->reason );
+					self::assertSame( 'credential_store_unavailable', $failure?->reason );
+					continue;
+				}
+				self::fail( 'A failed store must not become success.' );
+			} catch ( RuntimeException $failure ) {
+				if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+					self::assertSame( 'credential_store_unavailable', \RAN\RepositoryProvider\ProviderFailure::carried( $failure )?->reason );
+					self::assertStringNotContainsString( self::TOKEN, $failure->getMessage() );
+				} else {
+					self::assertSame( $store_error, $failure );
+				}
+			}
+		}
+		$guard_error = new RuntimeException( 'guard-canary', 409 );
+		$browser     = new RepositoryBrowser(
+			new RepositoryResolverSecretsStub(),
+			static function () use ( $guard_error ): void {
+				throw $guard_error;
+			}
+		);
+		try {
+			$browser->validate_credential( 'read-profile' );
+			self::fail( 'The guard must propagate.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( $guard_error, $failure );
+		}
+		self::assertSame( array(), \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+	}
+
+	public function test_partial_transport_failure_and_dropped_items_use_existing_provider_partial_reason(): void {
+		$item    = array(
+			'id'             => 987654321,
+			'full_name'      => 'owner/example',
+			'private'        => false,
+			'default_branch' => 'main',
+		);
+		$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'read-profile' => self::TOKEN ) ) );
+		foreach ( array( new \RAN\BoosterGitHubProvider\V1\RepositoryResolverWpError( 'http_request_failed' ), $this->error_response( 503, array() ), $this->error_response( 504, array() ) ) as $tail ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 200, array_fill( 0, 30, $item ) ), $tail ) );
+			$result = $browser->browse( RepositoryBrowseRequest::accessible( 'read-profile' ) );
+			self::assertCount( 30, $result->repositories );
+			self::assertSame( RepositoryBrowseResult::PROVIDER, $result->partial_reason );
+		}
+		foreach ( array( array( $item, array( 'full_name' => self::TOKEN ) ), array( array( 'full_name' => self::TOKEN ) ), array( $item, array_replace( $item, array( 'id' => str_repeat( 'x', 192 ) ) ) ) ) as $items ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->response( 200, $items ) );
+			$result = $browser->browse( RepositoryBrowseRequest::accessible( 'read-profile' ) );
+			self::assertSame( RepositoryBrowseResult::PROVIDER, $result->partial_reason );
+			self::assertCount( count( $items ) - 1, $result->repositories );
+		}
+	}
+
+	public function test_bad_and_oversized_successful_replies_carry_response_failures(): void {
+		foreach ( array(
+			'invalid'  => 'response_invalid',
+			'object'   => 'response_invalid',
+			'oversize' => 'response_too_large',
+		) as $shape => $reason ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
+				array(
+					'response' => array( 'code' => 200 ),
+					'body'     => 'oversize' === $shape ? str_repeat( 'x', RepositoryBrowseRequest::PER_RESPONSE_BYTES + 1 ) : ( 'object' === $shape ? '{}' : 'null' ),
+				)
+			);
+			try {
+				( new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'read-profile' => self::TOKEN ) ) ) )->browse( RepositoryBrowseRequest::accessible( 'read-profile' ) );
+				self::fail( 'A malformed or oversized response must fail closed.' );
+			} catch ( RuntimeException $exception ) {
+				if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+					self::assertSame( $reason, \RAN\RepositoryProvider\ProviderFailure::carried( $exception )?->reason );
+					self::assertSame( 'provider_unavailable', \RAN\RepositoryProvider\ProviderFailure::carried( $exception )?->deployment_outcome_code() );
+				} else {
+					self::assertSame( 'oversize' === $shape ? 413 : 422, $exception->getCode() );
+				}
+			}
+		}
+	}
+
+	public function test_diagnostics_distinguish_rejection_permission_and_carried_rate_limit(): void {
+		foreach ( array( array( 401, array(), 'gh.repository.credential_rejected' ), array( 403, array(), 'gh.repository.denied' ), array( 403, array( 'x-ratelimit-remaining' => '0' ), 'gh.repository.rate_limited' ), array( 503, array(), 'gh.repository.unavailable' ) ) as [ $status, $headers, $code ] ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->error_response( $status, $headers ) );
+			$results = ( new \RAN\BoosterGitHubProvider\V1\Diagnostics( new RepositoryBrowser( new RepositoryResolverSecretsStub() ) ) )->diagnose(
+				new \RAN\RepositoryProvider\ProviderDiagnosticRequest( null, 'owner/example' )
+			);
+			self::assertSame( $code, $results[1]->code );
+			if ( 503 === $status ) {
+				self::assertNotNull( $results[1]->failure );
+			}
+			self::assertStringNotContainsString( 'upstream-response-canary', implode( ' ', $results[1]->to_array() ) );
 		}
 	}
 

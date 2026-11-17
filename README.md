@@ -211,6 +211,37 @@ Successful branch checks still require the requested branch name and a valid
 commit. These producer outcomes do not implement Core's branch-check wording or
 deleted-push Activity.
 
+Browse, lookup, revision, branch and path request failures also use the optional
+carrier. Authentication rejection, permission denial, rate limits and real HTTP
+4xx/5xx replies retain their known status; rate limits retain validated numeric
+retry/reset facts. A refused redirect stays blocked. Invalid replies and bounded
+browse-body overflows carry their existing response reasons. Core maps a carried
+`response_too_large` to `provider_unavailable`, including the 413 case.
+
+WordPress's documented `http_request_not_executed` code establishes
+`blocked_by_site`. Its generic `http_request_failed` code establishes only
+`transport_other`: the provider never derives timeout, DNS, TLS or unsafe-URL
+causes from its message. No source code is emitted.
+
+Credential validation keeps its existing result factories and attaches the known
+cause on capable hosts. Missing material, invalid stored shape and a failed store
+read are distinct from GitHub rejecting authentication or denying permission.
+If a 401 also supplies a valid expiration header whose date has passed, the
+failure carries `credential_expired` and that UTC date. Missing or malformed
+headers do not prove expiration; success and permission denial retain their
+actual outcomes. Older hosts retain their prior factories and plain exceptions.
+
+Partial repository lists keep the existing coarse contract. Transport/upstream
+failures and rejected repository entries use `PROVIDER`; actual local call,
+result and byte bounds use `LIMIT`. Valid repositories remain available, and
+intentional public/private filtering is not a rejected-entry report. Fine-grained
+partial causes, counts and retry facts need a future Core contract. Diagnostics
+distinguishes authentication rejection from permission denial and retains an
+unexpected failure for Core to log without showing its message.
+
+The remaining proof boundaries are recorded on
+[#114](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/114#issuecomment-6950091280).
+
 The current Core release-candidate list accepts candidates only. Although the
 release updater supplies `search_exhausted`, that value cannot yet cross this
 contract; per-drop listing diagnostics also require an updater producer. Neither

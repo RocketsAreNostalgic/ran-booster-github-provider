@@ -102,8 +102,18 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 	}
 
 	private function repository_failure( RuntimeException $exception ): ProviderDiagnosticResult {
-		return match ( $exception->getCode() ) {
-			401, 403 => new ProviderDiagnosticResult(
+		$code = $exception->getCode();
+		if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && in_array( \RAN\RepositoryProvider\ProviderFailure::carried( $exception )?->reason, array( 'rate_limited', 'rate_limited_secondary' ), true ) ) {
+			$code = 429;
+		}
+		return match ( $code ) {
+			401 => new ProviderDiagnosticResult(
+				ProviderDiagnosticResult::FAILED,
+				'gh.repository.credential_rejected',
+				'GitHub rejected the selected credential.',
+				'Check the credential and its expiry.'
+			),
+			403 => new ProviderDiagnosticResult(
 				ProviderDiagnosticResult::FAILED,
 				'gh.repository.denied',
 				'GitHub denied access to the selected repository.',
@@ -121,7 +131,7 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 				'GitHub rate-limited the repository check.',
 				'Try the check again after the rate limit resets.'
 			),
-			default => $this->unavailable_result( 'gh.repository.unavailable', 'GitHub repository access could not be completed.' ),
+			default => $this->unavailable_result( 'gh.repository.unavailable', 'GitHub repository access could not be completed.', $exception ),
 		};
 	}
 
