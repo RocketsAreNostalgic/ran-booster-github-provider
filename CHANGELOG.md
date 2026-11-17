@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.25](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.24...v1.0.0-beta.25) (2026-11-17)
+
+
+### Features
+
+* carry screened provider source codes ([#126](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/126)) ([74b1c9b](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/74b1c9b9a5694bbcebacb4d617173e256823b23c))
+
 ## [1.0.0-beta.24](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.23...v1.0.0-beta.24) (2026-11-17)
 
 
