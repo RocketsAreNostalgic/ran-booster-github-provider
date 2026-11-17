@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "17187cc48cc8771f4db165c67605bfec",
+    "content-hash": "17a4ae6dbaf4163d4f68873dc84cf3ce",
     "packages": [
         {
             "name": "ran/updater-support",
-            "version": "v1.0.0-beta.4",
+            "version": "v1.0.0-beta.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/RocketsAreNostalgic/ran-updater-support.git",
-                "reference": "357db930b407941bd19a9e890c925d3d16ae9b15"
+                "reference": "51d6adb3a119564b4b2e591e7496a965f4df6267"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/RocketsAreNostalgic/ran-updater-support/zipball/357db930b407941bd19a9e890c925d3d16ae9b15",
-                "reference": "357db930b407941bd19a9e890c925d3d16ae9b15",
+                "url": "https://api.github.com/repos/RocketsAreNostalgic/ran-updater-support/zipball/51d6adb3a119564b4b2e591e7496a965f4df6267",
+                "reference": "51d6adb3a119564b4b2e591e7496a965f4df6267",
                 "shasum": ""
             },
             "require": {
@@ -28,7 +28,7 @@
                 "phpcompatibility/phpcompatibility-paragonie": "2.0.0-alpha2",
                 "phpcompatibility/phpcompatibility-wp": "3.0.0-alpha2",
                 "phpstan/phpstan": "^2.1",
-                "ran/coding-standards": "dev-main"
+                "ran/coding-standards": "^1.0"
             },
             "type": "library",
             "autoload": {
@@ -47,8 +47,23 @@
                 "validate:strict": [
                     "composer validate --strict --no-check-publish"
                 ],
+                "test:standards": [
+                    "node --test tests/owned-methods.test.mjs"
+                ],
                 "test:contract": [
                     "php tests/contract.php"
+                ],
+                "test:package-directory": [
+                    "php tests/package-directory.php"
+                ],
+                "test:working-copy": [
+                    "php tests/working-copy.php"
+                ],
+                "test:failure-text": [
+                    "php tests/failure-text.php"
+                ],
+                "test:failure-text-mutation": [
+                    "php tests/failure-text-mutation.php"
                 ],
                 "standards": [
                     "phpcs --standard=.phpcs.xml"
@@ -57,7 +72,8 @@
                     "phpcbf --standard=.phpcs.xml --report=summary"
                 ],
                 "analyze": [
-                    "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M"
+                    "@analyze:production",
+                    "@analyze:maintained"
                 ],
                 "test:release-control": [
                     "node --test tests/release-workflow-contract.test.mjs"
@@ -66,8 +82,23 @@
                     "bash -o pipefail -c 'find src tests -type f -name \"*.php\" -print0 | xargs -0 -n1 php -l'"
                 ],
                 "test": [
+                    "@test:analysis-coverage",
                     "@test:contract",
+                    "@test:package-directory",
+                    "@test:working-copy",
+                    "@test:failure-text",
+                    "@test:failure-text-mutation",
+                    "@test:standards",
                     "@test:release-control"
+                ],
+                "test:analysis-coverage": [
+                    "bash tests/analysis-coverage.sh"
+                ],
+                "analyze:production": [
+                    "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M"
+                ],
+                "analyze:maintained": [
+                    "phpstan analyse --configuration=phpstan-maintained.neon --no-progress --memory-limit=512M"
                 ]
             },
             "license": [
@@ -79,20 +110,20 @@
                 "security": "https://github.com/RocketsAreNostalgic/ran-updater-support/security/advisories/new",
                 "source": "https://github.com/RocketsAreNostalgic/ran-updater-support"
             },
-            "time": "2026-09-23T11:24:10+00:00"
+            "time": "2026-11-17T13:37:29+00:00"
         },
         {
             "name": "ran/wp-release-updater",
-            "version": "v1.0.0-beta.18",
+            "version": "v1.0.0-beta.21",
             "source": {
                 "type": "git",
                 "url": "https://github.com/RocketsAreNostalgic/ran-wp-release-updater.git",
-                "reference": "9aebae4f6b3e1367fae4ec8c208e1e2c202425f9"
+                "reference": "6f5d66b3f5b6f7e1ece992d36da80b19f5788907"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/RocketsAreNostalgic/ran-wp-release-updater/zipball/9aebae4f6b3e1367fae4ec8c208e1e2c202425f9",
-                "reference": "9aebae4f6b3e1367fae4ec8c208e1e2c202425f9",
+                "url": "https://api.github.com/repos/RocketsAreNostalgic/ran-wp-release-updater/zipball/6f5d66b3f5b6f7e1ece992d36da80b19f5788907",
+                "reference": "6f5d66b3f5b6f7e1ece992d36da80b19f5788907",
                 "shasum": ""
             },
             "require": {
@@ -108,7 +139,7 @@
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^11.0",
                 "ran/coding-standards": "^1.0",
-                "ran/updater-support": "1.0.0-beta.6",
+                "ran/updater-support": "1.0.0-beta.9",
                 "szepeviktor/phpstan-wordpress": "^2.0"
             },
             "type": "library",
@@ -182,7 +213,7 @@
                 "security": "https://github.com/RocketsAreNostalgic/ran-wp-release-updater/security/advisories/new",
                 "source": "https://github.com/RocketsAreNostalgic/ran-wp-release-updater"
             },
-            "time": "2026-11-13T04:22:14+00:00"
+            "time": "2026-11-17T17:43:15+00:00"
         }
     ],
     "packages-dev": [

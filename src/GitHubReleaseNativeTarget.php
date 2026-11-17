@@ -105,7 +105,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 			}
 			$status = $outer['native'];
 			if ( ! is_array( $status )
-				|| count( $status ) !== 10
+				|| count( $status ) !== 11
 				|| array_diff(
 					array_keys( $status ),
 					array(
@@ -116,6 +116,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 						'failure_code',
 						'installed_version',
 						'last_check',
+						'last_native_outcome',
 						'offered_release_identity',
 						'offered_version',
 						'relationship',
@@ -201,6 +202,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 			&& ( null === $status['failure_code'] || '' !== $this->status_code( $status['failure_code'] ) )
 			&& ( null === $status['installed_version'] || '' !== $this->status_version( $status['installed_version'] ) )
 			&& ( null === $status['last_check'] || ( is_int( $status['last_check'] ) && 0 < $status['last_check'] ) )
+			&& ( null === $status['last_native_outcome'] || is_array( $status['last_native_outcome'] ) )
 			&& ( null === $status['offered_version'] || '' !== $this->status_version( $status['offered_version'] ) )
 			&& ( null === $status['offered_release_identity'] || '' !== $this->status_text( $status['offered_release_identity'], 191 ) )
 			&& ( ( null === $status['offered_version'] ) === ( null === $status['offered_release_identity'] ) )

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\GitHubReleaseNativeTarget;
 
@@ -61,14 +62,20 @@ final class NativeTargetsTest extends TestCase {
 		self::assertSame( 'github_updater_status_unavailable', $status->failure_code );
 	}
 
-	public function test_registered_neutral_updater_projects_its_bounded_status(): void {
+	/** @param array<string, mixed> $patch */
+	#[DataProvider( 'native_status_shapes' )]
+	public function test_registered_neutral_updater_projects_its_bounded_status( array $patch, ?string $missing_key, bool $compatible ): void {
 		$target = $this->target( null );
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
-			new class() {
-				/** @return array<string, bool|int|string|null|array<string, int|string|null>> */
+			new class( $patch, $missing_key ) {
+				/** @param array<string, mixed> $patch */
+				public function __construct( private array $patch, private ?string $missing_key ) {
+				}
+
+				/** @return array<string, mixed> */
 				public function status(): array {
-					return array(
+					$outer           = array(
 						'state'                => 'active',
 						'declaration_accepted' => true,
 						'hooks_registered'     => true,
@@ -81,18 +88,29 @@ final class NativeTargetsTest extends TestCase {
 							'failure_code'              => null,
 							'installed_version'         => '1.0.0',
 							'last_check'                => 1_700_000_000,
+							'last_native_outcome'       => null,
 							'offered_release_identity'  => 'provider-release-42',
 							'offered_version'           => '1.2.0',
 							'relationship'              => 'newer',
 						),
 					);
+					$outer['native'] = array_replace( $outer['native'], $this->patch );
+					if ( null !== $this->missing_key ) {
+						unset( $outer['native'][ $this->missing_key ] );
+					}
+					return $outer;
 				}
 			}
 		);
 
 		$status = $target->status();
 
-		self::assertTrue( $status->active );
+		self::assertSame( $compatible, $status->active );
+		if ( ! $compatible ) {
+			self::assertSame( 'github_updater_status_unavailable', $status->failure_code );
+			self::assertSame( '', $status->offered_version );
+			return;
+		}
 		self::assertSame( '1.2.0', $status->offered_version );
 		self::assertSame( 'newer', $status->version_relationship );
 		self::assertSame( 1_700_000_000, $status->last_check );
@@ -102,6 +120,26 @@ final class NativeTargetsTest extends TestCase {
 		self::assertSame( '1.2.0', $status->candidate_release_version );
 		self::assertSame( '1.2.0', $status->candidate_package_header_version );
 		self::assertSame( 'provider-release-42', $status->candidate_provider_release_id );
+	}
+
+	/** @return array<string, array{array<string, mixed>, ?string, bool}> */
+	public static function native_status_shapes(): array {
+		$cases = array(
+			'null outcome'          => array( array(), null, true ),
+			'empty array outcome'   => array( array( 'last_native_outcome' => array() ), null, true ),
+			'opaque array outcome'  => array( array( 'last_native_outcome' => array( 'unconsumed' => new \stdClass() ) ), null, true ),
+			'legacy ten keys'       => array( array(), 'last_native_outcome', false ),
+			'unknown extra key'     => array( array( 'unknown' => null ), null, false ),
+			'replaced required key' => array( array( 'unknown' => null ), 'last_check', false ),
+		);
+		foreach ( array( false, 1, 'outcome', new \stdClass() ) as $index => $outcome ) {
+			$cases[ 'invalid outcome ' . $index ] = array( array( 'last_native_outcome' => $outcome ), null, false );
+		}
+		foreach ( array( 'candidate_header_version', 'candidate_tag', 'candidate_validation_code', 'candidate_version', 'failure_code', 'installed_version', 'last_check', 'offered_release_identity', 'offered_version', 'relationship' ) as $key ) {
+			$cases[ 'missing ' . $key ] = array( array(), $key, false );
+			$cases[ 'invalid ' . $key ] = array( array( $key => false ), null, false );
+		}
+		return $cases;
 	}
 
 	public function test_registered_neutral_updater_projects_a_reordered_outer_status(): void {
@@ -120,6 +158,7 @@ final class NativeTargetsTest extends TestCase {
 							'failure_code'              => null,
 							'installed_version'         => '1.0.0',
 							'last_check'                => 1_700_000_000,
+							'last_native_outcome'       => null,
 							'offered_release_identity'  => 'provider-release-42',
 							'offered_version'           => '1.2.0',
 							'relationship'              => 'newer',
@@ -169,6 +208,7 @@ final class NativeTargetsTest extends TestCase {
 								'failure_code'             => null,
 								'installed_version'        => '1.0.0',
 								'last_check'               => 1_700_000_000,
+								'last_native_outcome'      => null,
 								'relationship'             => 'newer',
 								'offered_release_identity' => $this->identity,
 							),
@@ -202,6 +242,7 @@ final class NativeTargetsTest extends TestCase {
 							'failure_code'              => null,
 							'installed_version'         => '1.0.0',
 							'last_check'                => 1_700_000_000,
+							'last_native_outcome'       => null,
 							'offered_release_identity'  => null,
 							'offered_version'           => null,
 							'relationship'              => null,

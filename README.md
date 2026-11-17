@@ -36,8 +36,8 @@ WordPress and Provider API requirements are host contracts, not Composer checks.
 | WordPress host | WordPress 7.0+ through a compatible Booster host |
 | Outer Provider API | Exactly `15`; not compatible with API 14 or earlier |
 | Release-workflow capability | Initial-only `RepositoryReleaseWorkflowManagementV4` |
-| Shared repository paths | `ran/updater-support ^1.0.0-beta.4` |
-| Release updater | `ran/wp-release-updater ~1.0.0-beta.9`, locked beta.18 / runtime protocol 7 |
+| Shared repository paths | `ran/updater-support ^1.0.0-beta.9` |
+| Release updater | `ran/wp-release-updater ^1.0.0-beta.21`, locked beta.21 / runtime protocol 11 |
 
 The package version, `V1` PHP namespace, outer Provider API, workflow V4,
 template-pack API 3 and updater runtime protocol are separate contracts.
@@ -242,11 +242,11 @@ unexpected failure for Core to log without showing its message.
 The remaining proof boundaries are recorded on
 [#114](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/114#issuecomment-6950091280).
 
-The current Core release-candidate list accepts candidates only. Although the
-release updater supplies `search_exhausted`, that value cannot yet cross this
-contract; per-drop listing diagnostics also require an updater producer. Neither
-metadata field is invented by this package. Rename destinations and release-list
-metadata await agreed Core contracts; source-code emission awaits Core's optional
+The certified Core release-candidate list accepts candidates only. The release
+updater supplies `search_exhausted` and per-drop listing diagnostics, but this
+package does not yet forward either field. Neither metadata field is invented
+by this package. Forwarding release-list metadata remains separate integration
+work. Rename destinations await an agreed Core contract; source-code emission awaits Core's optional
 `source_code` member. The provider boundary and proposed release coordination are
 recorded in [provider #114](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/114#issuecomment-6946701211).
 
