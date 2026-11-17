@@ -276,11 +276,47 @@ class RepositoryBrowser {
 		}
 
 		if ( 404 === $status ) {
+			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
+				// Metadata access alone does not prove Contents permission on a private repository.
+				$probe    = $this->guarded_get(
+					self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ) . '/branches?per_page=1',
+					array(
+						'timeout'             => 15,
+						'redirection'         => 0,
+						'limit_response_size' => 65536,
+						'reject_unsafe_urls'  => true,
+						'headers'             => $headers,
+					)
+				);
+				$branches = ! is_wp_error( $probe ) && 200 === (int) wp_remote_retrieve_response_code( $probe )
+					? json_decode( wp_remote_retrieve_body( $probe ) )
+					: null;
+				$readable = is_array( $branches ) && ( array() === $branches
+					|| ( 1 === count( $branches ) && $branches[0] instanceof \stdClass
+						&& is_string( $branches[0]->name ?? null )
+						&& GitReferenceSyntax::is_valid_named_reference( $branches[0]->name )
+						&& $branch !== $branches[0]->name
+						&& ( $branches[0]->commit ?? null ) instanceof \stdClass
+						&& is_string( $branches[0]->commit->sha ?? null )
+						&& 1 === preg_match( '/^[0-9a-f]{40}$/i', $branches[0]->commit->sha ) ) );
+				throw new \RAN\RepositoryProvider\ProviderRequestFailed(
+					new \RAN\RepositoryProvider\ProviderFailure( $readable ? 'ref_not_found' : 'repository_not_found_or_no_access', 404 )
+				);
+			}
 			throw new RuntimeException( 'GitHub could not find that repository branch, or the selected credential cannot access it.', 404 );
 		}
 
 		if ( 410 === $status ) {
+			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
+				throw new \RAN\RepositoryProvider\ProviderRequestFailed( new \RAN\RepositoryProvider\ProviderFailure( 'ref_not_found', 410 ) );
+			}
 			throw new RuntimeException( 'The requested GitHub repository branch is no longer available.', 410 );
+		}
+
+		if ( in_array( $status, array( 301, 302, 303, 307, 308 ), true )
+			&& class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
+			// A redirect is refused, not evidence of a branch rename or its destination.
+			throw new \RAN\RepositoryProvider\ProviderRequestFailed( new \RAN\RepositoryProvider\ProviderFailure( 'redirect_blocked' ) );
 		}
 
 		if ( $status < 200 || $status >= 300 ) {
