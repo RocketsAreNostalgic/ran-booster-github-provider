@@ -1280,6 +1280,23 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
+	public function test_diagnostics_does_not_call_local_credential_failures_remote_rejections(): void {
+		foreach ( array( new RepositoryResolverSecretsStub(), new RepositoryResolverSecretsStub( array( 'read-profile' => '' ) ) ) as $store ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->response( 200, array() ) );
+			$results = ( new \RAN\BoosterGitHubProvider\V1\Diagnostics( new RepositoryBrowser( $store ) ) )->diagnose(
+				new \RAN\RepositoryProvider\ProviderDiagnosticRequest( 'read-profile', 'owner/example' )
+			);
+			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+				self::assertSame( 'gh.repository.credential_unavailable', $results[1]->code );
+				self::assertSame( 'The saved GitHub credential is not available for this check.', $results[1]->message );
+				self::assertNotNull( $results[1]->failure );
+			} else {
+				self::assertSame( 'gh.repository.unavailable', $results[1]->code );
+			}
+			self::assertSame( array(), \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+		}
+	}
+
 	private function provider( RepositoryResolverSecretsStub $secrets ): GitHubProvider {
 		$provider = GitHubProvider::create(
 			$secrets,

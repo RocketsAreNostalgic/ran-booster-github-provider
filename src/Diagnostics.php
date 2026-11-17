@@ -103,8 +103,20 @@ final readonly class Diagnostics implements ProviderDiagnostics {
 
 	private function repository_failure( RuntimeException $exception ): ProviderDiagnosticResult {
 		$code = $exception->getCode();
-		if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && in_array( \RAN\RepositoryProvider\ProviderFailure::carried( $exception )?->reason, array( 'rate_limited', 'rate_limited_secondary' ), true ) ) {
-			$code = 429;
+		if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+			$failure = \RAN\RepositoryProvider\ProviderFailure::carried( $exception );
+			if ( in_array( $failure?->reason, array( 'credential_missing', 'credential_format_invalid' ), true ) ) {
+				return new ProviderDiagnosticResult(
+					ProviderDiagnosticResult::FAILED,
+					'gh.repository.credential_unavailable',
+					'The saved GitHub credential is not available for this check.',
+					'Select a saved credential and check its configuration.',
+					$exception
+				);
+			}
+			if ( in_array( $failure?->reason, array( 'rate_limited', 'rate_limited_secondary' ), true ) ) {
+				$code = 429;
+			}
 		}
 		return match ( $code ) {
 			401 => new ProviderDiagnosticResult(
