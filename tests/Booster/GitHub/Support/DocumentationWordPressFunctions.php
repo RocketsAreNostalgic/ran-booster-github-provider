@@ -44,6 +44,14 @@ if ( ! function_exists( 'esc_html_e' ) ) {
 	}
 }
 
+if ( ! function_exists( '_n' ) ) {
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Core's carried retry message calls WordPress's exact plural-translation function in these isolated tests.
+	function _n( string $single, string $plural, int $number, string $domain = 'default' ): string {
+		unset( $domain );
+		return 1 === $number ? $single : $plural;
+	}
+}
+
 if ( ! function_exists( 'esc_url' ) ) {
 	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- This isolated fixture keeps WordPress's public escaping name.
 	function esc_url( string $url ): string {

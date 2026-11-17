@@ -131,17 +131,24 @@ final class DiagnosticsTest extends TestCase {
 				'remediation' => 'No action is needed.',
 			),
 		);
-		foreach ( array( 401, 403 ) as $code ) {
-			yield 'access denied ' . $code => array(
-				$code,
-				array(
-					'status'      => ProviderDiagnosticResult::FAILED,
-					'code'        => 'gh.repository.denied',
-					'message'     => 'GitHub denied access to the selected repository.',
-					'remediation' => 'Check the token permissions and organisation approval.',
-				),
-			);
-		}
+		yield 'credential rejected' => array(
+			401,
+			array(
+				'status'      => ProviderDiagnosticResult::FAILED,
+				'code'        => 'gh.repository.credential_rejected',
+				'message'     => 'GitHub rejected the selected credential.',
+				'remediation' => 'Check the credential and its expiry.',
+			),
+		);
+		yield 'permission denied' => array(
+			403,
+			array(
+				'status'      => ProviderDiagnosticResult::FAILED,
+				'code'        => 'gh.repository.denied',
+				'message'     => 'GitHub denied access to the selected repository.',
+				'remediation' => 'Check the token permissions and organisation approval.',
+			),
+		);
 		yield 'not found' => array(
 			404,
 			array(
@@ -194,6 +201,9 @@ final class DiagnosticsTest extends TestCase {
 		$results = ( new Diagnostics( $browser ) )->diagnose( $request );
 
 		self::assertSame( $expected, $results[1]->to_array() );
+		if ( in_array( $exception_code, array( 400, 500, 502 ), true ) ) {
+			self::assertSame( $browser->repository_exception, $results[1]->failure );
+		}
 		self::assertSame(
 			array( array( 'RocketsAreNostalgic/ran-booster', null, 10.0, 65536 ) ),
 			$browser->repository_calls

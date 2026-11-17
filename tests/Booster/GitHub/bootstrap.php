@@ -31,6 +31,10 @@ spl_autoload_register(
 
 			$relative = substr( $class_name, strlen( $prefix ) );
 			$file     = $directory . str_replace( '\\', '/', $relative ) . '.php';
+			if ( 'RAN\\UpdaterSupport\\V1\\FailureText' === $class_name && ! is_file( $file ) ) {
+				// Released Core diagnostic values require its exact locked shared screener.
+				$file = $ran_booster_root . '/vendor/ran/updater-support/src/FailureText.php';
+			}
 			if ( is_file( $file ) ) {
 				require $file;
 			}
