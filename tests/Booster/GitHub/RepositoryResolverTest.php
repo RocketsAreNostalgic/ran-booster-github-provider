@@ -776,6 +776,189 @@ final class RepositoryResolverTest extends TestCase {
 		}
 	}
 
+	public function test_reports_missing_branch_only_after_current_contents_access_is_proven(): void {
+		$has_carrier = class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class );
+		foreach ( array( false, true ) as $check_identity ) {
+			$responses   = $check_identity ? array( $this->repository_identity_response( true ) ) : array();
+			$responses[] = $this->error_response( 404, array() );
+			$responses[] = $this->response( 200, array() );
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( $responses );
+			$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'read-profile' => self::TOKEN ) ) );
+
+			try {
+				if ( $check_identity ) {
+					$browser->branch_head( 'RocketsAreNostalgic/example-plugin', 'deleted', '987654321', 'read-profile', true );
+				} else {
+					$browser->current_branch_head( 'RocketsAreNostalgic/example-plugin', 'deleted', 'read-profile', true );
+				}
+				self::fail( 'A missing branch must never resolve to another commit.' );
+			} catch ( RuntimeException $failure ) {
+				self::assertSame( 404, $failure->getCode() );
+				if ( $has_carrier ) {
+					self::assertInstanceOf( \RAN\RepositoryProvider\ProviderRequestFailed::class, $failure );
+					$reason = \RAN\RepositoryProvider\ProviderFailure::carried( $failure );
+					self::assertNotNull( $reason );
+					self::assertSame( 'ref_not_found', $reason->reason );
+					self::assertSame( 404, $reason->http_status );
+					self::assertSame( 'provider_reference_unavailable', $reason->deployment_outcome_code() );
+				} else {
+					self::assertSame( RuntimeException::class, $failure::class );
+					self::assertSame( 'GitHub could not find that repository branch, or the selected credential cannot access it.', $failure->getMessage() );
+				}
+				self::assertStringNotContainsString( self::TOKEN, $failure->getMessage() );
+				self::assertStringNotContainsString( 'upstream-response-canary', $failure->getMessage() );
+			}
+			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
+			self::assertCount( ( $check_identity ? 2 : 1 ) + ( $has_carrier ? 1 : 0 ), $requests );
+			if ( $has_carrier ) {
+				$probe = $requests[ count( $requests ) - 1 ];
+				self::assertSame( 'https://api.github.com/repos/RocketsAreNostalgic/example-plugin/branches?per_page=1', $probe['url'] );
+				self::assertSame( 0, $probe['arguments']['redirection'] );
+				self::assertSame( 65536, $probe['arguments']['limit_response_size'] );
+				self::assertSame( 'Bearer ' . self::TOKEN, $probe['arguments']['headers']['Authorization'] );
+			}
+		}
+	}
+
+	public function test_gone_branch_carries_reference_failure_without_an_access_probe(): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->error_response( 410, array() ) );
+		try {
+			( new RepositoryBrowser( new RepositoryResolverSecretsStub() ) )->current_branch_head( 'owner/example', 'deleted' );
+			self::fail( 'A gone branch must not resolve.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( 410, $failure->getCode() );
+			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+				self::assertSame( 'ref_not_found', \RAN\RepositoryProvider\ProviderFailure::carried( $failure )?->reason );
+				self::assertSame( 410, \RAN\RepositoryProvider\ProviderFailure::carried( $failure )?->http_status );
+			} else {
+				self::assertSame( RuntimeException::class, $failure::class );
+				self::assertSame( 'The requested GitHub repository branch is no longer available.', $failure->getMessage() );
+			}
+		}
+		self::assertCount( 1, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+	}
+
+	public function test_branch_redirect_is_blocked_without_claiming_a_rename_or_following_it(): void {
+		foreach ( array( 301, 302, 303, 307, 308 ) as $status ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
+				$this->error_response( $status, array( 'Location' => 'https://example.invalid/redirect-canary?access_token=synthetic' ) )
+			);
+			try {
+				( new RepositoryBrowser( new RepositoryResolverSecretsStub() ) )->current_branch_head( 'owner/example', 'old-name' );
+				self::fail( 'A branch redirect must never resolve to another branch.' );
+			} catch ( RuntimeException $failure ) {
+				if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+					self::assertSame( 'redirect_blocked', \RAN\RepositoryProvider\ProviderFailure::carried( $failure )?->reason );
+					self::assertNull( \RAN\RepositoryProvider\ProviderFailure::carried( $failure )?->http_status );
+				} else {
+					self::assertSame( RuntimeException::class, $failure::class );
+					self::assertSame( 502, $failure->getCode() );
+					self::assertSame( 'GitHub could not resolve the repository branch.', $failure->getMessage() );
+				}
+				self::assertStringNotContainsString( 'redirect-canary', $failure->getMessage() );
+				self::assertStringNotContainsString( 'upstream-response-canary', $failure->getMessage() );
+			}
+			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
+			self::assertCount( 1, $requests );
+			self::assertSame( 0, $requests[0]['arguments']['redirection'] );
+		}
+	}
+
+	#[DataProvider( 'branch_access_probes' )]
+	public function test_branch_404_does_not_confuse_metadata_access_or_bad_probes_with_contents_access( int $status, string $body, bool $readable ): void {
+		$has_carrier = class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class );
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+			array(
+				$this->repository_identity_response( true ),
+				$this->error_response( 404, array() ),
+				array(
+					'response' => array( 'code' => $status ),
+					'body'     => $body,
+				),
+			)
+		);
+		try {
+			( new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'read-profile' => self::TOKEN ) ) ) )
+				->branch_head( 'RocketsAreNostalgic/example-plugin', 'deleted', '987654321', 'read-profile', true );
+			self::fail( 'An inaccessible or missing branch must not resolve.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( 404, $failure->getCode() );
+			if ( $has_carrier ) {
+				$reason = \RAN\RepositoryProvider\ProviderFailure::carried( $failure );
+				self::assertNotNull( $reason );
+				self::assertSame( $readable ? 'ref_not_found' : 'repository_not_found_or_no_access', $reason->reason );
+				self::assertSame( 404, $reason->http_status );
+			} else {
+				self::assertSame( RuntimeException::class, $failure::class );
+			}
+			self::assertStringNotContainsString( 'upstream-response-canary', $failure->getMessage() );
+		}
+		self::assertCount( $has_carrier ? 3 : 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+	}
+
+	/** @return array<string, array{int, string, bool}> */
+	public static function branch_access_probes(): array {
+		return array(
+			'empty repository'    => array( 200, '[]', true ),
+			'readable branch'     => array( 200, '[{"name":"main","commit":{"sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}]', true ),
+			'branch reappeared'   => array( 200, '[{"name":"deleted","commit":{"sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}]', false ),
+			'metadata only'       => array( 404, '{"message":"upstream-response-canary"}', false ),
+			'rejected credential' => array( 401, '[]', false ),
+			'denied contents'     => array( 403, '[]', false ),
+			'rate limited'        => array( 429, '[]', false ),
+			'unavailable'         => array( 503, '[]', false ),
+			'redirect'            => array( 301, '[]', false ),
+			'not modified'        => array( 304, '[]', false ),
+			'not a list'          => array( 200, '{}', false ),
+			'not JSON'            => array( 200, 'upstream-response-canary', false ),
+			'wrong item'          => array( 200, '[null]', false ),
+			'missing name'        => array( 200, '[{"commit":{"sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}]', false ),
+			'invalid branch name' => array( 200, '[{"name":"","commit":{"sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}]', false ),
+			'wrong commit'        => array( 200, '[{"name":"main","commit":{"sha":"upstream-response-canary"}}]', false ),
+			'too many items'      => array( 200, '[{},{}]', false ),
+		);
+	}
+
+	public function test_branch_access_probe_transport_failure_does_not_prove_absence(): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+			array( $this->error_response( 404, array() ), new \RAN\BoosterGitHubProvider\V1\RepositoryResolverWpError( 'transport-canary' ) )
+		);
+		try {
+			( new RepositoryBrowser( new RepositoryResolverSecretsStub() ) )->current_branch_head( 'owner/example', 'deleted' );
+			self::fail( 'Transport failure must not prove branch absence.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( 404, $failure->getCode() );
+			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+				self::assertSame( 'repository_not_found_or_no_access', \RAN\RepositoryProvider\ProviderFailure::carried( $failure )?->reason );
+			} else {
+				self::assertSame( RuntimeException::class, $failure::class );
+			}
+		}
+	}
+
+	public function test_branch_success_still_requires_the_requested_name_and_commit(): void {
+		foreach ( array( 'main', 'other' ) as $name ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset(
+				$this->response(
+					200,
+					array(
+						'name'   => $name,
+						'commit' => array( 'sha' => str_repeat( 'A', 40 ) ),
+					)
+				)
+			);
+			try {
+				$head = ( new RepositoryBrowser( new RepositoryResolverSecretsStub() ) )->current_branch_head( 'owner/example', 'main' );
+				self::assertSame( 'main', $name );
+				self::assertSame( str_repeat( 'a', 40 ), $head );
+			} catch ( RuntimeException $failure ) {
+				self::assertSame( 'other', $name );
+				self::assertSame( 502, $failure->getCode() );
+			}
+			self::assertCount( 1, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+		}
+	}
+
 	private function provider( RepositoryResolverSecretsStub $secrets ): GitHubProvider {
 		$provider = GitHubProvider::create(
 			$secrets,

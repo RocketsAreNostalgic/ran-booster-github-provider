@@ -194,6 +194,31 @@ licensed under [GPL-2.0-or-later](LICENSE).
 
 ## Reporting candidate compatibility
 
+Branch-head failures use the optional Core failure carrier when both carrier
+classes exist. A branch 404 becomes `ref_not_found` only after one bounded,
+redirect-disabled branch-list request proves Contents read access with the same
+authentication. Repository metadata access alone does not establish that
+permission. An unavailable or malformed probe keeps
+`repository_not_found_or_no_access`; it does not prove that a branch was deleted.
+A probe that observes the requested branch again also keeps that uncertainty.
+The probe requests at most one branch, caps the response at 65,536 bytes and
+never paginates. A 410 carries `ref_not_found` without a probe.
+
+Branch redirects carry `redirect_blocked`. The provider never follows the
+redirect, infers a rename or carries its destination. Hosts without the failure
+carrier retain the existing exceptions, messages, codes and request sequence.
+Successful branch checks still require the requested branch name and a valid
+commit. These producer outcomes do not implement Core's branch-check wording or
+deleted-push Activity.
+
+The current Core release-candidate list accepts candidates only. Although the
+release updater supplies `search_exhausted`, that value cannot yet cross this
+contract; per-drop listing diagnostics also require an updater producer. Neither
+metadata field is invented by this package. Rename destinations and release-list
+metadata await agreed Core contracts; source-code emission awaits Core's optional
+`source_code` member. The provider boundary and proposed release coordination are
+recorded in [provider #114](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/114#issuecomment-6946701211).
+
 Provider API15 and workflow V4 replace the earlier API14/V3 source contract.
 Workflow results and operational setup records retain their domain meaning;
 Core now owns durable assessment/failure history. GitHub reports actual progress
