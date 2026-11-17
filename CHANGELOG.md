@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.0-beta.24](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.23...v1.0.0-beta.24) (2026-11-17)
+
+
+### Features
+
+* forward release listing reports and digest details ([#125](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/125)) ([fd34942](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/fd3494299730ae8a7350dece51a036a9cb2caeb1))
+* **github:** populate browse and credential failure reasons ([#122](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/122)) ([00d4e2b](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/00d4e2b27b39aed18241f6c6b96a6edb01f58ba0))
+
+
+### Bug Fixes
+
+* adopt release updater beta.21 and Support beta.9 ([#124](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/124)) ([4f44194](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/4f44194dae94f520f17d0b68c38857d00effad4b))
+* **github:** distinguish missing branch and access outcomes ([#120](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/120)) ([d1462fd](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/d1462fdea95e94bb330b5f3866abb82fe71fde92))
+* **releases:** preserve release listing failure outcomes ([#123](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/123)) ([3f29b7a](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/3f29b7af655feb27b6a8c202f9f4135cfb54c10c))
+
 ## [1.0.0-beta.23](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.22...v1.0.0-beta.23) (2026-11-16)
 
 
