@@ -249,11 +249,16 @@ unexpected failure for Core to log without showing its message.
 The remaining proof boundaries are recorded on
 [#114](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/114#issuecomment-6950091280).
 
-The certified Core release-candidate list accepts candidates only. The release
-updater supplies `search_exhausted` and per-drop listing diagnostics, but this
-package does not yet forward either field. Neither metadata field is invented
-by this package. Forwarding release-list metadata remains separate integration
-work. Rename destinations await an agreed Core contract; source-code emission awaits Core's optional
+Release listings forward `search_exhausted` and the diagnostics report unchanged
+only when the updater supplies both fields and Core exposes both corresponding
+properties. Core owns normalization and screening. Older runtimes or hosts keep
+the candidates-only contract; no observation or stored history is invented.
+Inspection also forwards the updater's bounded `digest_missing` reason when the
+host supports rejection detail. The certified Core and consumer CI pins predate
+the listing properties, so those jobs prove fallback compatibility; forwarding
+requires a separate source-level pass against Core #1008 or later.
+
+Rename destinations await an agreed Core contract; source-code emission awaits Core's optional
 `source_code` member. The provider boundary and proposed release coordination are
 recorded in [provider #114](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/114#issuecomment-6946701211).
 

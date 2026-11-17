@@ -15,6 +15,7 @@ use RAN\BoosterGitHubProvider\V1\GitHubProvider;
 use RAN\RepositoryProvider\AuthenticatedWebhookDeliveryEvidence;
 use RAN\RepositoryProvider\AuthenticatedWebhookDeliveryEvidenceReader;
 use RAN\RepositoryProvider\RepositoryReference;
+use RAN\RepositoryProvider\RepositoryReleaseCandidateList;
 use RAN\RepositoryProvider\RepositoryReleaseCandidateListing;
 use RAN\RepositoryProvider\RepositoryReleaseReadUnavailable;
 use RuntimeException;
@@ -92,6 +93,38 @@ final class ReleaseCandidateListingTest extends TestCase {
 		);
 
 		self::assertSame( array(), $result->candidates );
+	}
+
+	public function test_current_updater_report_reaches_a_capable_host(): void {
+		$draft          = NeutralReleaseUpdaterFixtures::listed_release( id: 43 );
+		$draft['draft'] = true;
+		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::listing( array( $draft, NeutralReleaseUpdaterFixtures::listed_release() ) ) ) );
+		$result = $this->provider( new RepositoryResolverSecretsStub() )->list_release_candidates(
+			'plugin',
+			new RepositoryReference( 'owner/example', '123456789', false, null ),
+			'stable'
+		);
+
+		self::assertCount( 1, $result->candidates );
+		if ( property_exists( RepositoryReleaseCandidateList::class, 'search_exhausted' ) && property_exists( RepositoryReleaseCandidateList::class, 'diagnostics' ) ) {
+			$fields = get_object_vars( $result );
+			self::assertFalse( $fields['search_exhausted'] );
+			self::assertSame(
+				array(
+					'scanned_count' => 2,
+					'dropped_count' => 1,
+					'drops'         => array(
+						array(
+							'reason' => 'release_draft',
+							'tag'    => 'v1.2.3',
+						),
+					),
+					'truncated'     => false,
+				),
+				$fields['diagnostics']
+			);
+		}
+		self::assertCount( 1, NeutralReleaseUpdaterFixtures::requests() );
 	}
 
 	public function test_private_listing_resolves_provider_credential_only_at_request_time(): void {
