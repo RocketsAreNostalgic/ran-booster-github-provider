@@ -78,6 +78,9 @@ test("one Example consumer proves the exact unreleased package in a disposable h
   assert.match(consumer, /github\.event\.pull_request\.head\.sha \|\| github\.sha/);
   assert.match(consumer, /example\/host-contract\.json/);
   assert.match(consumer, /prepare-provider-candidate\.py/);
+  assert.match(consumer, /python3 provider\/tests\/consumer-candidate\.py/);
+  assert.match(consumer, /python3 provider\/scripts\/prepare-consumer-candidate\.py/);
+  assert.match(consumer, /--preparer example\/scripts\/prepare-provider-candidate\.py/);
   assert.match(consumer, /--provider-sha "\$RAN_EXPECTED_SHA"/);
   assert.match(consumer, /--host-sha "\$RAN_BOOSTER_HOST_SHA"/);
   assert.match(consumer, /consumer-installed-smoke\.sh/);
