@@ -582,6 +582,20 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			);
 		}
 
+		if ( property_exists( RepositoryReleaseCandidateList::class, 'search_exhausted' )
+			&& property_exists( RepositoryReleaseCandidateList::class, 'diagnostics' )
+			&& array_key_exists( 'search_exhausted', $result['value'] )
+			&& array_key_exists( 'diagnostics', $result['value'] ) ) {
+			// The certified host predates these optional constructor parameters.
+			return ( new \ReflectionClass( RepositoryReleaseCandidateList::class ) )->newInstanceArgs(
+				array(
+					'candidates'       => $candidates,
+					'search_exhausted' => $result['value']['search_exhausted'],
+					'diagnostics'      => $result['value']['diagnostics'],
+				)
+			);
+		}
+
 		return new RepositoryReleaseCandidateList( $candidates );
 	}
 
@@ -967,6 +981,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			'tag_not_version' => 'release_version_invalid',
 			'no_package_zip' => 'package_asset_missing',
 			'multiple_package_zips' => 'package_asset_ambiguous',
+			'digest_missing' => property_exists( RepositoryReleaseInspectionRejected::class, 'detail' ) ? 'digest_missing' : null,
 			'asset_too_large', 'archive_size_limit' => 'package_archive_too_large',
 			'download_size_mismatch' => 'package_archive_size_invalid',
 			'archive_unreadable' => 'package_archive_unreadable',

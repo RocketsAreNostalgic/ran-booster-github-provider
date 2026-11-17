@@ -36,7 +36,7 @@ final class ReleaseRejectionReasonTest extends TestCase {
 			'asset_not_uploaded'         => null,
 			'asset_metadata_invalid'     => null,
 			'asset_too_large'            => 'package_archive_too_large',
-			'digest_missing'             => null,
+			'digest_missing'             => 'digest_missing',
 			'download_size_mismatch'     => 'package_archive_size_invalid',
 			'download_digest_mismatch'   => null,
 			'archive_unreadable'         => 'package_archive_unreadable',
