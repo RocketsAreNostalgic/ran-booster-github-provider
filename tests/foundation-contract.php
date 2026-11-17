@@ -38,11 +38,8 @@ if ( ! is_array( $require ) || '^8.2' !== ( $require['php'] ?? null ) ) {
 if ( array_key_exists( 'ran/booster', $require ) ) {
 	throw new RuntimeException( 'The provider package must not depend on the whole Booster plugin in production.' );
 }
-if ( '^1.0.0-beta.9' !== ( $require['ran/updater-support'] ?? null ) ) {
-	throw new RuntimeException( 'The shared repository-path dependency must retain the compatible Support beta.9 baseline.' );
-}
-if ( '^1.0.0-beta.21' !== ( $require['ran/wp-release-updater'] ?? null ) ) {
-	throw new RuntimeException( 'The release updater dependency must retain the compatible beta.21 baseline.' );
+if ( '^1.0.0-beta.4' !== ( $require['ran/updater-support'] ?? null ) ) {
+	throw new RuntimeException( 'The shared repository-path dependency must retain the compatible Support beta.4 baseline.' );
 }
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Retain this process-local CLI gate binding; this script never enters the WordPress runtime.

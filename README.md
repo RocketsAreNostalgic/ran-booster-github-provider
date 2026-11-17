@@ -36,8 +36,8 @@ WordPress and Provider API requirements are host contracts, not Composer checks.
 | WordPress host | WordPress 7.0+ through a compatible Booster host |
 | Outer Provider API | Exactly `15`; not compatible with API 14 or earlier |
 | Release-workflow capability | Initial-only `RepositoryReleaseWorkflowManagementV4` |
-| Shared repository paths | `ran/updater-support ^1.0.0-beta.9` |
-| Release updater | `ran/wp-release-updater ^1.0.0-beta.21`, locked beta.21 / runtime protocol 11 |
+| Shared repository paths | `ran/updater-support ^1.0.0-beta.4`, locked beta.9 |
+| Release updater | `ran/wp-release-updater ~1.0.0-beta.12`, locked beta.21 / runtime protocol 11 |
 
 The package version, `V1` PHP namespace, outer Provider API, workflow V4,
 template-pack API 3 and updater runtime protocol are separate contracts.
@@ -49,6 +49,13 @@ selection belongs to the updater. Copies of an older runtime protocol cannot sha
 an active runtime and fail closed; upgrading this package alone does not qualify
 the host's installed composition.
 Do not infer host compatibility from matching version numbers.
+
+The dependency floors remain compatible with the certified host's pins. Native
+status accepts the original ten fields or those ten plus nullable/array
+`last_native_outcome`, without consuming the outcome. A host-supplied registrar
+may still use an older runtime under these requirements. The package lock's
+protocol-11 qualification does not mean the certified host or Example consumer
+resolves that runtime; each retains its own locked dependency composition.
 
 **Use the Provider version bundled with your chosen Booster release.** This API15
 candidate is qualified against the exact merged Core #835 source revision pinned in CI,

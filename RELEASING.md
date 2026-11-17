@@ -32,15 +32,7 @@ dispatch. No package release or Example dependency-bump PR is needed first.
 
 Only the Example's source is pinned in CI. Its candidate preparation tool replaces
 the released Provider dependency in temporary Example and host assemblies with
-the exact package checkout, using Composer. The Provider-owned assembly adapter
-also permits its declared direct production package dependencies to move, using
-an explicit package list, `--with-dependencies` and `--minimal-changes`. These
-dependencies are also consumer root requirements, so the flag alone cannot
-unlock them. Full lock entries in both production and development sections are
-compared after each update; any change outside the candidate and that declared
-dependency set fails. Changed packages print their before/after versions. The
-adapter is restricted to the assembly step and verifies the pinned Example
-preparer's Git blob identity before retaining its source and artifact checks.
+the exact package checkout, using Composer. Other dependencies remain locked.
 Both assemblies need matching Provider bytes because the Example rejects
 conflicting already-loaded copies. Core's source and repository remain unchanged.
 These temporary test assemblies are not published Core or Example releases.

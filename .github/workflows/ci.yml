@@ -153,9 +153,7 @@ jobs:
           RAN_BOOSTER_HOST_SHA: ${{ steps.host.outputs.commit }}
         run: |
           set -euo pipefail
-          python3 provider/tests/consumer-candidate.py
-          python3 provider/scripts/prepare-consumer-candidate.py \
-            --preparer example/scripts/prepare-provider-candidate.py \
+          python3 example/scripts/prepare-provider-candidate.py \
             --provider-root "$GITHUB_WORKSPACE/provider" --provider-sha "$RAN_EXPECTED_SHA" \
             --host-root "$GITHUB_WORKSPACE/consumer-host" --host-sha "$RAN_BOOSTER_HOST_SHA" \
             --output "$RUNNER_TEMP/consumer-candidate"

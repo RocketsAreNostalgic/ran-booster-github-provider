@@ -128,7 +128,7 @@ final class NativeTargetsTest extends TestCase {
 			'null outcome'          => array( array(), null, true ),
 			'empty array outcome'   => array( array( 'last_native_outcome' => array() ), null, true ),
 			'opaque array outcome'  => array( array( 'last_native_outcome' => array( 'unconsumed' => new \stdClass() ) ), null, true ),
-			'legacy ten keys'       => array( array(), 'last_native_outcome', false ),
+			'legacy ten keys'       => array( array(), 'last_native_outcome', true ),
 			'unknown extra key'     => array( array( 'unknown' => null ), null, false ),
 			'replaced required key' => array( array( 'unknown' => null ), 'last_check', false ),
 		);
