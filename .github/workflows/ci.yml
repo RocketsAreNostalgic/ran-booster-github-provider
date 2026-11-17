@@ -309,7 +309,7 @@ jobs:
           test -f "$RAN_BOOSTER_CORE_PATH/RAN/RepositoryProvider/ProviderFailure.php"
           test -f "$RAN_BOOSTER_CORE_PATH/RAN/RepositoryProvider/ProviderRequestFailed.php"
           composer install --working-dir="$RAN_BOOSTER_CORE_PATH" --no-dev --no-interaction --prefer-dist --no-progress
-          vendor/bin/phpunit --configuration phpunit.xml --filter 'RepositoryResolverTest|DiagnosticsTest|CredentialExpiryValidationTest' --fail-on-phpunit-deprecation
+          vendor/bin/phpunit --configuration phpunit.xml --filter 'RepositoryResolverTest|DiagnosticsTest|CredentialExpiryValidationTest|ReleaseCandidateListingTest|PublicReleaseResultMappingTest' --fail-on-phpunit-deprecation
 
   quality:
     name: quality

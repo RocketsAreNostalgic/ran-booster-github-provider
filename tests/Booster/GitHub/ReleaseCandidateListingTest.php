@@ -165,7 +165,7 @@ final class ReleaseCandidateListingTest extends TestCase {
 		NeutralReleaseUpdaterFixtures::queue( array( NeutralReleaseUpdaterFixtures::response( 500, array( 'message' => 'upstream-secret-message' ) ) ) );
 
 		$this->expectException( RuntimeException::class );
-		$this->expectExceptionMessage( 'GitHub returned invalid release candidates.' );
+		$this->expectExceptionMessage( 'GitHub release candidate listing failed.' );
 		$this->provider( new RepositoryResolverSecretsStub() )->list_release_candidates(
 			'plugin',
 			new RepositoryReference( 'owner/example', '123456789', false, null ),
@@ -209,10 +209,17 @@ final class ReleaseCandidateListingTest extends TestCase {
 			} catch ( \RuntimeException $exception ) {
 				if ( $failure instanceof \WP_Error ) {
 					self::assertNotInstanceOf( RepositoryReleaseReadUnavailable::class, $exception );
-					self::assertSame( 'GitHub returned invalid release candidates.', $exception->getMessage() );
+					self::assertSame( 'GitHub release candidate listing failed.', $exception->getMessage() );
 				} else {
 					self::assertInstanceOf( RepositoryReleaseReadUnavailable::class, $exception );
-					self::assertSame( 'GitHub release candidate access is unavailable.', $exception->getMessage() );
+					self::assertSame( 'GitHub release listing is rate limited.', $exception->getMessage() );
+					if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+						$carried = \RAN\RepositoryProvider\ProviderFailure::carried( $exception );
+						self::assertNotNull( $carried );
+						self::assertSame( 'rate_limited', $carried->reason );
+						self::assertSame( 30, $carried->retry_after );
+						self::assertNull( $carried->http_status );
+					}
 				}
 			}
 		}
