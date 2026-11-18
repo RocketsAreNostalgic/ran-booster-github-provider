@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.26](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.25...v1.0.0-beta.26) (2026-11-18)
+
+
+### Bug Fixes
+
+* distinguish missing revisions on manual branch checks ([#128](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/128)) ([d828149](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/d828149e1575cf6f754795d7b958f36c49aa8b72))
+
 ## [1.0.0-beta.25](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.24...v1.0.0-beta.25) (2026-11-17)
 
 
