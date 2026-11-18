@@ -1000,7 +1000,7 @@ final class RepositoryResolverTest extends TestCase {
 			}
 			$responses   = 'revision' === $operation ? array( $this->repository_identity_response() ) : array();
 			$responses[] = $this->error_response( $status, $headers );
-			if ( 'branch' === $operation && 404 === $status ) {
+			if ( in_array( $operation, array( 'branch', 'revision' ), true ) && 404 === $status ) {
 				$responses[] = $this->error_response( 404, array() );
 			}
 			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( $responses );

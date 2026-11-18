@@ -164,7 +164,8 @@ class RepositoryBrowser {
 			$this->fail_request( 'repository_identity_changed', 'GitHub returned an invalid repository identity while resolving the revision.', 502 );
 		}
 
-		$headers           = $this->authenticated_request_headers( $credential_id, $is_private );
+		$probe_headers     = $this->authenticated_request_headers( $credential_id, $is_private );
+		$headers           = $probe_headers;
 		$headers['Accept'] = 'application/vnd.github.sha';
 		$response          = $this->guarded_get(
 			self::PUBLIC_API_BASE
@@ -200,7 +201,9 @@ class RepositoryBrowser {
 			$this->fail_request( 'permission_denied', 'GitHub denied access while resolving the repository revision.', 403, $status );
 		}
 		if ( 404 === $status ) {
-			$this->fail_request( 'repository_not_found_or_no_access', 'GitHub could not find that repository revision, or the selected credential cannot access it.', 404, $status );
+			$reason = class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class )
+				&& $this->repository_contents_readable( $full_name, $ref, $probe_headers ) ? 'ref_not_found' : 'repository_not_found_or_no_access';
+			$this->fail_request( $reason, 'GitHub could not find that repository revision, or the selected credential cannot access it.', 404, $status );
 		}
 		if ( 410 === $status ) {
 			$this->fail_request( 'ref_not_found', 'The requested GitHub repository revision is no longer available.', 410, $status );
@@ -270,28 +273,7 @@ class RepositoryBrowser {
 
 		if ( 404 === $status ) {
 			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
-				// Metadata access alone does not prove Contents permission on a private repository.
-				$probe    = $this->guarded_get(
-					self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ) . '/branches?per_page=1',
-					array(
-						'timeout'             => 15,
-						'redirection'         => 0,
-						'limit_response_size' => 65536,
-						'reject_unsafe_urls'  => true,
-						'headers'             => $headers,
-					)
-				);
-				$branches = ! is_wp_error( $probe ) && 200 === (int) wp_remote_retrieve_response_code( $probe )
-					? json_decode( wp_remote_retrieve_body( $probe ) )
-					: null;
-				$readable = is_array( $branches ) && ( array() === $branches
-					|| ( 1 === count( $branches ) && $branches[0] instanceof \stdClass
-						&& is_string( $branches[0]->name ?? null )
-						&& GitReferenceSyntax::is_valid_named_reference( $branches[0]->name )
-						&& $branch !== $branches[0]->name
-						&& ( $branches[0]->commit ?? null ) instanceof \stdClass
-						&& is_string( $branches[0]->commit->sha ?? null )
-						&& 1 === preg_match( '/^[0-9a-f]{40}$/i', $branches[0]->commit->sha ) ) );
+				$readable = $this->repository_contents_readable( $full_name, $branch, $headers );
 				throw new \RAN\RepositoryProvider\ProviderRequestFailed(
 					new \RAN\RepositoryProvider\ProviderFailure( $readable ? 'ref_not_found' : 'repository_not_found_or_no_access', 404 )
 				);
@@ -737,6 +719,32 @@ class RepositoryBrowser {
 		}
 		$this->assert_operation?->__invoke();
 		return $credential;
+	}
+
+	/** @param array<string, string> $headers */
+	private function repository_contents_readable( string $full_name, string $ref, #[\SensitiveParameter] array $headers ): bool {
+		// Metadata access alone does not prove Contents permission on a private repository.
+		$probe    = $this->guarded_get(
+			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ) . '/branches?per_page=1',
+			array(
+				'timeout'             => 15,
+				'redirection'         => 0,
+				'limit_response_size' => 65536,
+				'reject_unsafe_urls'  => true,
+				'headers'             => $headers,
+			)
+		);
+		$branches = ! is_wp_error( $probe ) && 200 === (int) wp_remote_retrieve_response_code( $probe )
+			? json_decode( wp_remote_retrieve_body( $probe ) )
+			: null;
+		return is_array( $branches ) && ( array() === $branches
+			|| ( 1 === count( $branches ) && $branches[0] instanceof \stdClass
+				&& is_string( $branches[0]->name ?? null )
+				&& GitReferenceSyntax::is_valid_named_reference( $branches[0]->name )
+				&& $ref !== $branches[0]->name
+				&& ( $branches[0]->commit ?? null ) instanceof \stdClass
+				&& is_string( $branches[0]->commit->sha ?? null )
+				&& 1 === preg_match( '/^[0-9a-f]{40}$/i', $branches[0]->commit->sha ) ) );
 	}
 
 	/** Throw the optional request carrier while preserving an older host's exception. */
