@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\GitHubRepositoryClient;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\GitHubRepositoryReleaseWorkflow;
@@ -178,6 +179,66 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		self::assertSame( array(), $transport->requests );
 	}
 
+
+	/** @return iterable<string, array{string}> */
+	public static function credential_store_failures(): iterable {
+		yield 'profile list' => array( 'profiles_failure' );
+		yield 'credential material' => array( 'material_failure' );
+	}
+
+	#[DataProvider( 'credential_store_failures' )]
+	public function test_a_failing_credential_store_is_unavailable_not_unauthorised( string $failure ): void {
+		$status    = WorkflowProviderFixtures::target();
+		$transport = new D23ApplicationTransport();
+
+		// Inspect and set-up start without a saved set-up record.
+		$credentials           = new WorkflowCredentialStore();
+		$credentials->$failure = new \RuntimeException( 'store-failure-canary' );
+		$workflow              = $this->workflow( $credentials, null, $transport );
+		$preview               = $workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), null );
+		self::assertTrue( $preview->successful() );
+		$requests_before = count( $transport->requests );
+		$results         = array(
+			'inspect' => $workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), 'eligible' ),
+			'setup'   => $workflow->setup( $status, $preview->preview_key(), 'owner/example-plugin', WorkflowProviderFixtures::preflight(), 'eligible' ),
+		);
+
+		// The outcome read needs a current record.
+		$records                       = new SetupRecordStore();
+		$outcome_credentials           = new WorkflowCredentialStore();
+		$outcome_credentials->$failure = new \RuntimeException( 'store-failure-canary' );
+		self::assertTrue( $records->save( $this->record() ) );
+		$results['outcome'] = $this->workflow( $outcome_credentials, $records, $transport )->outcome( $status, 'eligible' );
+
+		foreach ( $results as $operation => $result ) {
+			self::assertFalse( $result->successful(), $operation );
+			self::assertSame( 'workflow_remote_unavailable', $result->workflow_code(), $operation );
+			self::assertSame( 'credential_authorisation', $result->failure_stage(), $operation );
+			self::assertSame( 'provider_unavailable', $result->diagnostic_code(), $operation );
+			self::assertStringNotContainsString( 'store-failure-canary', $result->workflow_code() . $result->failure_stage() . $result->diagnostic_code() . $result->correlation_reference(), $operation );
+		}
+		self::assertSame( $preview->preview_key(), $results['setup']->preview_key() );
+		self::assertCount( $requests_before, $transport->requests, 'No GitHub request is made.' );
+	}
+
+	public function test_an_operation_guard_that_stops_credential_reading_keeps_its_existing_outcome(): void {
+		$credentials = new WorkflowCredentialStore();
+		$workflow    = $this->workflow(
+			$credentials,
+			null,
+			null,
+			static function () use ( $credentials ): void {
+				if ( 1 === $credentials->profile_reads && array() === $credentials->material_reads ) {
+					throw new \RuntimeException( 'guard-canary' );
+				}
+			}
+		);
+
+		$result = $workflow->inspect( WorkflowProviderFixtures::target(), 'stable', WorkflowProviderFixtures::preflight(), 'eligible' );
+
+		self::assertSame( 'workflow_unauthorised', $result->workflow_code() );
+		self::assertSame( 'credential_authorisation_unavailable', $result->diagnostic_code() );
+	}
 
 	public function test_credential_choice_label_is_utf8_safe_and_bounded_to_status_contract(): void {
 		$credentials           = new WorkflowCredentialStore();

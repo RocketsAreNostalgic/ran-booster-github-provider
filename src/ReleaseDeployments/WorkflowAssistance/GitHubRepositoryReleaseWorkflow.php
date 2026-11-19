@@ -93,6 +93,9 @@ final class GitHubRepositoryReleaseWorkflow {
 			return $this->result( $this->preflight_result( $preflight ) );
 		}
 		$token = $this->credential( $credential_id, false );
+		if ( null === $token ) {
+			return $this->result( $this->credential_store_unavailable() );
+		}
 		return $this->result( $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->inspect( $status, $channel, $preflight, $token, $progress ) );
 	}
 	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
@@ -104,6 +107,9 @@ final class GitHubRepositoryReleaseWorkflow {
 			return $this->result( $this->unauthorised( $key ) );
 		}
 		$token = $this->credential( $credential_id, true );
+		if ( null === $token ) {
+			return $this->result( $this->credential_store_unavailable( $key ) );
+		}
 		return $this->result( '' === $token ? $this->unauthorised( $key ) : $this->coordinator->setup( $status, $key, $confirmation, $preflight, $token, $progress ) );
 	}
 	public function outcome( RepositoryReleaseWorkflowTarget $status, ?string $credential_id, ?ActivityProgress $progress = null ): RepositoryReleaseWorkflowResult {
@@ -112,6 +118,9 @@ final class GitHubRepositoryReleaseWorkflow {
 			return $this->result( $this->invalid_request() );
 		}
 		$token = $this->credential( $credential_id, true );
+		if ( null === $token ) {
+			return $this->result( $this->credential_store_unavailable() );
+		}
 		return $this->result( $this->selected_credential_unavailable( $credential_id, $token ) ? $this->unauthorised() : $this->coordinator->outcome( $status, $token, $progress ) );
 	}
 	/**
@@ -148,6 +157,20 @@ final class GitHubRepositoryReleaseWorkflow {
 		);
 	}
 	/**
+	 * A failing credential store is not a rejected credential: nothing was sent to GitHub.
+	 *
+	 * @return array{code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
+	 */
+	private function credential_store_unavailable( string $key = '' ): array {
+		return array(
+			'code'            => 'workflow_remote_unavailable',
+			'successful'      => false,
+			'preview_key'     => $key,
+			'failure_stage'   => 'credential_authorisation',
+			'diagnostic_code' => 'provider_unavailable',
+		);
+	}
+	/**
 	 * @return array{code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
 	private function invalid_request( string $key = '' ): array {
@@ -159,23 +182,36 @@ final class GitHubRepositoryReleaseWorkflow {
 			'diagnostic_code' => '',
 		);
 	}
-	private function credential( ?string $id, bool $required ): string {
+	/** @return string|null The token, an empty string when none is usable, or null when the credential store itself failed. */
+	private function credential( ?string $id, bool $required ): ?string {
 		if ( null === $id || '' === $id ) {
 			return '';
-		} try {
+		}
+		try {
 			$this->assert_operation?->__invoke();
-			$profile = $this->credentials->credential_profiles()[ $id ] ?? null;
+			try {
+				$profile = $this->credentials->credential_profiles()[ $id ] ?? null;
+			} catch ( Throwable ) {
+				return null;
+			}
 			$this->assert_operation?->__invoke();
 			if ( ! is_array( $profile ) || 'file' !== ( $profile['source'] ?? null ) || ! empty( $profile['immutable'] ) || empty( $profile['configured'] ) ) {
 				return '';
 			}
 			$this->assert_operation?->__invoke();
-			$material = $this->credentials->credential_material( $id );
+			try {
+				$material = $this->credentials->credential_material( $id );
+			} catch ( Throwable ) {
+				return null;
+			}
 			$this->assert_operation?->__invoke();
 			$secret = is_array( $material ) && is_string( $material['secret'] ?? null ) ? trim( $material['secret'] ) : '';
 			return '' === $secret && $required ? '' : $secret;
 		} catch ( Throwable ) {
-			return ''; } }
+			// An operation guard that stops the work is not a store failure; it keeps its existing outcome.
+			return '';
+		}
+	}
 	private function selected_credential_unavailable( ?string $id, #[\SensitiveParameter] string $token ): bool {
 		return null !== $id && '' !== $id && '' === $token;
 	}
