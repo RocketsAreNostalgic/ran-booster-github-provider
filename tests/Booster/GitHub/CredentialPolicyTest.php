@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\CredentialPolicy;
 use RAN\RepositoryProvider\InvalidCredentialInput;
+use RAN\UpdaterSupport\V1\FailureText;
 
 final class CredentialPolicyTest extends TestCase {
 
@@ -36,22 +37,26 @@ final class CredentialPolicyTest extends TestCase {
 		}
 	}
 
-	/** @return array<string, array{string, string, string}> */
+	private const CLASSIC_SELECTED_MISMATCH   = 'This token does not look like a classic personal access token. Choose Fine-grained personal access token if it is a fine-grained token.';
+	private const FINE_SELECTED_CLASSIC_TOKEN = 'This token looks like a classic personal access token. Choose Classic personal access token or paste a fine-grained token.';
+	private const FINE_SELECTED_OTHER_TOKEN   = 'This token does not look like a fine-grained personal access token. Choose Classic personal access token if it is a classic token.';
+
+	/** @return array<string, array{string, string, string, string|null}> */
 	public static function invalid_submitted_token(): array {
 		return array(
-			'classic uses fine prefix'           => array( 'classic', 'github_pat_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH ),
-			'classic has unknown prefix'         => array( 'classic', 'future_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH ),
-			'fine-grained uses classic prefix'   => array( 'fine-grained', 'ghp_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH ),
-			'fine-grained has unknown prefix'    => array( 'fine-grained', 'future_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH ),
-			'token is truncated'                 => array( 'classic', 'ghp_short', InvalidCredentialInput::INVALID_SECRET_SHAPE ),
-			'token is over the defensive bound'  => array( 'classic', 'ghp_' . str_repeat( 'a', 252 ), InvalidCredentialInput::INVALID_SECRET_SHAPE ),
-			'token contains punctuation'         => array( 'classic', 'ghp_' . str_repeat( 'a', 35 ) . '-', InvalidCredentialInput::INVALID_SECRET_SHAPE ),
-			'token contains a control character' => array( 'fine-grained', 'github_pat_' . str_repeat( 'a', 29 ) . "\n", InvalidCredentialInput::INVALID_SECRET_SHAPE ),
+			'classic uses fine prefix'           => array( 'classic', 'github_pat_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH, self::CLASSIC_SELECTED_MISMATCH ),
+			'classic has unknown prefix'         => array( 'classic', 'future_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH, self::CLASSIC_SELECTED_MISMATCH ),
+			'fine-grained uses classic prefix'   => array( 'fine-grained', 'ghp_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH, self::FINE_SELECTED_CLASSIC_TOKEN ),
+			'fine-grained has unknown prefix'    => array( 'fine-grained', 'future_' . str_repeat( 'a', 40 ), InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH, self::FINE_SELECTED_OTHER_TOKEN ),
+			'token is truncated'                 => array( 'classic', 'ghp_short', InvalidCredentialInput::INVALID_SECRET_SHAPE, null ),
+			'token is over the defensive bound'  => array( 'classic', 'ghp_' . str_repeat( 'a', 252 ), InvalidCredentialInput::INVALID_SECRET_SHAPE, null ),
+			'token contains punctuation'         => array( 'classic', 'ghp_' . str_repeat( 'a', 35 ) . '-', InvalidCredentialInput::INVALID_SECRET_SHAPE, null ),
+			'token contains a control character' => array( 'fine-grained', 'github_pat_' . str_repeat( 'a', 29 ) . "\n", InvalidCredentialInput::INVALID_SECRET_SHAPE, null ),
 		);
 	}
 
 	#[DataProvider( 'invalid_submitted_token' )]
-	public function test_newly_submitted_tokens_use_closed_prefix_and_shape_validation( string $kind, string $token, string $reason ): void {
+	public function test_newly_submitted_tokens_use_closed_prefix_and_shape_validation( string $kind, string $token, string $reason, ?string $message ): void {
 		$policy = new CredentialPolicy();
 
 		try {
@@ -67,6 +72,10 @@ final class CredentialPolicyTest extends TestCase {
 		} catch ( InvalidCredentialInput $failure ) {
 			self::assertSame( $reason, $failure->reason );
 			self::assertStringNotContainsString( $token, $failure->getMessage() );
+			self::assertSame( $failure->getMessage(), FailureText::display( $failure->getMessage(), 255 ), 'Core\'s shared display screen must keep the message.' );
+			if ( null !== $message ) {
+				self::assertSame( $message, $failure->getMessage() );
+			}
 		}
 	}
 
