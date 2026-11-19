@@ -69,7 +69,9 @@ final class RepositoryResolverTest extends TestCase {
 		self::assertStringContainsString( 'Booster does not change that GitHub repository selection', $setup->credential_summary );
 		self::assertStringContainsString( 'Contents to Read-only', $setup->credential_summary );
 		self::assertStringContainsString( 'admin:repo_hook', $setup->credential_summary );
-		self::assertStringContainsString( 'Webhooks: Read and write', $setup->credential_summary );
+		self::assertStringContainsString( 'write:repo_hook cannot remove a webhook', $setup->credential_summary );
+		self::assertStringContainsString( 'repo gives far more access than Booster needs', $setup->credential_summary );
+		self::assertStringContainsString( 'Webhooks: Read and write, which covers set-up through removal (read-only is not enough)', $setup->credential_summary );
 		self::assertStringContainsString( 'Workflows: Read and write', $setup->credential_summary );
 	}
 
