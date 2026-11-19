@@ -82,8 +82,12 @@ final class RepositoryWebhookClient {
 		return $this->result( 'partial', 'setup_compensation_incomplete', $hook_id, $this->unknown_configuration(), 'unknown', 'Inspect the identified remote hook before retrying.' );
 	}
 	public function check( string $repository, string $hook_id, string $callback_url, #[\SensitiveParameter] string $token ): RepositoryWebhookOperationResult {
-		$response = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, microtime( true ) + self::TOTAL_TIMEOUT );
+		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
+		$response = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		if ( 404 === $response['status'] ) {
+			if ( ! $this->hook_absence_proven( $repository, $hook_id, $token, $deadline ) ) {
+				return $this->uncertain( 'hook_readback_unavailable', $hook_id );
+			}
 			return $this->result( 'succeeded', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'Set up a replacement only after reviewing the retained local record.' );
 		}
 		$hook = 200 === $response['status'] ? $this->decode_hook( $response['body'] ) : null;
@@ -153,6 +157,9 @@ final class RepositoryWebhookClient {
 		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
 		$before   = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		if ( 404 === $before['status'] ) {
+			if ( ! $this->hook_absence_proven( $repository, $hook_id, $token, $deadline ) ) {
+				return $this->uncertain( 'predelete_read_unavailable', $hook_id );
+			}
 			return $this->result( 'succeeded', 'absence_confirmed', $hook_id, $this->unknown_configuration(), 'absent', 'The remote hook is absent.' );
 		}
 		$hook = 200 === $before['status'] ? $this->decode_hook( $before['body'] ) : null;
@@ -171,7 +178,25 @@ final class RepositoryWebhookClient {
 			? $this->result( 'succeeded', 'absence_confirmed', $hook_id, $this->unknown_configuration(), 'absent', 'The remote hook is absent.' )
 			: $this->uncertain( 'remove_readback_unavailable', $hook_id );
 	}
-	private function assess( string $repository_id, string $repository, string $token, string $action ): RepositoryWebhookFitnessResult {
+	/**
+	 * GitHub answers 404 for a hook the token cannot see as well as for one that does not exist.
+	 * A hook-path 404 proves absence only when the repository's hook list is readable with the same
+	 * token and does not contain the hook.
+	 */
+	private function hook_absence_proven( string $repository, string $hook_id, #[\SensitiveParameter] string $token, float $deadline ): bool {
+		$response = $this->request( 'GET', $this->hooks_path( $repository ) . '?per_page=1', $token, null, self::READ_BYTES, $deadline );
+		$hooks    = 200 === $response['status'] ? $this->decode_list( $response['body'] ) : null;
+		if ( null === $hooks ) {
+			return false;
+		}
+		foreach ( $hooks as $hook ) {
+			if ( hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+	private function assess( string $repository_id, string $repository, #[\SensitiveParameter] string $token, string $action ): RepositoryWebhookFitnessResult {
 		$response = $this->request( 'GET', $this->repository_path( $repository ), $token, null, self::READ_BYTES, microtime( true ) + self::TOTAL_TIMEOUT );
 		$now      = $this->now();
 		if ( 200 !== $response['status'] ) {
@@ -195,7 +220,7 @@ final class RepositoryWebhookClient {
 	 * @return array{status:int,body:string,response:mixed}
 	 * @param array<string,mixed>|null $body
 	 */
-	private function request( string $method, string $path, string $token, ?array $body, int $limit, float $deadline ): array {
+	private function request( string $method, string $path, #[\SensitiveParameter] string $token, ?array $body, int $limit, float $deadline ): array {
 		$remaining = $deadline - microtime( true );
 		if ( $remaining <= 0 ) {
 			return array(
@@ -293,7 +318,7 @@ final class RepositoryWebhookClient {
 		);
 	}
 	/** @return array<string,mixed> */
-	private function payload( string $callback_url, string $secret ): array {
+	private function payload( string $callback_url, #[\SensitiveParameter] string $secret ): array {
 		return array(
 			'name'   => 'web',
 			'active' => true,

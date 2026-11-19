@@ -27,7 +27,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 		private string $metadata_file,
 		private string $repository,
 		private string $provider_repository_id,
-		string|callable|null $access_token,
+		#[\SensitiveParameter] string|callable|null $access_token,
 		private string $channel,
 		private string $deployment_policy,
 		?callable $maximum_artifact_bytes = null
