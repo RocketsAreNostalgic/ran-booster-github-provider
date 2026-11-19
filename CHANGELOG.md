@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.0.0-beta.27](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.26...v1.0.0-beta.27) (2026-11-19)
+
+
+### Features
+
+* **webhooks:** pass the ping repository id to Core ([#138](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/138)) ([36aef23](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/36aef23be15db41345e7478c10b77c84cf3dac66))
+
+
+### Bug Fixes
+
+* **credentials:** reword token-type messages without prefixes ([#137](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/137)) ([8522e0d](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/8522e0dcee42885e275166e2d543c878197ed578))
+* **provider:** do not report a path absent without access proof ([#134](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/134)) ([4844596](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/4844596175c0f474f11344cc1b6a62b38a45677a))
+* **releases:** report unsupported filesystem and gone releases ([#132](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/132)) ([d448d79](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/d448d79b41480ce1bb9feb4d7a864382730f2fbc))
+* **security:** mark private token-carrying parameters sensitive ([#130](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/130)) ([cfa7afa](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/cfa7afaa630b27e379e3ad4504e25f64f1f4ec6c))
+* **webhooks:** accept the repo scope and document webhook scopes ([#139](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/139)) ([c1f50e5](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/c1f50e5ec3bbdcc31a6c8f3f7c69898c12eaf172))
+* **webhooks:** do not report an unproven hook 404 as absence ([#131](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/131)) ([f060288](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/f060288104f99ba9bd2e45a9a692ab52fa77a41b))
+* **webhooks:** fail set-up cleanly before any create request ([#140](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/140)) ([bc54831](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/bc5483174cee1511576ce8e692c3217b69e2a255))
+* **webhooks:** report failed requests by what they prove ([#136](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/136)) ([0bc27f7](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/0bc27f7c1006b8b0f66f7af9b7cc4e6386041c34))
+* **workflow:** report a credential store failure as unavailable ([#135](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/135)) ([ff7b6bf](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/ff7b6bf0a9a4cacc26aae16a9033a0498ab3cf3d))
+
 ## [1.0.0-beta.26](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.25...v1.0.0-beta.26) (2026-11-18)
 
 
