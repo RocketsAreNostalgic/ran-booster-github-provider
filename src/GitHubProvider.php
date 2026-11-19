@@ -533,16 +533,19 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		string $channel
 	): RepositoryReleaseCandidateList {
 		try {
-			if ( ! $this->ensure_direct_filesystem() ) {
-				throw new RuntimeException();
+			$direct = $this->ensure_direct_filesystem();
+			if ( $direct ) {
+				$source = $this->release_source( $package_type, $repository, $channel );
+				if ( ! is_callable( array( $source, 'list' ) ) ) {
+					throw new RuntimeException( 'The public release source is incompatible.' );
+				}
+				$result = $source->list();
 			}
-			$source = $this->release_source( $package_type, $repository, $channel );
-			if ( ! is_callable( array( $source, 'list' ) ) ) {
-				throw new RuntimeException( 'The public release source is incompatible.' );
-			}
-			$result = $source->list();
 		} catch ( \Throwable ) {
 			throw new RuntimeException( 'GitHub release candidate listing is unavailable.', 503 );
+		}
+		if ( ! $direct ) {
+			$this->filesystem_unsupported( 'listing' );
 		}
 		$this->listing_failure( $result );
 		if ( ! $this->success( $result, 'releases_listed', 'not_applicable' )
@@ -612,24 +615,27 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 
 		try {
-			if ( ! $this->ensure_direct_filesystem() ) {
-				throw new RuntimeException();
-			}
-			$source = $this->release_source( $package_type, $repository, $channel, true );
-			if ( ! is_callable( array( $source, 'inspect' ) ) ) {
-				throw new RuntimeException( 'The public release source is incompatible.' );
-			}
-			$result = $source->inspect( $provider_release_id, $tag );
-			if ( $this->failure( $this->without_rejection( $result )[0], 'inspect', 'invalid_configuration' ) ) {
-				// An older updater runtime rejects the opt-in; inspect again without it.
-				$source = $this->release_source( $package_type, $repository, $channel );
+			$direct = $this->ensure_direct_filesystem();
+			if ( $direct ) {
+				$source = $this->release_source( $package_type, $repository, $channel, true );
 				if ( ! is_callable( array( $source, 'inspect' ) ) ) {
 					throw new RuntimeException( 'The public release source is incompatible.' );
 				}
 				$result = $source->inspect( $provider_release_id, $tag );
+				if ( $this->failure( $this->without_rejection( $result )[0], 'inspect', 'invalid_configuration' ) ) {
+					// An older updater runtime rejects the opt-in; inspect again without it.
+					$source = $this->release_source( $package_type, $repository, $channel );
+					if ( ! is_callable( array( $source, 'inspect' ) ) ) {
+						throw new RuntimeException( 'The public release source is incompatible.' );
+					}
+					$result = $source->inspect( $provider_release_id, $tag );
+				}
 			}
 		} catch ( \Throwable ) {
 			throw new RuntimeException( 'GitHub release inspection is unavailable.', 503 );
+		}
+		if ( ! $direct ) {
+			$this->filesystem_unsupported( 'inspection' );
 		}
 		[ $result, $rejection ] = $this->without_rejection( $result );
 		if ( $this->read_unavailable( $result, 'inspect' ) ) {
@@ -641,6 +647,10 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			}
 			if ( $this->failure( $result, 'inspect', 'package_incompatible' ) ) {
 				throw RepositoryReleaseInspectionRejected::incompatible( $this->rejection_detail( $rejection ) );
+			}
+			if ( $this->failure( $result, 'inspect', 'release_unavailable' ) || $this->failure( $result, 'inspect', 'release_changed' ) ) {
+				// A deleted or changed release is no longer the selected release, as at acquisition.
+				throw RepositoryReleaseInspectionRejected::invalid_release();
 			}
 			throw new RuntimeException( 'GitHub could not inspect the selected release.', 502 );
 		}
@@ -686,16 +696,19 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 
 		try {
-			if ( ! $this->ensure_direct_filesystem() ) {
-				throw new RuntimeException();
+			$direct = $this->ensure_direct_filesystem();
+			if ( $direct ) {
+				$source = $this->release_source( $package_type, $repository, $channel );
+				if ( ! is_callable( array( $source, 'acquire' ) ) ) {
+					throw new RuntimeException( 'The public release source is incompatible.' );
+				}
+				$result = $source->acquire( $provider_release_id, $tag, $expected_fingerprint );
 			}
-			$source = $this->release_source( $package_type, $repository, $channel );
-			if ( ! is_callable( array( $source, 'acquire' ) ) ) {
-				throw new RuntimeException( 'The public release source is incompatible.' );
-			}
-			$result = $source->acquire( $provider_release_id, $tag, $expected_fingerprint );
 		} catch ( \Throwable ) {
 			throw new RuntimeException( 'GitHub release acquisition is unavailable.', 503 );
+		}
+		if ( ! $direct ) {
+			$this->filesystem_unsupported( 'acquisition' );
 		}
 		if ( is_array( $result ) && 'failed' === ( $result['cleanup_status'] ?? null ) ) {
 			throw RepositoryReleaseAcquisitionRejected::cleanup_failed();
@@ -1005,6 +1018,25 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		$maximum = null === $this->maximum_artifact_bytes ? null : ( $this->maximum_artifact_bytes )();
 		$this->assert_operation?->__invoke();
 		return $maximum;
+	}
+
+	/**
+	 * A site without a direct filesystem fails every release read the same way until it changes,
+	 * so it is reported as a fixed site condition rather than a transient 503.
+	 *
+	 * @param 'listing'|'inspection'|'acquisition' $operation
+	 */
+	private function filesystem_unsupported( string $operation ): never {
+		$message = 'GitHub release ' . $operation . ' requires a direct filesystem.';
+		if ( class_exists( ProviderFailure::class ) && property_exists( RepositoryReleaseReadUnavailable::class, 'failure' ) ) {
+			// The certified older host has only RuntimeException's three constructor arguments.
+			$failure = ( new \ReflectionClass( RepositoryReleaseReadUnavailable::class ) )->newInstanceArgs(
+				array( $message, 501, null, new ProviderFailure( 'site_filesystem_unsupported' ) )
+			);
+			throw $failure;
+		}
+
+		throw new RuntimeException( $message, 501 );
 	}
 
 	private function ensure_direct_filesystem(): bool {
