@@ -133,7 +133,7 @@ final class GitHubRepositoryClient {
 		string $repository_id,
 		string $default_branch,
 		string $sha,
-		string $token = ''
+		#[\SensitiveParameter] string $token = ''
 	): array {
 		if ( ! $this->valid_repository( $repository ) || null === $this->numeric_string( $repository_id )
 			|| ! $this->valid_branch( $default_branch ) || ! $this->valid_sha( $sha ) ) {

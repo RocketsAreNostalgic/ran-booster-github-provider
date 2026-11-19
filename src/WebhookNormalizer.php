@@ -111,7 +111,9 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 
 		if ( 'ping' === $event ) {
 			$this->assert_operation?->__invoke();
-			return WebhookEnvelope::probe();
+			// The certified older host's probe() takes no argument and ignores one, so only reflection can pass it past its static signature.
+			$probe = ( new \ReflectionMethod( WebhookEnvelope::class, 'probe' ) )->invoke( null, $this->ping_repository_id( $body ) );
+			return $probe instanceof WebhookEnvelope ? $probe : WebhookEnvelope::probe();
 		}
 
 		if ( 'push' !== $event ) {
@@ -243,6 +245,23 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			'commit'        => $payload['after'],
 			'deleted'       => $payload['deleted'] ?? false,
 		);
+	}
+
+	/**
+	 * The repository a signed ping names, or null. A ping is accepted whatever its body holds, so
+	 * a missing, malformed or unusable id never rejects it.
+	 */
+	private function ping_repository_id( string $body ): ?string {
+		try {
+			$payload = json_decode( $body, true, 512, JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR );
+		} catch ( JsonException ) {
+			return null;
+		}
+		$repository = is_array( $payload ) && is_array( $payload['repository'] ?? null ) ? $payload['repository'] : array();
+		$id         = $repository['id'] ?? null;
+		$id         = is_int( $id ) ? (string) $id : $id;
+
+		return is_string( $id ) && 1 === preg_match( '/\A[1-9][0-9]{0,18}\z/D', $id ) ? $id : null;
 	}
 
 	private function normalize_repository_id( mixed $repository_id ): string {

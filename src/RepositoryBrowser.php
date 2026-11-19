@@ -554,7 +554,7 @@ class RepositoryBrowser {
 	/** @param array<string, string> $headers */
 	private function browse_pages(
 		string $endpoint,
-		array $headers,
+		#[\SensitiveParameter] array $headers,
 		RepositoryBrowseRequest $request,
 		?string $credential_id,
 		bool $public_only
