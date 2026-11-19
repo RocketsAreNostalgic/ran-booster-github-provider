@@ -36,11 +36,11 @@ final class RepositoryWebhookClient {
 		for ( $page = 1; $page <= 3; ++$page ) {
 			$response = $this->request( 'GET', $this->hooks_path( $repository ) . '?per_page=100&page=' . $page, $token, null, self::LIST_PAGE_BYTES, $deadline );
 			if ( 200 !== $response['status'] ) {
-				return $this->failure_result( $response, 'hook_inventory_unavailable' );
+				return $this->failure_result( $response, 'hook_inventory_unavailable', null, '', true );
 			}
 			$hooks = $this->decode_list( $response['body'] );
 			if ( null === $hooks ) {
-				return $this->uncertain( 'hook_inventory_invalid' );
+				return $this->refused_before_create( 'hook_inventory_invalid' );
 			}
 			foreach ( $hooks as $hook ) {
 				$configuration = $this->configuration( $hook, $callback_url );
@@ -52,14 +52,14 @@ final class RepositoryWebhookClient {
 				break;
 			}
 			if ( 3 === $page ) {
-				return $this->uncertain( 'hook_inventory_incomplete' );
+				return $this->refused_before_create( 'hook_inventory_incomplete' );
 			}
 		}
 		if ( 1 < count( $matches ) ) {
-			return $this->uncertain( 'matching_hooks_ambiguous' );
+			return $this->refused_before_create( 'matching_hooks_ambiguous' );
 		}
 		if ( 1 === count( $matches ) ) {
-			return $this->result( 'ambiguous', 'existing_hook_requires_reconfigure', null, $matches[0][1], 'unknown', 'An existing endpoint cannot prove the stored signing secret; inspect it and use explicit reconfiguration.' );
+			return $this->result( 'failed', 'existing_hook_requires_reconfigure', null, $matches[0][1], 'unknown', 'A webhook for this site already exists on GitHub. Remove it there, then set up again.' );
 		}
 		$created = $this->request( 'POST', $this->hooks_path( $repository ), $token, $this->payload( $callback_url, $secret ), self::READ_BYTES, $deadline );
 		if ( 201 !== $created['status'] ) {
@@ -357,25 +357,30 @@ final class RepositoryWebhookClient {
 	}
 	/**
 	 * Reports a failed request by what the response proves. Anything not listed keeps the caller's
-	 * ambiguous fallback code, because the effect of the request is then unknown. The access suffix is
+	 * ambiguous fallback code, because the effect of the request is then unknown, unless the request was a
+	 * read made before any create request, which cannot have changed anything. The access suffix is
 	 * appended only to the three results that mean the credential cannot act on the repository.
 	 *
 	 * @param array{status:int,body:string,response:mixed} $response
 	 */
-	private function failure_result( array $response, string $fallback_code, ?string $hook_id = null, string $access_suffix = '' ): RepositoryWebhookOperationResult {
+	private function failure_result( array $response, string $fallback_code, ?string $hook_id = null, string $access_suffix = '', bool $nothing_changed = false ): RepositoryWebhookOperationResult {
 		$status = $response['status'];
 		if ( 599 === $status ) {
-			return $this->result( 'ambiguous', 'transport_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not be reached; the outcome is unknown.' );
+			return $nothing_changed
+				? $this->result( 'failed', 'transport_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not be reached. Nothing was changed on GitHub.' )
+				: $this->result( 'ambiguous', 'transport_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not be reached; the outcome is unknown.' );
 		}
 		if ( $this->is_rate_limited( $response['response'], $status ) ) {
-			return $this->result( 'ambiguous', 'rate_limited', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
+			return $nothing_changed
+				? $this->result( 'failed', 'rate_limited', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rate limited the request. Nothing was changed on GitHub.' )
+				: $this->result( 'ambiguous', 'rate_limited', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
 		}
 		return match ( $status ) {
 			401 => $this->result( 'failed', 'credential_rejected', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the selected credential. Choose a valid credential and try again.' . $access_suffix ),
 			403 => $this->result( 'failed', 'permission_denied', $hook_id, $this->unknown_configuration(), 'unknown', 'The selected credential cannot manage webhooks on this repository.' . $access_suffix ),
 			404 => $this->result( 'failed', 'repository_not_found_or_no_access', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not find the repository, or the credential cannot manage its webhooks.' . $access_suffix ),
 			400, 422 => $this->result( 'failed', 'http_4xx_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the fixed webhook inputs.' ),
-			default => $this->uncertain( $fallback_code, $hook_id ),
+			default => $nothing_changed ? $this->refused_before_create( $fallback_code ) : $this->uncertain( $fallback_code, $hook_id ),
 		};
 	}
 	/** A 429, or a 403 that carries GitHub's documented rate-limit signals, is a rate limit and not an access refusal. */
@@ -400,6 +405,10 @@ final class RepositoryWebhookClient {
 		}
 		$retry_at = \DateTimeImmutable::createFromFormat( '!D, d M Y H:i:s \G\M\T', $retry_after, new \DateTimeZone( 'GMT' ) );
 		return false !== $retry_at && $retry_at->format( 'D, d M Y H:i:s \G\M\T' ) === $retry_after;
+	}
+	/** Set-up stopped before sending any create request, so nothing on GitHub changed and no record should be kept. */
+	private function refused_before_create( string $code ): RepositoryWebhookOperationResult {
+		return $this->result( 'failed', $code, null, $this->unknown_configuration(), 'unknown', 'Inspect the provider state before retrying; automatic retry is disabled.' );
 	}
 	private function uncertain( string $code, ?string $hook_id = null ): RepositoryWebhookOperationResult {
 		return $this->result( 'ambiguous', $code, $hook_id, $this->unknown_configuration(), 'unknown', 'Inspect the provider state before retrying; automatic retry is disabled.' );
