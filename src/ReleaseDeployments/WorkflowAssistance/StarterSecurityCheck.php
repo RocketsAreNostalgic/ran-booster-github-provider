@@ -22,7 +22,7 @@ final class StarterSecurityCheck {
 	 * Missing provenance does not block ordinary adoption. Core wiring is a separate contract.
 	 * @return array{status:string,matches:list<array<string,mixed>>}
 	 */
-	public function check( string $origin_bytes, string $token = '' ): array {
+	public function check( string $origin_bytes, #[\SensitiveParameter] string $token = '' ): array {
 		$unknown = array(
 			'status'  => 'unknown',
 			'matches' => array(),
@@ -117,7 +117,7 @@ final class StarterSecurityCheck {
 	}
 
 	/** @return array<string,mixed>|null */
-	private function read( string $path, string $token, bool $raw = false ): ?array {
+	private function read( string $path, #[\SensitiveParameter] string $token, bool $raw = false ): ?array {
 		try {
 			$headers = array(
 				'Accept'               => $raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',

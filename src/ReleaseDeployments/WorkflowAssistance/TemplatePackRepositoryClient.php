@@ -36,7 +36,7 @@ final class TemplatePackRepositoryClient {
 	 *
 	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
 	 */
-	public function discover( string $token = '' ): array {
+	public function discover( #[\SensitiveParameter] string $token = '' ): array {
 		$repository = $this->repository( $token );
 		if ( 'ok' !== $repository['code'] ) {
 			return $repository;
@@ -72,7 +72,7 @@ final class TemplatePackRepositoryClient {
 	}
 
 	/** @return array{code:'ok'|'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
-	private function repository( string $token ): array {
+	private function repository( #[\SensitiveParameter] string $token ): array {
 		$response = $this->json_request( '/repos/' . self::REPOSITORY, 65536, $token );
 		if ( 'ok' !== $response['code'] ) {
 			return $response;
@@ -88,7 +88,7 @@ final class TemplatePackRepositoryClient {
 	 * @param array{release_id:int,release_tag:string,release_target:string,version:string,asset_count:int,asset_id:int,asset_name:string,asset_state:string,asset_content_type:string,asset_size:int,asset_digest:string,asset_sha256:string} $candidate
 	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
 	 */
-	private function verified_release( array $candidate, string $token ): array {
+	private function verified_release( array $candidate, #[\SensitiveParameter] string $token ): array {
 		$release = $this->json_request(
 			'/repos/' . self::REPOSITORY . '/releases/' . $candidate['release_id'],
 			self::JSON_BODY_LIMIT,
@@ -221,7 +221,7 @@ final class TemplatePackRepositoryClient {
 	}
 
 	/** @return array{code:'ok',data:array<array-key,mixed>}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
-	private function json_request( string $path, int $limit, string $token ): array {
+	private function json_request( string $path, int $limit, #[\SensitiveParameter] string $token ): array {
 		$response = $this->request( $path, 'application/vnd.github+json', $limit, 0, $token );
 		if ( 'ok' !== $response['code'] ) {
 			return $response;
@@ -239,12 +239,12 @@ final class TemplatePackRepositoryClient {
 	}
 
 	/** @return array{code:'ok',body:string}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
-	private function binary_request( string $path, int $expected_size, string $token ): array {
+	private function binary_request( string $path, int $expected_size, #[\SensitiveParameter] string $token ): array {
 		return $this->request( $path, 'application/octet-stream', min( self::ASSET_BODY_LIMIT, $expected_size + 1 ), 3, $token );
 	}
 
 	/** @return array{code:'ok',body:string}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
-	private function request( string $path, string $accept, int $limit, int $redirects, string $token ): array {
+	private function request( string $path, string $accept, int $limit, int $redirects, #[\SensitiveParameter] string $token ): array {
 		if ( ! str_starts_with( $path, '/repos/' ) || $limit < 1 || $limit > self::ASSET_BODY_LIMIT ) {
 			return $this->error( 'template_pack_invalid' );
 		}
