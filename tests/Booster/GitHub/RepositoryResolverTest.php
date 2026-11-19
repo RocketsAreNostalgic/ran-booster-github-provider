@@ -734,8 +734,64 @@ final class RepositoryResolverTest extends TestCase {
 		);
 		self::assertFalse( $browser->path_exists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/plugin.php', 'private-profile', true ) );
 
-		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_reset( $this->error_response( 404, array() ) );
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->error_response( 404, array() ), $this->response( 200, array() ) ) );
 		self::assertFalse( $browser->path_exists( 'RocketsAreNostalgic/private-plugin', $ref, 'packages/missing', 'private-profile', true ) );
+		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
+		self::assertCount( 2, $requests );
+		self::assertStringEndsWith( '/repos/RocketsAreNostalgic/private-plugin/branches?per_page=1', $requests[1]['url'] );
+		self::assertSame( 'Bearer ' . self::TOKEN, $requests[1]['arguments']['headers']['Authorization'] );
+	}
+
+	public function test_repository_path_absence_on_a_public_repository_without_a_credential_needs_no_access_proof(): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->error_response( 404, array() ) ) );
+
+		self::assertFalse( ( new RepositoryBrowser( new RepositoryResolverSecretsStub() ) )->path_exists( 'RocketsAreNostalgic/example-plugin', str_repeat( 'a', 40 ), 'packages/missing' ) );
+		self::assertCount( 1, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+	}
+
+	/** @return array<string, array{mixed}> */
+	public static function unproven_path_access_probes(): array {
+		return array(
+			'probe also 404'           => array( 404 ),
+			'probe forbidden'          => array( 403 ),
+			'probe rate limited'       => array( 429 ),
+			'probe server error'       => array( 503 ),
+			'probe transport failure'  => array( new \RAN\BoosterGitHubProvider\V1\RepositoryResolverWpError( 'http_request_failed' ) ),
+			'probe is not a list'      => array( 'not_a_list' ),
+			'probe entry is malformed' => array( 'malformed_entry' ),
+		);
+	}
+
+	#[DataProvider( 'unproven_path_access_probes' )]
+	public function test_a_credentialed_path_404_is_not_absence_until_access_is_proven( mixed $probe ): void {
+		$has_carrier = class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class );
+		foreach ( array( false, true ) as $is_private ) {
+			$reply = match ( true ) {
+				is_int( $probe ) => $this->error_response( $probe, array() ),
+				'not_a_list' === $probe => $this->response( 200, array( 'message' => 'not a list' ) ),
+				'malformed_entry' === $probe => $this->response( 200, array( array( 'name' => 'other' ) ) ),
+				default => $probe,
+			};
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->error_response( 404, array() ), $reply ) );
+			$browser = new RepositoryBrowser( new RepositoryResolverSecretsStub( array( 'read-profile' => self::TOKEN ) ) );
+			try {
+				$browser->path_exists( 'owner/example', str_repeat( 'a', 40 ), 'packages/example', 'read-profile', $is_private );
+				self::fail( 'A 404 without proof of access must not report the path as absent.' );
+			} catch ( RuntimeException $exception ) {
+				self::assertSame( 404, $exception->getCode() );
+				if ( $has_carrier ) {
+					$failure = \RAN\RepositoryProvider\ProviderFailure::carried( $exception );
+					self::assertNotNull( $failure );
+					self::assertSame( 'repository_not_found_or_no_access', $failure->reason );
+					self::assertSame( 404, $failure->http_status );
+				} else {
+					self::assertSame( 'GitHub could not find the repository path, or the selected credential cannot access it.', $exception->getMessage() );
+				}
+				self::assertStringNotContainsString( self::TOKEN, $exception->getMessage() );
+				self::assertStringNotContainsString( 'upstream-response-canary', $exception->getMessage() );
+				self::assertCount( 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+			}
+		}
 	}
 
 	public function test_repository_path_check_rejects_malformed_or_unexpected_successful_bodies(): void {
@@ -995,12 +1051,9 @@ final class RepositoryResolverTest extends TestCase {
 	public function test_repository_reads_and_browse_carry_documented_http_failures( int $status, array $headers, string $reason, int $legacy_status ): void {
 		$has_carrier = class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class );
 		foreach ( array( 'lookup', 'browse', 'branch', 'revision', 'path' ) as $operation ) {
-			if ( 'path' === $operation && 404 === $status ) {
-				continue; // Path absence retains its separate existing contract.
-			}
 			$responses   = 'revision' === $operation ? array( $this->repository_identity_response() ) : array();
 			$responses[] = $this->error_response( $status, $headers );
-			if ( in_array( $operation, array( 'branch', 'revision' ), true ) && 404 === $status ) {
+			if ( in_array( $operation, array( 'branch', 'revision', 'path' ), true ) && 404 === $status ) {
 				$responses[] = $this->error_response( 404, array() );
 			}
 			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( $responses );
