@@ -43,6 +43,55 @@ final class RepositoryWebhookClientTest extends TestCase {
 		self::assertStringNotContainsString( self::TOKEN, json_encode( $evidence, JSON_THROW_ON_ERROR ) );
 	}
 
+	/** @return iterable<string, array{string, string, string, string}> */
+	public static function classic_scope_headers(): iterable {
+		yield 'admin:repo_hook alone' => array( 'admin:repo_hook', 'suitable', 'appropriate', 'classic_scope_sufficient' );
+		yield 'admin:repo_hook with unrelated scopes' => array( 'admin:repo_hook, gist', 'suitable', 'appropriate', 'classic_scope_sufficient' );
+		yield 'repo alone' => array( 'repo', 'suitable', 'overscoped', 'classic_scope_broad' );
+		yield 'repo with unrelated scopes' => array( 'repo, workflow', 'suitable', 'overscoped', 'classic_scope_broad' );
+		yield 'repo and admin:repo_hook' => array( 'admin:repo_hook, repo', 'suitable', 'overscoped', 'classic_scope_broad' );
+		yield 'scope names are case-insensitive' => array( 'Repo', 'suitable', 'overscoped', 'classic_scope_broad' );
+		yield 'write:repo_hook cannot remove a hook' => array( 'write:repo_hook', 'insufficient', 'unknown', 'classic_scope_insufficient' );
+		yield 'read:repo_hook' => array( 'read:repo_hook', 'insufficient', 'unknown', 'classic_scope_insufficient' );
+		yield 'public_repo is not repo' => array( 'public_repo', 'insufficient', 'unknown', 'classic_scope_insufficient' );
+		yield 'unrelated scopes' => array( 'gist, workflow', 'insufficient', 'unknown', 'classic_scope_insufficient' );
+	}
+
+	#[DataProvider( 'classic_scope_headers' )]
+	public function test_classic_scopes_are_judged_for_the_whole_webhook_lifecycle( string $scopes, string $suitability, string $least_privilege, string $code ): void {
+		foreach ( array( 'assess_setup', 'assess_check', 'assess_reconfigure', 'assess_remove', 'assess_test' ) as $method ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 200, array( 'id' => 101 ), array( 'x-oauth-scopes' => $scopes ) ) ) );
+
+			$evidence = ( new RepositoryWebhookClient() )->{$method}( '101', 'owner/example', self::TOKEN )->to_array();
+
+			self::assertSame( $suitability, $evidence['suitability'], $method );
+			self::assertSame( $least_privilege, $evidence['least_privilege'], $method );
+			self::assertSame( $code, $evidence['code'], $method );
+			self::assertSame( 'observed', $evidence['evidence'], $method );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only scope-containment assertion.
+			$encoded = json_encode( $evidence, JSON_THROW_ON_ERROR );
+			self::assertStringNotContainsString( 'workflow', $encoded, 'Scope values are never echoed.' );
+			self::assertStringNotContainsString( 'gist', $encoded, 'Scope values are never echoed.' );
+			if ( 'classic_scope_broad' === $code ) {
+				self::assertStringContainsString( 'Prefer a fine-grained token', $evidence['remediation'] );
+			} else {
+				self::assertStringNotContainsString( 'Prefer a fine-grained token', $evidence['remediation'], 'Only repo is labelled over-scoped.' );
+			}
+		}
+	}
+
+	#[DataProvider( 'fitness_actions' )]
+	public function test_a_fine_grained_token_is_unknown_and_the_note_names_the_permission( string $method ): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 200, array( 'id' => 101 ) ) ) );
+
+		$evidence = ( new RepositoryWebhookClient() )->{$method}( '101', 'owner/example', self::TOKEN )->to_array();
+
+		self::assertSame( 'unknown', $evidence['suitability'] );
+		self::assertSame( 'fine_grained_authority_unknown', $evidence['code'] );
+		self::assertSame( 'unknown_by_design', $evidence['evidence'] );
+		self::assertStringContainsString( 'Webhooks: Read and write', $evidence['remediation'] );
+	}
+
 	#[DataProvider( 'fitness_actions' )]
 	public function test_fitness_failure_preserves_the_requested_action( string $method ): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 503, array() ) ) );

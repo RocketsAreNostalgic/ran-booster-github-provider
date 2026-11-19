@@ -214,13 +214,17 @@ final class RepositoryWebhookClient {
 		}
 		$scopes = wp_remote_retrieve_header( $response['response'], 'x-oauth-scopes' );
 		if ( is_string( $scopes ) && '' !== trim( $scopes ) ) {
-			$grants = array_map( 'trim', explode( ',', strtolower( $scopes ) ) );
-			if ( ! in_array( 'admin:repo_hook', $grants, true ) ) {
+			$grants   = array_map( 'trim', explode( ',', strtolower( $scopes ) ) );
+			$has_repo = in_array( 'repo', $grants, true );
+			if ( ! $has_repo && ! in_array( 'admin:repo_hook', $grants, true ) ) {
 				return new RepositoryWebhookFitnessResult( 'supported', 'insufficient', 'unknown', 'observed', 'classic_scope_insufficient', $now, 'Use a credential with repository webhook management permission.' );
 			}
-			return new RepositoryWebhookFitnessResult( 'supported', 'suitable', 'overscoped', 'observed', 'classic_scope_broad', $now, 'Prefer a fine-grained token restricted to the selected repository.' );
+			// admin:repo_hook covers the whole webhook lifecycle and nothing more; only repo is broader than needed.
+			return $has_repo
+				? new RepositoryWebhookFitnessResult( 'supported', 'suitable', 'overscoped', 'observed', 'classic_scope_broad', $now, 'Prefer a fine-grained token restricted to the selected repository.' )
+				: new RepositoryWebhookFitnessResult( 'supported', 'suitable', 'appropriate', 'observed', 'classic_scope_sufficient', $now, 'The credential has the repository webhook permission.' );
 		}
-		return new RepositoryWebhookFitnessResult( 'supported', 'unknown', 'unknown', 'unknown_by_design', 'fine_grained_authority_unknown', $now, 'Confirm the selected repository and Webhooks write permission before continuing.' );
+		return new RepositoryWebhookFitnessResult( 'supported', 'unknown', 'unknown', 'unknown_by_design', 'fine_grained_authority_unknown', $now, 'Confirm the selected repository and Webhooks: Read and write permission before continuing.' );
 	}
 	/**
 	 * @return array{status:int,body:string,response:mixed}
