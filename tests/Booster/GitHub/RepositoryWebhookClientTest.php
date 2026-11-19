@@ -83,17 +83,17 @@ final class RepositoryWebhookClientTest extends TestCase {
 		self::assertStringNotContainsString( self::SECRET, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 	}
 
-	/** @return iterable<string, array{int}> */
+	/** @return iterable<string, array{int, string}> */
 	public static function deterministic_create_failures(): iterable {
-		yield 'bad request' => array( 400 );
-		yield 'unauthorized' => array( 401 );
-		yield 'forbidden' => array( 403 );
-		yield 'repository absent' => array( 404 );
-		yield 'validation rejected' => array( 422 );
+		yield 'bad request' => array( 400, 'http_4xx_other' );
+		yield 'unauthorized' => array( 401, 'credential_rejected' );
+		yield 'forbidden' => array( 403, 'permission_denied' );
+		yield 'repository absent' => array( 404, 'repository_not_found_or_no_access' );
+		yield 'validation rejected' => array( 422, 'http_4xx_other' );
 	}
 
 	#[DataProvider( 'deterministic_create_failures' )]
-	public function test_deterministic_create_failure_is_failed_without_a_hook_identity( int $status ): void {
+	public function test_deterministic_create_failure_is_failed_without_a_hook_identity( int $status, string $code ): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 			array(
 				$this->response( 200, array() ),
@@ -105,7 +105,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
 
 		self::assertSame( 'failed', $result->state() );
-		self::assertSame( 'setup_failed', $result->code() );
+		self::assertSame( $code, $result->code() );
 		self::assertNull( $result->hook_id() );
 		self::assertSame( array( 'GET', 'POST' ), array_column( array_column( $requests, 'arguments' ), 'method' ) );
 	}
@@ -137,7 +137,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 		$result = ( new RepositoryWebhookClient() )->setup( 'owner/example', 'https://site.example/hook', self::TOKEN, self::SECRET );
 
 		self::assertSame( 'ambiguous', $result->state() );
-		self::assertSame( 'setup_failed_ambiguous', $result->code() );
+		self::assertSame( 'transport_other', $result->code() );
 		self::assertNull( $result->hook_id() );
 		self::assertCount( 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
@@ -349,20 +349,20 @@ final class RepositoryWebhookClientTest extends TestCase {
 		}
 	}
 
-	/** @return iterable<string, array{mixed}> */
+	/** @return iterable<string, array{mixed, mixed, string, string}> */
 	public static function unproven_absence_replies(): iterable {
-		yield 'hook list also 404' => array( 404 );
-		yield 'hook list forbidden' => array( 403 );
-		yield 'hook list rate limited' => array( 429 );
-		yield 'hook list server error' => array( 503 );
-		yield 'hook list transport failure' => array( new RepositoryResolverWpError( 'http_request_failed' ) );
-		yield 'hook list is not a list' => array( 200, array( 'message' => 'not a list' ) );
-		yield 'hook list entry lacks an identity' => array( 200, array( array( 'name' => 'web' ) ) );
-		yield 'hook list contradicts the 404' => array( 200, array( array( 'id' => 55 ) ) );
+		yield 'hook list also 404' => array( 404, array(), 'failed', 'repository_not_found_or_no_access' );
+		yield 'hook list forbidden' => array( 403, array(), 'failed', 'permission_denied' );
+		yield 'hook list rate limited' => array( 429, array(), 'ambiguous', 'rate_limited' );
+		yield 'hook list server error' => array( 503, array(), 'ambiguous', '' );
+		yield 'hook list transport failure' => array( new RepositoryResolverWpError( 'http_request_failed' ), array(), 'ambiguous', 'transport_other' );
+		yield 'hook list is not a list' => array( 200, array( 'message' => 'not a list' ), 'ambiguous', '' );
+		yield 'hook list entry lacks an identity' => array( 200, array( array( 'name' => 'web' ) ), 'ambiguous', '' );
+		yield 'hook list contradicts the 404' => array( 200, array( array( 'id' => 55 ) ), 'ambiguous', '' );
 	}
 
 	#[DataProvider( 'unproven_absence_replies' )]
-	public function test_check_and_remove_never_report_success_when_hook_absence_is_unproven( mixed $status_or_error, mixed $body = array() ): void {
+	public function test_check_and_remove_never_report_success_when_hook_absence_is_unproven( mixed $status_or_error, mixed $body, string $state, string $code ): void {
 		foreach ( array( 'check', 'remove' ) as $operation ) {
 			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 				array(
@@ -374,15 +374,163 @@ final class RepositoryWebhookClientTest extends TestCase {
 			$result   = ( new RepositoryWebhookClient() )->{$operation}( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
 			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
 
-			self::assertSame( 'ambiguous', $result->state(), $operation );
-			self::assertSame( 'check' === $operation ? 'hook_readback_unavailable' : 'predelete_read_unavailable', $result->code(), $operation );
+			self::assertSame( $state, $result->state(), $operation );
+			self::assertSame( '' === $code ? ( 'check' === $operation ? 'hook_readback_unavailable' : 'predelete_read_unavailable' ) : $code, $result->code(), $operation );
 			self::assertFalse( $result->succeeded(), $operation );
 			self::assertFalse( $result->confirms_absence(), $operation );
 			self::assertSame( '55', $result->hook_id(), $operation );
+			$remediation = $result->to_array()['remediation'];
+			if ( 'remove' === $operation && 'failed' === $state ) {
+				self::assertStringEndsWith( ' Or remove the webhook by hand on GitHub.', $remediation );
+			} else {
+				self::assertStringNotContainsString( 'by hand', $remediation, $operation . ' offers no manual removal.' );
+			}
 			self::assertSame( array( 'GET', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ), 'No delete is attempted without a readable hook.' );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
 			self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 		}
+	}
+
+	/** @return iterable<string, array{int|null, array<string,string>, string, string, string}> */
+	public static function failure_responses(): iterable {
+		yield 'credential rejected' => array( 401, array(), 'failed', 'credential_rejected', 'GitHub rejected the selected credential. Choose a valid credential and try again.' );
+		yield 'permission denied' => array( 403, array(), 'failed', 'permission_denied', 'The selected credential cannot manage webhooks on this repository.' );
+		yield 'primary rate limit' => array( 403, array( 'x-ratelimit-remaining' => '0' ), 'ambiguous', 'rate_limited', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
+		yield 'retry-after seconds' => array( 403, array( 'retry-after' => '60' ), 'ambiguous', 'rate_limited', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
+		yield 'retry-after date' => array( 403, array( 'retry-after' => 'Wed, 21 Oct 2026 07:28:00 GMT' ), 'ambiguous', 'rate_limited', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
+		yield 'too many requests' => array( 429, array(), 'ambiguous', 'rate_limited', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
+		yield 'not found or no access' => array( 404, array(), 'failed', 'repository_not_found_or_no_access', 'GitHub could not find the repository, or the credential cannot manage its webhooks.' );
+		yield 'bad request' => array( 400, array(), 'failed', 'http_4xx_other', 'GitHub rejected the fixed webhook inputs.' );
+		yield 'validation failed' => array( 422, array(), 'failed', 'http_4xx_other', 'GitHub rejected the fixed webhook inputs.' );
+		yield 'transport failure' => array( null, array(), 'ambiguous', 'transport_other', 'GitHub could not be reached; the outcome is unknown.' );
+		yield 'server error keeps the ambiguous fallback' => array( 503, array(), 'ambiguous', '', 'Inspect the provider state before retrying; automatic retry is disabled.' );
+	}
+
+	/** @return array<string, array{string, list<mixed>, string, bool}> */
+	private function failure_sites(): array {
+		$hook = $this->hook( 55, 'https://site.example/hook' );
+		return array(
+			'set-up inventory'   => array( 'setup', array(), 'hook_inventory_unavailable', false ),
+			'set-up create'      => array( 'setup', array( $this->response( 200, array() ) ), 'setup_failed_ambiguous', false ),
+			'check read'         => array( 'check', array(), 'hook_readback_unavailable', true ),
+			'test read'          => array( 'test', array(), 'hook_readback_unavailable', true ),
+			'test ping'          => array( 'test', array( $this->response( 200, $hook ) ), 'ping_request_failed_ambiguous', true ),
+			'reconfigure read'   => array( 'reconfigure', array(), 'preconfiguration_read_unavailable', true ),
+			'reconfigure update' => array( 'reconfigure', array( $this->response( 200, $hook ) ), 'reconfigure_failed_ambiguous', true ),
+			'remove read'        => array( 'remove', array(), 'predelete_read_unavailable', true ),
+			'remove delete'      => array( 'remove', array( $this->response( 200, $hook ) ), 'remove_failed_ambiguous', true ),
+		);
+	}
+
+	/** @param array<string,string> $headers */
+	#[DataProvider( 'failure_responses' )]
+	public function test_every_failed_request_reports_what_the_response_proves( ?int $status, array $headers, string $state, string $code, string $remediation ): void {
+		foreach ( $this->failure_sites() as $site => [ $operation, $prefix, $fallback, $has_hook ] ) {
+			if ( 404 === $status && $has_hook && str_ends_with( $site, 'read' ) ) {
+				continue; // A 404 on the hook path itself is the separate absence case.
+			}
+			$reply = null === $status ? new RepositoryResolverWpError( 'http_request_failed' ) : $this->response( $status, array( 'message' => 'upstream-response-canary' ), $headers );
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( ...$prefix, $reply ) );
+			$client = new RepositoryWebhookClient();
+			$result = match ( $operation ) {
+				'setup'       => $client->setup( 'owner/example', 'https://site.example/hook', self::TOKEN, self::SECRET ),
+				'check'       => $client->check( 'owner/example', '55', 'https://site.example/hook', self::TOKEN ),
+				'test'        => $client->test( 'owner/example', '55', 'https://site.example/hook', self::TOKEN ),
+				'reconfigure' => $client->reconfigure( 'owner/example', '55', 'https://site.example/hook', self::TOKEN, self::SECRET ),
+				'remove'      => $client->remove( 'owner/example', '55', 'https://site.example/hook', self::TOKEN ),
+				default       => throw new \LogicException( 'Unknown failure site.' ),
+			};
+			$evidence = $result->to_array();
+
+			self::assertSame( $state, $result->state(), $site );
+			self::assertSame( '' === $code ? $fallback : $code, $result->code(), $site );
+			$by_hand = str_starts_with( $site, 'remove' ) && in_array( $code, array( 'credential_rejected', 'permission_denied', 'repository_not_found_or_no_access' ), true );
+			self::assertSame( $remediation . ( $by_hand ? ' Or remove the webhook by hand on GitHub.' : '' ), $evidence['remediation'], $site );
+			self::assertLessThanOrEqual( 255, strlen( $evidence['remediation'] ), $site . ' stays within what Core will show.' );
+			self::assertSame( $has_hook ? '55' : null, $result->hook_id(), $site );
+			self::assertCount( count( $prefix ) + 1, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests(), $site . ' makes no further request.' );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
+			$encoded = json_encode( $evidence, JSON_THROW_ON_ERROR );
+			self::assertStringNotContainsString( self::TOKEN, $encoded, $site );
+			self::assertStringNotContainsString( self::SECRET, $encoded, $site );
+			self::assertStringNotContainsString( 'upstream-response-canary', $encoded, $site );
+		}
+	}
+
+	/** @return iterable<string, array{int, string}> */
+	public static function refused_removals(): iterable {
+		yield 'credential rejected' => array( 401, 'credential_rejected' );
+		yield 'permission denied' => array( 403, 'permission_denied' );
+		yield 'not found or no access' => array( 404, 'repository_not_found_or_no_access' );
+	}
+
+	#[DataProvider( 'refused_removals' )]
+	public function test_a_refused_delete_tells_the_operator_the_webhook_can_be_removed_by_hand( int $status, string $code ): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+			array( $this->response( 200, $this->hook( 55, 'https://site.example/hook' ) ), $this->response( $status, array() ) )
+		);
+
+		$result = ( new RepositoryWebhookClient() )->remove( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+
+		self::assertSame( 'failed', $result->state() );
+		self::assertSame( $code, $result->code() );
+		self::assertStringEndsWith( ' Or remove the webhook by hand on GitHub.', $result->to_array()['remediation'] );
+		self::assertLessThanOrEqual( 255, strlen( $result->to_array()['remediation'] ) );
+		self::assertFalse( $result->confirms_absence() );
+	}
+
+	/** @return iterable<string, array{int, string}> */
+	public static function refused_pre_delete_reads(): iterable {
+		// A hook-path 404 is the absence case; its refused proof read is covered by the unproven-absence test.
+		yield 'credential rejected' => array( 401, 'credential_rejected' );
+		yield 'permission denied' => array( 403, 'permission_denied' );
+	}
+
+	#[DataProvider( 'refused_pre_delete_reads' )]
+	public function test_a_refused_pre_delete_read_tells_the_operator_the_webhook_can_be_removed_by_hand( int $status, string $code ): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( $status, array() ) ) );
+
+		$result   = ( new RepositoryWebhookClient() )->remove( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
+
+		self::assertSame( 'failed', $result->state() );
+		self::assertSame( $code, $result->code() );
+		self::assertStringEndsWith( ' Or remove the webhook by hand on GitHub.', $result->to_array()['remediation'] );
+		self::assertCount( 1, $requests, 'No delete is attempted.' );
+	}
+
+	public function test_only_removal_offers_manual_removal(): void {
+		foreach ( array( 'check', 'test', 'reconfigure' ) as $operation ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 403, array() ) ) );
+			$client = new RepositoryWebhookClient();
+			$result = 'reconfigure' === $operation
+				? $client->reconfigure( 'owner/example', '55', 'https://site.example/hook', self::TOKEN, self::SECRET )
+				: $client->{$operation}( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+
+			self::assertSame( 'permission_denied', $result->code(), $operation );
+			self::assertStringNotContainsString( 'by hand', $result->to_array()['remediation'], $operation );
+		}
+	}
+
+	public function test_a_403_without_rate_limit_signals_is_an_access_refusal_even_with_unrelated_headers(): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+			array(
+				$this->response(
+					403,
+					array(),
+					array(
+						'x-ratelimit-remaining' => '4999',
+						'retry-after'           => 'soon',
+						'x-github-request-id'   => 'abc',
+					)
+				),
+			)
+		);
+
+		$result = ( new RepositoryWebhookClient() )->check( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+
+		self::assertSame( 'failed', $result->state() );
+		self::assertSame( 'permission_denied', $result->code() );
 	}
 
 	public function test_ping_acceptance_does_not_use_provider_delivery_history_as_signing_proof(): void {
