@@ -9,6 +9,10 @@ use RAN\RepositoryProvider\ProviderCredentialStore;
 final class WorkflowCredentialStore implements ProviderCredentialStore {
 	public int $profile_reads = 0;
 
+	public ?\Throwable $profiles_failure = null;
+
+	public ?\Throwable $material_failure = null;
+
 	/** @var array<string,array{id:string,label:string,kind:string,source:string,immutable:bool,configured:bool}>|null */
 	public ?array $profiles = null;
 
@@ -20,6 +24,9 @@ final class WorkflowCredentialStore implements ProviderCredentialStore {
 
 	public function credential_profiles(): array {
 		++$this->profile_reads;
+		if ( null !== $this->profiles_failure ) {
+			throw $this->profiles_failure;
+		}
 		return $this->profiles ?? array(
 			'eligible' => array(
 				'id'         => 'eligible',
@@ -42,6 +49,9 @@ final class WorkflowCredentialStore implements ProviderCredentialStore {
 
 	public function credential_material( ?string $id = null ): ?array {
 		$this->material_reads[] = $id;
+		if ( null !== $this->material_failure ) {
+			throw $this->material_failure;
+		}
 		return 'eligible' === $id ? $this->eligible_material : null;
 	}
 
