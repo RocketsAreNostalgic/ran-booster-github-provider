@@ -35,7 +35,7 @@ final class RepositoryWebhookClient {
 		for ( $page = 1; $page <= 3; ++$page ) {
 			$response = $this->request( 'GET', $this->hooks_path( $repository ) . '?per_page=100&page=' . $page, $token, null, self::LIST_PAGE_BYTES, $deadline );
 			if ( 200 !== $response['status'] ) {
-				return $this->uncertain( 'hook_inventory_unavailable' );
+				return $this->failure_result( $response, 'hook_inventory_unavailable' );
 			}
 			$hooks = $this->decode_list( $response['body'] );
 			if ( null === $hooks ) {
@@ -62,7 +62,7 @@ final class RepositoryWebhookClient {
 		}
 		$created = $this->request( 'POST', $this->hooks_path( $repository ), $token, $this->payload( $callback_url, $secret ), self::READ_BYTES, $deadline );
 		if ( 201 !== $created['status'] ) {
-			return $this->mutation_failure( $created['status'], 'setup_failed' );
+			return $this->failure_result( $created, 'setup_failed_ambiguous' );
 		}
 		$created_hook = $this->decode_hook( $created['body'] );
 		$hook_id      = $this->hook_id( $created_hook );
@@ -85,14 +85,15 @@ final class RepositoryWebhookClient {
 		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
 		$response = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		if ( 404 === $response['status'] ) {
-			if ( ! $this->hook_absence_proven( $repository, $hook_id, $token, $deadline ) ) {
-				return $this->uncertain( 'hook_readback_unavailable', $hook_id );
+			$unproven = $this->hook_absence_failure( $repository, $hook_id, $token, $deadline, 'hook_readback_unavailable' );
+			if ( null !== $unproven ) {
+				return $unproven;
 			}
 			return $this->result( 'succeeded', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'Set up a replacement only after reviewing the retained local record.' );
 		}
 		$hook = 200 === $response['status'] ? $this->decode_hook( $response['body'] ) : null;
 		if ( null === $hook || ! hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
-			return $this->uncertain( 'hook_readback_unavailable', $hook_id );
+			return 200 === $response['status'] ? $this->uncertain( 'hook_readback_unavailable', $hook_id ) : $this->failure_result( $response, 'hook_readback_unavailable', $hook_id );
 		}
 		$configuration = $this->configuration( $hook, $callback_url );
 		if ( in_array( 'unknown', $configuration, true ) ) {
@@ -114,7 +115,7 @@ final class RepositoryWebhookClient {
 		if ( null === $hook || ! hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
 			return 404 === $hook_read['status']
 				? $this->result( 'failed', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' )
-				: $this->uncertain( 'hook_readback_unavailable', $hook_id );
+				: ( 200 === $hook_read['status'] ? $this->uncertain( 'hook_readback_unavailable', $hook_id ) : $this->failure_result( $hook_read, 'hook_readback_unavailable', $hook_id ) );
 		}
 		$configuration = $this->configuration( $hook, $callback_url );
 		if ( in_array( 'unknown', $configuration, true ) ) {
@@ -125,7 +126,7 @@ final class RepositoryWebhookClient {
 		}
 		$ping = $this->request( 'POST', $this->hook_path( $repository, $hook_id ) . '/pings', $token, array(), 0, $deadline );
 		if ( 200 > $ping['status'] || 300 <= $ping['status'] ) {
-			return $this->mutation_failure( $ping['status'], 'ping_request_failed', $hook_id );
+			return $this->failure_result( $ping, 'ping_request_failed_ambiguous', $hook_id );
 		}
 
 		return $this->result( 'succeeded', 'ping_requested', $hook_id, $configuration, 'unknown', 'GitHub accepted the ping request. Only an authenticated inbound delivery can verify the signing secret.' );
@@ -137,14 +138,14 @@ final class RepositoryWebhookClient {
 		if ( null === $before_hook || ! hash_equals( $hook_id, (string) $this->hook_id( $before_hook ) ) ) {
 			return 404 === $before['status']
 				? $this->result( 'failed', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' )
-				: $this->uncertain( 'preconfiguration_read_unavailable', $hook_id );
+				: ( 200 === $before['status'] ? $this->uncertain( 'preconfiguration_read_unavailable', $hook_id ) : $this->failure_result( $before, 'preconfiguration_read_unavailable', $hook_id ) );
 		}
 		if ( 'matched' !== $this->configuration( $before_hook, $callback_url )['endpoint'] ) {
 			return 'unknown' === $this->configuration( $before_hook, $callback_url )['endpoint'] ? $this->uncertain( 'hook_ownership_unavailable', $hook_id ) : $this->result( 'failed', 'hook_ownership_mismatch', $hook_id, $this->configuration( $before_hook, $callback_url ), 'unknown', 'Inspect the remote hook; its callback does not match this site.' );
 		}
 		$updated = $this->request( 'PATCH', $this->hook_path( $repository, $hook_id ), $token, $this->payload( $callback_url, $secret ), self::READ_BYTES, $deadline );
 		if ( 200 !== $updated['status'] ) {
-			return $this->mutation_failure( $updated['status'], 'reconfigure_failed', $hook_id );
+			return $this->failure_result( $updated, 'reconfigure_failed_ambiguous', $hook_id );
 		}
 		$readback = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		$hook     = 200 === $readback['status'] ? $this->decode_hook( $readback['body'] ) : null;
@@ -157,21 +158,22 @@ final class RepositoryWebhookClient {
 		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
 		$before   = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		if ( 404 === $before['status'] ) {
-			if ( ! $this->hook_absence_proven( $repository, $hook_id, $token, $deadline ) ) {
-				return $this->uncertain( 'predelete_read_unavailable', $hook_id );
+			$unproven = $this->hook_absence_failure( $repository, $hook_id, $token, $deadline, 'predelete_read_unavailable' );
+			if ( null !== $unproven ) {
+				return $unproven;
 			}
 			return $this->result( 'succeeded', 'absence_confirmed', $hook_id, $this->unknown_configuration(), 'absent', 'The remote hook is absent.' );
 		}
 		$hook = 200 === $before['status'] ? $this->decode_hook( $before['body'] ) : null;
 		if ( null === $hook || ! hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
-			return $this->uncertain( 'predelete_read_unavailable', $hook_id );
+			return 200 === $before['status'] ? $this->uncertain( 'predelete_read_unavailable', $hook_id ) : $this->failure_result( $before, 'predelete_read_unavailable', $hook_id );
 		}
 		if ( 'matched' !== $this->configuration( $hook, $callback_url )['endpoint'] ) {
 			return 'unknown' === $this->configuration( $hook, $callback_url )['endpoint'] ? $this->uncertain( 'hook_ownership_unavailable', $hook_id ) : $this->result( 'failed', 'hook_ownership_mismatch', $hook_id, $this->configuration( $hook, $callback_url ), 'unknown', 'Inspect the remote hook; its callback does not match this site.' );
 		}
 		$deleted = $this->request( 'DELETE', $this->hook_path( $repository, $hook_id ), $token, null, 0, $deadline );
 		if ( 204 !== $deleted['status'] ) {
-			return $this->mutation_failure( $deleted['status'], 'remove_failed', $hook_id );
+			return $this->failure_result( $deleted, 'remove_failed_ambiguous', $hook_id );
 		}
 		$absent = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		return 404 === $absent['status']
@@ -181,20 +183,23 @@ final class RepositoryWebhookClient {
 	/**
 	 * GitHub answers 404 for a hook the token cannot see as well as for one that does not exist.
 	 * A hook-path 404 proves absence only when the repository's hook list is readable with the same
-	 * token and does not contain the hook.
+	 * token and does not contain the hook. Returns null when absence is proven, else the result to report.
 	 */
-	private function hook_absence_proven( string $repository, string $hook_id, #[\SensitiveParameter] string $token, float $deadline ): bool {
+	private function hook_absence_failure( string $repository, string $hook_id, #[\SensitiveParameter] string $token, float $deadline, string $fallback_code ): ?RepositoryWebhookOperationResult {
 		$response = $this->request( 'GET', $this->hooks_path( $repository ) . '?per_page=1', $token, null, self::READ_BYTES, $deadline );
-		$hooks    = 200 === $response['status'] ? $this->decode_list( $response['body'] ) : null;
+		if ( 200 !== $response['status'] ) {
+			return $this->failure_result( $response, $fallback_code, $hook_id );
+		}
+		$hooks = $this->decode_list( $response['body'] );
 		if ( null === $hooks ) {
-			return false;
+			return $this->uncertain( $fallback_code, $hook_id );
 		}
 		foreach ( $hooks as $hook ) {
 			if ( hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
-				return false;
+				return $this->uncertain( $fallback_code, $hook_id );
 			}
 		}
-		return true;
+		return null;
 	}
 	private function assess( string $repository_id, string $repository, #[\SensitiveParameter] string $token, string $action ): RepositoryWebhookFitnessResult {
 		$response = $this->request( 'GET', $this->repository_path( $repository ), $token, null, self::READ_BYTES, microtime( true ) + self::TOTAL_TIMEOUT );
@@ -345,10 +350,50 @@ final class RepositoryWebhookClient {
 		}
 		return $this->result( 'succeeded', 'configured_pending_delivery', $hook_id, $configuration, 'configured_pending_delivery', 'Send a correctly signed push delivery before treating the hook as verified.' );
 	}
-	private function mutation_failure( int $status, string $code, ?string $hook_id = null ): RepositoryWebhookOperationResult {
-		return in_array( $status, array( 400, 401, 403, 404, 422 ), true )
-			? $this->result( 'failed', $code, $hook_id, $this->unknown_configuration(), 'unknown', 'Review repository access and the fixed operation inputs.' )
-			: $this->uncertain( $code . '_ambiguous', $hook_id );
+	/**
+	 * Reports a failed request by what the response proves. Anything not listed keeps the caller's
+	 * ambiguous fallback code, because the effect of the request is then unknown.
+	 *
+	 * @param array{status:int,body:string,response:mixed} $response
+	 */
+	private function failure_result( array $response, string $fallback_code, ?string $hook_id = null ): RepositoryWebhookOperationResult {
+		$status = $response['status'];
+		if ( 599 === $status ) {
+			return $this->result( 'ambiguous', 'transport_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not be reached; the outcome is unknown.' );
+		}
+		if ( $this->is_rate_limited( $response['response'], $status ) ) {
+			return $this->result( 'ambiguous', 'rate_limited', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
+		}
+		return match ( $status ) {
+			401 => $this->result( 'failed', 'credential_rejected', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the selected credential. Choose a valid credential and try again.' ),
+			403 => $this->result( 'failed', 'permission_denied', $hook_id, $this->unknown_configuration(), 'unknown', 'The selected credential cannot manage webhooks on this repository.' ),
+			404 => $this->result( 'failed', 'repository_not_found_or_no_access', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not find the repository, or the credential cannot manage its webhooks.' ),
+			400, 422 => $this->result( 'failed', 'http_4xx_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the fixed webhook inputs.' ),
+			default => $this->uncertain( $fallback_code, $hook_id ),
+		};
+	}
+	/** A 429, or a 403 that carries GitHub's documented rate-limit signals, is a rate limit and not an access refusal. */
+	private function is_rate_limited( mixed $response, int $status ): bool {
+		if ( 429 === $status ) {
+			return true;
+		}
+		if ( 403 !== $status ) {
+			return false;
+		}
+		$remaining = wp_remote_retrieve_header( $response, 'x-ratelimit-remaining' );
+		if ( is_string( $remaining ) && '0' === trim( $remaining ) ) {
+			return true;
+		}
+		$retry_after = wp_remote_retrieve_header( $response, 'retry-after' );
+		if ( ! is_string( $retry_after ) || '' === trim( $retry_after ) ) {
+			return false;
+		}
+		$retry_after = trim( $retry_after );
+		if ( 1 === preg_match( '/\A\d+\z/', $retry_after ) ) {
+			return true;
+		}
+		$retry_at = \DateTimeImmutable::createFromFormat( '!D, d M Y H:i:s \G\M\T', $retry_after, new \DateTimeZone( 'GMT' ) );
+		return false !== $retry_at && $retry_at->format( 'D, d M Y H:i:s \G\M\T' ) === $retry_after;
 	}
 	private function uncertain( string $code, ?string $hook_id = null ): RepositoryWebhookOperationResult {
 		return $this->result( 'ambiguous', $code, $hook_id, $this->unknown_configuration(), 'unknown', 'Inspect the provider state before retrying; automatic retry is disabled.' );
