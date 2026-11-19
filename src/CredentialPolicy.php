@@ -63,13 +63,13 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 			// Core revalidates the closed reason and safe fixed copy.
 			throw new InvalidCredentialInput(
 				InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH,
-				'Classic personal access tokens must begin with ghp_. Choose Fine-grained personal access token if the token begins with github_pat_.'
+				'This token does not look like a classic personal access token. Choose Fine-grained personal access token if it is a fine-grained token.'
 			);
 		}
 		if ( 'fine-grained' === $kind && ! str_starts_with( $secret, 'github_pat_' ) ) {
 			$message = str_starts_with( $secret, 'ghp_' )
-				? 'This token begins with ghp_, which identifies a classic personal access token. Choose Classic personal access token or paste a fine-grained token.'
-				: 'Fine-grained personal access tokens must begin with github_pat_. Choose Classic personal access token if the token begins with ghp_.';
+				? 'This token looks like a classic personal access token. Choose Classic personal access token or paste a fine-grained token.'
+				: 'This token does not look like a fine-grained personal access token. Choose Classic personal access token if it is a classic token.';
 			// Core revalidates the closed reason and one of two fixed safe messages.
 			throw new InvalidCredentialInput( InvalidCredentialInput::CREDENTIAL_KIND_MISMATCH, $message );
 		}
