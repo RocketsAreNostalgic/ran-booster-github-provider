@@ -24,7 +24,7 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 		return 'x-hub-signature-256';
 	}
 
-	public function normalize_webhook( array $metadata, mixed $secret ): array {
+	public function normalize_webhook( array $metadata, #[\SensitiveParameter] mixed $secret ): array {
 		$label        = $this->required_string( $metadata['label'] ?? null, 'Webhook secret label' );
 		$scope        = $this->required_string( $metadata['scope'] ?? null, 'Webhook secret scope' );
 		$target       = isset( $metadata['target'] ) && is_string( $metadata['target'] )
@@ -99,14 +99,14 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 		return 0 === strcasecmp( trim( $target, '/' ), trim( $repository_locator, '/' ) );
 	}
 
-	private function assert_secret( string $secret ): void {
+	private function assert_secret( #[\SensitiveParameter] string $secret ): void {
 		if ( strlen( $secret ) < 32 || strlen( $secret ) > 512 || 1 === preg_match( '/[\x00-\x1F\x7F]/', $secret ) ) {
 			// Closed reason maps to fixed administrator-safe copy.
 			throw new InvalidWebhookInput( InvalidWebhookInput::INVALID_SECRET );
 		}
 	}
 
-	private function required_secret( mixed $secret ): string {
+	private function required_secret( #[\SensitiveParameter] mixed $secret ): string {
 		if ( ! is_string( $secret ) ) {
 			// Closed reason maps to fixed administrator-safe copy.
 			throw new InvalidWebhookInput( InvalidWebhookInput::INVALID_SECRET );
