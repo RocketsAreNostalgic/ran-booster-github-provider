@@ -6,10 +6,12 @@ namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 require_once dirname( __DIR__, 2 ) . '/Support/NeutralReleaseUpdaterFixtures.php';
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\GitHubProvider;
 use RAN\RepositoryProvider\RepositoryReference;
 use RAN\RepositoryProvider\RepositoryReleaseAcquisitionRejected;
+use RAN\RepositoryProvider\RepositoryReleaseInspectionRejected;
 use RAN\RepositoryProvider\RepositoryReleaseReadUnavailable;
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\NeutralReleaseUpdaterFixtures;
@@ -92,6 +94,74 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		$this->expectExceptionCode( 503 );
 		$this->expectExceptionMessage( 'GitHub release candidate listing is unavailable.' );
 		$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+	}
+
+	public function test_an_unsupported_filesystem_is_a_fixed_site_condition_for_every_release_read(): void {
+		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
+		$operations = array(
+			'listing'     => static fn ( GitHubProvider $provider ): mixed => $provider->list_release_candidates( 'plugin', $repository, 'stable' ),
+			'inspection'  => static fn ( GitHubProvider $provider ): mixed => $provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' ),
+			'acquisition' => static fn ( GitHubProvider $provider ): mixed => $provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', 'v2:' . str_repeat( 'b', 64 ), 'stable' ),
+		);
+		foreach ( $operations as $name => $operation ) {
+			NeutralReleaseUpdaterFixtures::reset();
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+			$GLOBALS['ran_booster_release_filesystem_method'] = 'ftpext';
+			$source = new PublicReleaseSourceFixture( $this->listing(), $this->envelope( true, 'release_inspected', $this->facts(), 'complete' ), array() );
+			try {
+				$operation( $this->provider( $source ) );
+				self::fail( 'An unsupported filesystem was not reported for ' . $name . '.' );
+			} catch ( \RuntimeException $failure ) {
+				self::assertSame( 'GitHub release ' . $name . ' requires a direct filesystem.', $failure->getMessage() );
+				self::assertSame( 501, $failure->getCode() );
+				self::assertSame( 0, $source->inspect_calls + $source->acquire_calls, 'The public source is not reached.' );
+				if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+					self::assertInstanceOf( RepositoryReleaseReadUnavailable::class, $failure );
+					$carried = \RAN\RepositoryProvider\ProviderFailure::carried( $failure );
+					self::assertNotNull( $carried );
+					self::assertSame( 'site_filesystem_unsupported', $carried->reason );
+					self::assertNull( $carried->http_status );
+					self::assertNull( $carried->retry_after );
+				} else {
+					self::assertNotInstanceOf( RepositoryReleaseReadUnavailable::class, $failure );
+				}
+			}
+		}
+	}
+
+	public function test_inspection_maps_a_deleted_or_changed_release_to_an_invalid_release_rejection(): void {
+		foreach ( array( 'release_unavailable', 'release_changed' ) as $code ) {
+			foreach ( array( 'not_applicable', 'complete' ) as $cleanup ) {
+				$provider = $this->provider( new PublicReleaseSourceFixture( $this->listing(), $this->envelope( false, $code, null, $cleanup ), array() ) );
+				try {
+					$provider->inspect_release( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'stable' );
+					self::fail( 'A ' . $code . ' inspection was not rejected.' );
+				} catch ( RepositoryReleaseInspectionRejected $failure ) {
+					self::assertSame( RepositoryReleaseInspectionRejected::INVALID_RELEASE, $failure->reason, $code );
+				}
+			}
+		}
+	}
+
+	/** @return iterable<string, array{string, ?int, string}> */
+	public static function unmapped_inspection_failures(): iterable {
+		yield 'operation failed' => array( 'operation_failed', null, 'complete' );
+		yield 'runtime not ready' => array( 'runtime_not_ready', null, 'not_applicable' );
+		yield 'unknown code' => array( 'a_future_failure_code', null, 'complete' );
+		yield 'release unavailable with a retry delay' => array( 'release_unavailable', 5, 'complete' );
+		yield 'release unavailable with failed cleanup' => array( 'release_unavailable', null, 'failed' );
+	}
+
+	#[DataProvider( 'unmapped_inspection_failures' )]
+	public function test_inspection_keeps_other_failures_as_a_bad_gateway( string $code, ?int $retry_after, string $cleanup ): void {
+		$result                = $this->envelope( false, $code, null, $cleanup );
+		$result['retry_after'] = $retry_after;
+		$provider              = $this->provider( new PublicReleaseSourceFixture( $this->listing(), $result, array() ) );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionCode( 502 );
+		$this->expectExceptionMessage( 'GitHub could not inspect the selected release.' );
+		$provider->inspect_release( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'stable' );
 	}
 
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- PHPUnit lifecycle override requires this exact name.

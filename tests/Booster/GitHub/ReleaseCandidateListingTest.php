@@ -163,7 +163,8 @@ final class ReleaseCandidateListingTest extends TestCase {
 		$credentials                                      = new RepositoryResolverSecretsStub( array( 'private-release' => 'secret-token' ) );
 
 		$this->expectException( RuntimeException::class );
-		$this->expectExceptionMessage( 'GitHub release candidate listing is unavailable.' );
+		$this->expectExceptionCode( 501 );
+		$this->expectExceptionMessage( 'GitHub release listing requires a direct filesystem.' );
 		try {
 			$this->provider( $credentials )->list_release_candidates(
 				'plugin',
@@ -181,7 +182,8 @@ final class ReleaseCandidateListingTest extends TestCase {
 		$credentials              = new RepositoryResolverSecretsStub( array( 'private-release' => 'secret-token' ) );
 
 		$this->expectException( RuntimeException::class );
-		$this->expectExceptionMessage( 'GitHub release candidate listing is unavailable.' );
+		$this->expectExceptionCode( 501 );
+		$this->expectExceptionMessage( 'GitHub release listing requires a direct filesystem.' );
 		try {
 			$this->provider( $credentials )->list_release_candidates(
 				'plugin',
