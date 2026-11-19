@@ -14,6 +14,7 @@ final class RepositoryWebhookClient {
 	private const TOTAL_TIMEOUT   = 25.0;
 	private const LIST_PAGE_BYTES = 262144;
 	private const READ_BYTES      = 65536;
+	private const REMOVE_BY_HAND  = ' Or remove the webhook by hand on GitHub.';
 	public function assess_setup( string $repository_id, string $repository, #[\SensitiveParameter] string $token ): RepositoryWebhookFitnessResult {
 		return $this->assess( $repository_id, $repository, $token, 'setup' );
 	}
@@ -158,7 +159,7 @@ final class RepositoryWebhookClient {
 		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
 		$before   = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		if ( 404 === $before['status'] ) {
-			$unproven = $this->hook_absence_failure( $repository, $hook_id, $token, $deadline, 'predelete_read_unavailable' );
+			$unproven = $this->hook_absence_failure( $repository, $hook_id, $token, $deadline, 'predelete_read_unavailable', self::REMOVE_BY_HAND );
 			if ( null !== $unproven ) {
 				return $unproven;
 			}
@@ -166,14 +167,14 @@ final class RepositoryWebhookClient {
 		}
 		$hook = 200 === $before['status'] ? $this->decode_hook( $before['body'] ) : null;
 		if ( null === $hook || ! hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
-			return 200 === $before['status'] ? $this->uncertain( 'predelete_read_unavailable', $hook_id ) : $this->failure_result( $before, 'predelete_read_unavailable', $hook_id );
+			return 200 === $before['status'] ? $this->uncertain( 'predelete_read_unavailable', $hook_id ) : $this->failure_result( $before, 'predelete_read_unavailable', $hook_id, self::REMOVE_BY_HAND );
 		}
 		if ( 'matched' !== $this->configuration( $hook, $callback_url )['endpoint'] ) {
 			return 'unknown' === $this->configuration( $hook, $callback_url )['endpoint'] ? $this->uncertain( 'hook_ownership_unavailable', $hook_id ) : $this->result( 'failed', 'hook_ownership_mismatch', $hook_id, $this->configuration( $hook, $callback_url ), 'unknown', 'Inspect the remote hook; its callback does not match this site.' );
 		}
 		$deleted = $this->request( 'DELETE', $this->hook_path( $repository, $hook_id ), $token, null, 0, $deadline );
 		if ( 204 !== $deleted['status'] ) {
-			return $this->failure_result( $deleted, 'remove_failed_ambiguous', $hook_id );
+			return $this->failure_result( $deleted, 'remove_failed_ambiguous', $hook_id, self::REMOVE_BY_HAND );
 		}
 		$absent = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
 		return 404 === $absent['status']
@@ -185,10 +186,10 @@ final class RepositoryWebhookClient {
 	 * A hook-path 404 proves absence only when the repository's hook list is readable with the same
 	 * token and does not contain the hook. Returns null when absence is proven, else the result to report.
 	 */
-	private function hook_absence_failure( string $repository, string $hook_id, #[\SensitiveParameter] string $token, float $deadline, string $fallback_code ): ?RepositoryWebhookOperationResult {
+	private function hook_absence_failure( string $repository, string $hook_id, #[\SensitiveParameter] string $token, float $deadline, string $fallback_code, string $access_suffix = '' ): ?RepositoryWebhookOperationResult {
 		$response = $this->request( 'GET', $this->hooks_path( $repository ) . '?per_page=1', $token, null, self::READ_BYTES, $deadline );
 		if ( 200 !== $response['status'] ) {
-			return $this->failure_result( $response, $fallback_code, $hook_id );
+			return $this->failure_result( $response, $fallback_code, $hook_id, $access_suffix );
 		}
 		$hooks = $this->decode_list( $response['body'] );
 		if ( null === $hooks ) {
@@ -352,11 +353,12 @@ final class RepositoryWebhookClient {
 	}
 	/**
 	 * Reports a failed request by what the response proves. Anything not listed keeps the caller's
-	 * ambiguous fallback code, because the effect of the request is then unknown.
+	 * ambiguous fallback code, because the effect of the request is then unknown. The access suffix is
+	 * appended only to the three results that mean the credential cannot act on the repository.
 	 *
 	 * @param array{status:int,body:string,response:mixed} $response
 	 */
-	private function failure_result( array $response, string $fallback_code, ?string $hook_id = null ): RepositoryWebhookOperationResult {
+	private function failure_result( array $response, string $fallback_code, ?string $hook_id = null, string $access_suffix = '' ): RepositoryWebhookOperationResult {
 		$status = $response['status'];
 		if ( 599 === $status ) {
 			return $this->result( 'ambiguous', 'transport_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not be reached; the outcome is unknown.' );
@@ -365,9 +367,9 @@ final class RepositoryWebhookClient {
 			return $this->result( 'ambiguous', 'rate_limited', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
 		}
 		return match ( $status ) {
-			401 => $this->result( 'failed', 'credential_rejected', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the selected credential. Choose a valid credential and try again.' ),
-			403 => $this->result( 'failed', 'permission_denied', $hook_id, $this->unknown_configuration(), 'unknown', 'The selected credential cannot manage webhooks on this repository.' ),
-			404 => $this->result( 'failed', 'repository_not_found_or_no_access', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not find the repository, or the credential cannot manage its webhooks.' ),
+			401 => $this->result( 'failed', 'credential_rejected', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the selected credential. Choose a valid credential and try again.' . $access_suffix ),
+			403 => $this->result( 'failed', 'permission_denied', $hook_id, $this->unknown_configuration(), 'unknown', 'The selected credential cannot manage webhooks on this repository.' . $access_suffix ),
+			404 => $this->result( 'failed', 'repository_not_found_or_no_access', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not find the repository, or the credential cannot manage its webhooks.' . $access_suffix ),
 			400, 422 => $this->result( 'failed', 'http_4xx_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the fixed webhook inputs.' ),
 			default => $this->uncertain( $fallback_code, $hook_id ),
 		};

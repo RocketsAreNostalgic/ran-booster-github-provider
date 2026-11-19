@@ -379,6 +379,12 @@ final class RepositoryWebhookClientTest extends TestCase {
 			self::assertFalse( $result->succeeded(), $operation );
 			self::assertFalse( $result->confirms_absence(), $operation );
 			self::assertSame( '55', $result->hook_id(), $operation );
+			$remediation = $result->to_array()['remediation'];
+			if ( 'remove' === $operation && 'failed' === $state ) {
+				self::assertStringEndsWith( ' Or remove the webhook by hand on GitHub.', $remediation );
+			} else {
+				self::assertStringNotContainsString( 'by hand', $remediation, $operation . ' offers no manual removal.' );
+			}
 			self::assertSame( array( 'GET', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ), 'No delete is attempted without a readable hook.' );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
 			self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
@@ -438,7 +444,9 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 			self::assertSame( $state, $result->state(), $site );
 			self::assertSame( '' === $code ? $fallback : $code, $result->code(), $site );
-			self::assertSame( $remediation, $evidence['remediation'], $site );
+			$by_hand = str_starts_with( $site, 'remove' ) && in_array( $code, array( 'credential_rejected', 'permission_denied', 'repository_not_found_or_no_access' ), true );
+			self::assertSame( $remediation . ( $by_hand ? ' Or remove the webhook by hand on GitHub.' : '' ), $evidence['remediation'], $site );
+			self::assertLessThanOrEqual( 255, strlen( $evidence['remediation'] ), $site . ' stays within what Core will show.' );
 			self::assertSame( $has_hook ? '55' : null, $result->hook_id(), $site );
 			self::assertCount( count( $prefix ) + 1, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests(), $site . ' makes no further request.' );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
@@ -446,6 +454,61 @@ final class RepositoryWebhookClientTest extends TestCase {
 			self::assertStringNotContainsString( self::TOKEN, $encoded, $site );
 			self::assertStringNotContainsString( self::SECRET, $encoded, $site );
 			self::assertStringNotContainsString( 'upstream-response-canary', $encoded, $site );
+		}
+	}
+
+	/** @return iterable<string, array{int, string}> */
+	public static function refused_removals(): iterable {
+		yield 'credential rejected' => array( 401, 'credential_rejected' );
+		yield 'permission denied' => array( 403, 'permission_denied' );
+		yield 'not found or no access' => array( 404, 'repository_not_found_or_no_access' );
+	}
+
+	#[DataProvider( 'refused_removals' )]
+	public function test_a_refused_delete_tells_the_operator_the_webhook_can_be_removed_by_hand( int $status, string $code ): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+			array( $this->response( 200, $this->hook( 55, 'https://site.example/hook' ) ), $this->response( $status, array() ) )
+		);
+
+		$result = ( new RepositoryWebhookClient() )->remove( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+
+		self::assertSame( 'failed', $result->state() );
+		self::assertSame( $code, $result->code() );
+		self::assertStringEndsWith( ' Or remove the webhook by hand on GitHub.', $result->to_array()['remediation'] );
+		self::assertLessThanOrEqual( 255, strlen( $result->to_array()['remediation'] ) );
+		self::assertFalse( $result->confirms_absence() );
+	}
+
+	/** @return iterable<string, array{int, string}> */
+	public static function refused_pre_delete_reads(): iterable {
+		// A hook-path 404 is the absence case; its refused proof read is covered by the unproven-absence test.
+		yield 'credential rejected' => array( 401, 'credential_rejected' );
+		yield 'permission denied' => array( 403, 'permission_denied' );
+	}
+
+	#[DataProvider( 'refused_pre_delete_reads' )]
+	public function test_a_refused_pre_delete_read_tells_the_operator_the_webhook_can_be_removed_by_hand( int $status, string $code ): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( $status, array() ) ) );
+
+		$result   = ( new RepositoryWebhookClient() )->remove( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+		$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
+
+		self::assertSame( 'failed', $result->state() );
+		self::assertSame( $code, $result->code() );
+		self::assertStringEndsWith( ' Or remove the webhook by hand on GitHub.', $result->to_array()['remediation'] );
+		self::assertCount( 1, $requests, 'No delete is attempted.' );
+	}
+
+	public function test_only_removal_offers_manual_removal(): void {
+		foreach ( array( 'check', 'test', 'reconfigure' ) as $operation ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 403, array() ) ) );
+			$client = new RepositoryWebhookClient();
+			$result = 'reconfigure' === $operation
+				? $client->reconfigure( 'owner/example', '55', 'https://site.example/hook', self::TOKEN, self::SECRET )
+				: $client->{$operation}( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+
+			self::assertSame( 'permission_denied', $result->code(), $operation );
+			self::assertStringNotContainsString( 'by hand', $result->to_array()['remediation'], $operation );
 		}
 	}
 
