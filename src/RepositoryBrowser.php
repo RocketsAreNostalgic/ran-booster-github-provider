@@ -328,6 +328,7 @@ class RepositoryBrowser {
 			throw new RuntimeException( 'The GitHub repository path check is invalid.', 400 );
 		}
 
+		$headers  = $this->authenticated_request_headers( $credential_id, $is_private );
 		$response = $this->guarded_get(
 			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ) . '/contents/' . implode( '/', array_map( 'rawurlencode', explode( '/', $path ) ) ) . '?ref=' . rawurlencode( strtolower( $ref ) ),
 			array(
@@ -335,7 +336,7 @@ class RepositoryBrowser {
 				'redirection'         => 0,
 				'limit_response_size' => 1024,
 				'reject_unsafe_urls'  => true,
-				'headers'             => $this->authenticated_request_headers( $credential_id, $is_private ),
+				'headers'             => $headers,
 			)
 		);
 		if ( is_wp_error( $response ) ) {
@@ -343,7 +344,14 @@ class RepositoryBrowser {
 		}
 		$status = (int) wp_remote_retrieve_response_code( $response );
 		if ( 404 === $status ) {
-			return false;
+			// A credentialed 404 also means the credential cannot read the repository, so absence needs proof of access.
+			if ( ! $is_private && null === $credential_id ) {
+				return false;
+			}
+			if ( $this->repository_contents_readable( $full_name, $ref, $headers ) ) {
+				return false;
+			}
+			$this->fail_request( 'repository_not_found_or_no_access', 'GitHub could not find the repository path, or the selected credential cannot access it.', 404, $status );
 		}
 		if ( 401 === $status ) {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential while checking the repository path.', 401, $status );
