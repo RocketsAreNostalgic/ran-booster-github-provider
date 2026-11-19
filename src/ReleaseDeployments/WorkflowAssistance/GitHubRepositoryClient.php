@@ -30,7 +30,7 @@ final class GitHubRepositoryClient {
 	 * @return array<array-key,mixed>
 	 * @phpstan-impure Fresh HTTP responses may change between identical requests.
 	 */
-	public function repository( string $repository, string $token = '' ): array {
+	public function repository( string $repository, #[\SensitiveParameter] string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -51,7 +51,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function branch_ref( string $repository, string $branch, string $token = '' ): array {
+	public function branch_ref( string $repository, string $branch, #[\SensitiveParameter] string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_branch( $branch ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -68,7 +68,7 @@ final class GitHubRepositoryClient {
 	/** Exact bounded Git-tree metadata; admission and mutation readback share validation.
 	 * @return array<array-key,mixed>
 	 */
-	private function tree_entries( string $repository, string $sha, string $token = '' ): array {
+	private function tree_entries( string $repository, string $sha, #[\SensitiveParameter] string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -108,7 +108,7 @@ final class GitHubRepositoryClient {
 	/** Bounded metadata-only snapshot for exact mutation readback.
 	 * @return array<array-key,mixed>
 	 */
-	public function entry_snapshot( string $repository, string $repository_id, string $default_branch, string $sha, string $token = '' ): array {
+	public function entry_snapshot( string $repository, string $repository_id, string $default_branch, string $sha, #[\SensitiveParameter] string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || null === $this->numeric_string( $repository_id )
 			|| ! $this->valid_branch( $default_branch ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
@@ -187,7 +187,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function blob( string $repository, string $sha, string $token = '' ): array {
+	public function blob( string $repository, string $sha, #[\SensitiveParameter] string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -212,7 +212,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function git_commit( string $repository, string $sha, string $token = '' ): array {
+	public function git_commit( string $repository, string $sha, #[\SensitiveParameter] string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -240,7 +240,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function create_blob( string $repository, string $content, string $token ): array {
+	public function create_blob( string $repository, string $content, #[\SensitiveParameter] string $token ): array {
 		if ( '' === $token || ! $this->valid_repository( $repository ) || strlen( $content ) > self::MAX_BODY
 			|| str_contains( $content, "\0" ) || 1 !== preg_match( '//u', $content ) ) {
 			return $this->error( 'invalid_request' );
@@ -261,7 +261,7 @@ final class GitHubRepositoryClient {
 	 * @param list<array{path:string,sha:string,mode:string}> $entries
 	 * @return array<array-key,mixed>
 	 */
-	public function create_tree( string $repository, string $base_tree_sha, array $entries, string $token ): array {
+	public function create_tree( string $repository, string $base_tree_sha, array $entries, #[\SensitiveParameter] string $token ): array {
 		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $base_tree_sha )
 			|| array() === $entries || count( $entries ) > self::MAX_CHANGES ) {
 			return $this->error( 'invalid_request' );
@@ -297,7 +297,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function create_commit( string $repository, string $tree_sha, string $parent_sha, string $message, string $token ): array {
+	public function create_commit( string $repository, string $tree_sha, string $parent_sha, string $message, #[\SensitiveParameter] string $token ): array {
 		if ( '' === $token || ! $this->valid_repository( $repository ) || ! $this->valid_sha( $tree_sha ) || ! $this->valid_sha( $parent_sha )
 			|| '' === trim( $message ) || strlen( $message ) > 200 ) {
 			return $this->error( 'invalid_request' );
@@ -318,7 +318,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function create_ref( string $repository, string $branch, string $default_branch, string $sha, string $token ): array {
+	public function create_ref( string $repository, string $branch, string $default_branch, string $sha, #[\SensitiveParameter] string $token ): array {
 		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $default_branch ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -336,7 +336,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function pull_requests( string $repository, string $branch, string $token = '' ): array {
+	public function pull_requests( string $repository, string $branch, #[\SensitiveParameter] string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_branch( $branch ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -364,7 +364,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function pull_request( string $repository, int $number, string $token = '' ): array {
+	public function pull_request( string $repository, int $number, #[\SensitiveParameter] string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || $number < 1 ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -377,7 +377,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function pull_request_file_set( string $repository, int $number, string $token = '' ): array {
+	public function pull_request_file_set( string $repository, int $number, #[\SensitiveParameter] string $token = '' ): array {
 		if ( ! $this->valid_repository( $repository ) || $number < 1 ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -411,7 +411,7 @@ final class GitHubRepositoryClient {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	public function create_draft_pull_request( string $repository, string $branch, string $default_branch, string $title, string $body, string $token ): array {
+	public function create_draft_pull_request( string $repository, string $branch, string $default_branch, string $title, string $body, #[\SensitiveParameter] string $token ): array {
 		if ( '' === $token || ! $this->valid_target_branch( $repository, $branch, $default_branch ) || '' === trim( $title )
 			|| strlen( $title ) > 120 || strlen( $body ) > 8000
 			|| 1 === preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $title . $body ) ) {
@@ -429,7 +429,7 @@ final class GitHubRepositoryClient {
 	 * @param array<int,string> $special
 	 * @return array<string,mixed>
 	 */
-	private function request( string $method, string $path, string $token, ?array $body = null, array $special = array(), bool $raw_prefix = false ): array {
+	private function request( string $method, string $path, #[\SensitiveParameter] string $token, ?array $body = null, array $special = array(), bool $raw_prefix = false ): array {
 		if ( ! $this->valid_token( $token ) || ! str_starts_with( $path, '/repos/' ) ) {
 			return $this->error( 'invalid_request' );
 		}

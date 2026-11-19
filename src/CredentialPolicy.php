@@ -105,7 +105,7 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 		);
 	}
 
-	private function required_string( mixed $value, string $name ): string {
+	private function required_string( #[\SensitiveParameter] mixed $value, string $name ): string {
 		if ( ! is_string( $value ) || '' === trim( $value ) ) {
 			// Provider policy errors are mapped at the admin boundary.
 			throw new RuntimeException( $name . ' must be a non-empty string.' );

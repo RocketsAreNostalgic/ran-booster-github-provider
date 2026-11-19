@@ -331,6 +331,60 @@ final class RepositoryWebhookClientTest extends TestCase {
 		self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 	}
 
+	public function test_check_and_remove_report_absence_only_when_the_hook_list_is_readable(): void {
+		foreach ( array( 'check', 'remove' ) as $operation ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+				array( $this->response( 404, array() ), $this->response( 200, array( $this->hook( 56, 'https://other.example/hook' ) ) ) )
+			);
+
+			$result   = ( new RepositoryWebhookClient() )->{$operation}( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
+
+			self::assertTrue( $result->succeeded(), $operation );
+			self::assertSame( 'check' === $operation ? 'hook_absent' : 'absence_confirmed', $result->code(), $operation );
+			self::assertTrue( $result->confirms_absence(), $operation );
+			self::assertSame( array( 'GET', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ), $operation );
+			self::assertStringEndsWith( '/hooks/55', $requests[0]['url'] );
+			self::assertStringEndsWith( '/hooks?per_page=1', $requests[1]['url'] );
+		}
+	}
+
+	/** @return iterable<string, array{mixed}> */
+	public static function unproven_absence_replies(): iterable {
+		yield 'hook list also 404' => array( 404 );
+		yield 'hook list forbidden' => array( 403 );
+		yield 'hook list rate limited' => array( 429 );
+		yield 'hook list server error' => array( 503 );
+		yield 'hook list transport failure' => array( new RepositoryResolverWpError( 'http_request_failed' ) );
+		yield 'hook list is not a list' => array( 200, array( 'message' => 'not a list' ) );
+		yield 'hook list entry lacks an identity' => array( 200, array( array( 'name' => 'web' ) ) );
+		yield 'hook list contradicts the 404' => array( 200, array( array( 'id' => 55 ) ) );
+	}
+
+	#[DataProvider( 'unproven_absence_replies' )]
+	public function test_check_and_remove_never_report_success_when_hook_absence_is_unproven( mixed $status_or_error, mixed $body = array() ): void {
+		foreach ( array( 'check', 'remove' ) as $operation ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+				array(
+					$this->response( 404, array() ),
+					is_int( $status_or_error ) ? $this->response( $status_or_error, $body ) : $status_or_error,
+				)
+			);
+
+			$result   = ( new RepositoryWebhookClient() )->{$operation}( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
+
+			self::assertSame( 'ambiguous', $result->state(), $operation );
+			self::assertSame( 'check' === $operation ? 'hook_readback_unavailable' : 'predelete_read_unavailable', $result->code(), $operation );
+			self::assertFalse( $result->succeeded(), $operation );
+			self::assertFalse( $result->confirms_absence(), $operation );
+			self::assertSame( '55', $result->hook_id(), $operation );
+			self::assertSame( array( 'GET', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ), 'No delete is attempted without a readable hook.' );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
+			self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
+		}
+	}
+
 	public function test_ping_acceptance_does_not_use_provider_delivery_history_as_signing_proof(): void {
 		$hook     = $this->hook( 55, 'https://site.example/hook' );
 		$baseline = array(

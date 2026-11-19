@@ -26,7 +26,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
-	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, string $token, ?ActivityProgress $progress = null ): array {
+	public function inspect( RepositoryReleaseWorkflowTarget $status, string $channel, RepositoryReleaseWorkflowPreflight $preflight, #[\SensitiveParameter] string $token, ?ActivityProgress $progress = null ): array {
 		if ( 'stable' !== $channel || $this->records->occupied( $status->provider_repository_id() ) ) {
 			return $this->result( $status, 'invalid_request' );
 		}
@@ -54,7 +54,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
-	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, string $token, ?ActivityProgress $progress = null ): array {
+	public function setup( RepositoryReleaseWorkflowTarget $status, string $key, string $confirmation, RepositoryReleaseWorkflowPreflight $preflight, #[\SensitiveParameter] string $token, ?ActivityProgress $progress = null ): array {
 		$preview = $this->preview( $key, $status );
 		if ( null === $preview || 'bootstrap' !== $preview['kind'] || '' === $token || ! hash_equals( $preview['repository'], trim( $confirmation ) ) ) {
 			return $this->result( $status, 'invalid_request', false, $key );
@@ -94,7 +94,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
-	public function outcome( RepositoryReleaseWorkflowTarget $status, string $token, ?ActivityProgress $progress = null ): array {
+	public function outcome( RepositoryReleaseWorkflowTarget $status, #[\SensitiveParameter] string $token, ?ActivityProgress $progress = null ): array {
 		$record = $this->current_record( $status );
 		if ( null === $record ) {
 			return $this->result( $status, 'invalid_request' );
@@ -212,7 +212,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	private function bootstrap_bundle( RepositoryReleaseWorkflowTarget $status, string $token, ?TemplatePack $pack = null, ?ActivityProgress $progress = null ): array {
+	private function bootstrap_bundle( RepositoryReleaseWorkflowTarget $status, #[\SensitiveParameter] string $token, ?TemplatePack $pack = null, ?ActivityProgress $progress = null ): array {
 		$progress?->progress( 'gh.repository_snapshot' );
 		$target = $this->target( $status, $token );
 		if ( 'ok' !== $target['code'] ) {
@@ -247,7 +247,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	private function target( RepositoryReleaseWorkflowTarget $status, string $token ): array {
+	private function target( RepositoryReleaseWorkflowTarget $status, #[\SensitiveParameter] string $token ): array {
 		$url = $status->expected_update_uri();
 		if ( 1 !== preg_match( '#\Ahttps://github\.com/([A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99})/?\z#D', $url, $match ) ) {
 			return array( 'code' => 'invalid_request' );
@@ -274,7 +274,7 @@ final class WorkflowApplicationCoordinator {
 	 * @param array<array-key,mixed> $remote
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
-	private function open_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, string $token ): array {
+	private function open_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, #[\SensitiveParameter] string $token ): array {
 		$claim = $this->records->claim( $status->provider_repository_id(), $status->type(), $status->identifier(), $status->source_revision() );
 		if ( null === $claim ) {
 			return $this->result( $status, 'invalid_request', false, $preview_key );
@@ -295,7 +295,7 @@ final class WorkflowApplicationCoordinator {
 	 * @param array<array-key,mixed> $remote
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
-	private function open_claimed_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, string $token ): array {
+	private function open_claimed_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, #[\SensitiveParameter] string $token ): array {
 		if ( ! $this->records->workflow_state()->consume_preview( $preview_key ) ) {
 			return $this->result( $status, 'invalid_request', false, $preview_key );
 		}
@@ -341,7 +341,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @param array<array-key,mixed> $remote
 	 */
-	private function create_atomic_commit( array $remote, InitialReleaseBundle $bundle, string $branch, string $token ): ?string {
+	private function create_atomic_commit( array $remote, InitialReleaseBundle $bundle, string $branch, #[\SensitiveParameter] string $token ): ?string {
 		$repo = '' !== $token ? $this->github->repository( $remote['repository'], $token ) : array( 'code' => 'invalid_request' );
 		$base = 'ok' === $repo['code'] ? $this->github->branch_ref( $remote['repository'], $remote['default_branch'], $token ) : $repo;
 		if ( 'ok' !== $base['code'] || ! hash_equals( $remote['repository_id'], (string) ( $repo['repository_id'] ?? '' ) )
@@ -391,7 +391,7 @@ final class WorkflowApplicationCoordinator {
 	}
 
 	/** Observe the mutable setup ref without repeating immutable object reads. */
-	private function verify_branch_ref( string $repository, string $branch, string $head, string $token ): bool {
+	private function verify_branch_ref( string $repository, string $branch, string $head, #[\SensitiveParameter] string $token ): bool {
 		$ref = $this->github->branch_ref( $repository, $branch, $token );
 		return 'ok' === $ref['code'] && hash_equals( $head, $ref['sha'] );
 	}
@@ -399,7 +399,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @param array<array-key,mixed> $remote
 	 */
-	private function verify_branch( array $remote, string $branch, string $head, InitialReleaseBundle $bundle, string $token ): bool {
+	private function verify_branch( array $remote, string $branch, string $head, InitialReleaseBundle $bundle, #[\SensitiveParameter] string $token ): bool {
 		if ( ! $this->verify_branch_ref( $remote['repository'], $branch, $head, $token ) ) {
 			return false;
 		}
@@ -423,7 +423,7 @@ final class WorkflowApplicationCoordinator {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	private function find_pull( string $repository, string $branch, string $base, string $token ): array {
+	private function find_pull( string $repository, string $branch, string $base, #[\SensitiveParameter] string $token ): array {
 		$result = $this->github->pull_requests( $repository, $branch, $token );
 		if ( 'ok' !== $result['code'] ) {
 			return $result;
