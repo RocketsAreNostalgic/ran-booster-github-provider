@@ -603,7 +603,7 @@ class RepositoryBrowser {
 	 * @param array<string, string> $headers
 	 * @return array<array-key,mixed>
 	 */
-	private function browse_request( string $url, array $headers, RepositoryBrowseRequest $request, bool $expect_list = false ): array {
+	private function browse_request( string $url, #[\SensitiveParameter] array $headers, RepositoryBrowseRequest $request, bool $expect_list = false ): array {
 		$response = $this->guarded_get(
 			$url,
 			array(

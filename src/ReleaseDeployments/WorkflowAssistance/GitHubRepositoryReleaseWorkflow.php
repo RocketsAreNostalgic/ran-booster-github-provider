@@ -176,7 +176,7 @@ final class GitHubRepositoryReleaseWorkflow {
 			return '' === $secret && $required ? '' : $secret;
 		} catch ( Throwable ) {
 			return ''; } }
-	private function selected_credential_unavailable( ?string $id, string $token ): bool {
+	private function selected_credential_unavailable( ?string $id, #[\SensitiveParameter] string $token ): bool {
 		return null !== $id && '' !== $id && '' === $token;
 	}
 	/**
