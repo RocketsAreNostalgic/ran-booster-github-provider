@@ -244,9 +244,51 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		$result = ( new RepositoryWebhookClient() )->setup( 'owner/example', 'https://site.example/hook', self::TOKEN, self::SECRET );
 
-		self::assertSame( 'ambiguous', $result->state() );
+		self::assertSame( 'failed', $result->state() );
 		self::assertSame( 'hook_inventory_incomplete', $result->code() );
+		self::assertNull( $result->hook_id() );
 		self::assertCount( 3, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+	}
+
+	public function test_an_invalid_hook_list_stops_set_up_before_any_create_request(): void {
+		foreach ( array( array( 'message' => 'not a list' ), array( array( 'name' => 'web' ) ) ) as $body ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 200, $body ) ) );
+
+			$result = ( new RepositoryWebhookClient() )->setup( 'owner/example', 'https://site.example/hook', self::TOKEN, self::SECRET );
+
+			self::assertSame( 'failed', $result->state() );
+			self::assertSame( 'hook_inventory_invalid', $result->code() );
+			self::assertNull( $result->hook_id() );
+			self::assertSame( array( 'GET' ), array_column( array_column( \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests(), 'arguments' ), 'method' ) );
+		}
+	}
+
+	public function test_several_matching_hooks_stop_set_up_before_any_create_request(): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+			array( $this->response( 200, array( $this->hook( 55, 'https://site.example/hook' ), $this->hook( 56, 'https://site.example/hook' ) ) ) )
+		);
+
+		$result = ( new RepositoryWebhookClient() )->setup( 'owner/example', 'https://site.example/hook', self::TOKEN, self::SECRET );
+
+		self::assertSame( 'failed', $result->state() );
+		self::assertSame( 'matching_hooks_ambiguous', $result->code() );
+		self::assertNull( $result->hook_id() );
+		self::assertSame( array( 'GET' ), array_column( array_column( \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests(), 'arguments' ), 'method' ) );
+	}
+
+	public function test_a_failed_later_inventory_page_is_a_plain_failure_before_any_create_request(): void {
+		$page = array();
+		for ( $id = 1; $id <= 100; ++$id ) {
+			$page[] = $this->hook( $id, 'https://other.example/' . $id );
+		}
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 200, $page ), new RepositoryResolverWpError( 'http_request_failed' ) ) );
+
+		$result = ( new RepositoryWebhookClient() )->setup( 'owner/example', 'https://site.example/hook', self::TOKEN, self::SECRET );
+
+		self::assertSame( 'failed', $result->state() );
+		self::assertSame( 'transport_other', $result->code() );
+		self::assertSame( 'GitHub could not be reached. Nothing was changed on GitHub.', $result->to_array()['remediation'] );
+		self::assertSame( array( 'GET', 'GET' ), array_column( array_column( \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests(), 'arguments' ), 'method' ) );
 	}
 
 	public function test_setup_does_not_adopt_an_existing_endpoint_with_an_unreadable_secret(): void {
@@ -254,8 +296,10 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		$result = ( new RepositoryWebhookClient() )->setup( 'owner/example', 'https://site.example/hook', self::TOKEN, self::SECRET );
 
-		self::assertSame( 'ambiguous', $result->state() );
+		self::assertSame( 'failed', $result->state() );
 		self::assertSame( 'existing_hook_requires_reconfigure', $result->code() );
+		self::assertSame( 'A webhook for this site already exists on GitHub. Remove it there, then set up again.', $result->to_array()['remediation'] );
+		self::assertStringNotContainsString( 'reconfiguration', $result->to_array()['remediation'] );
 		self::assertNull( $result->hook_id(), 'An unowned hook ID must not seed a later remove operation.' );
 		self::assertCount( 1, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
@@ -491,10 +535,20 @@ final class RepositoryWebhookClientTest extends TestCase {
 			};
 			$evidence = $result->to_array();
 
-			self::assertSame( $state, $result->state(), $site );
+			// A read made before any create request cannot have changed anything, so it is a plain failure.
+			$expected_state = 'set-up inventory' === $site && 'ambiguous' === $state ? 'failed' : $state;
+			$expected_text  = $remediation;
+			if ( 'set-up inventory' === $site ) {
+				$expected_text = match ( $code ) {
+					'rate_limited'    => 'GitHub rate limited the request. Nothing was changed on GitHub.',
+					'transport_other' => 'GitHub could not be reached. Nothing was changed on GitHub.',
+					default           => $remediation,
+				};
+			}
+			self::assertSame( $expected_state, $result->state(), $site );
 			self::assertSame( '' === $code ? $fallback : $code, $result->code(), $site );
 			$by_hand = str_starts_with( $site, 'remove' ) && in_array( $code, array( 'credential_rejected', 'permission_denied', 'repository_not_found_or_no_access' ), true );
-			self::assertSame( $remediation . ( $by_hand ? ' Or remove the webhook by hand on GitHub.' : '' ), $evidence['remediation'], $site );
+			self::assertSame( $expected_text . ( $by_hand ? ' Or remove the webhook by hand on GitHub.' : '' ), $evidence['remediation'], $site );
 			self::assertLessThanOrEqual( 255, strlen( $evidence['remediation'] ), $site . ' stays within what Core will show.' );
 			self::assertSame( $has_hook ? '55' : null, $result->hook_id(), $site );
 			self::assertCount( count( $prefix ) + 1, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests(), $site . ' makes no further request.' );
