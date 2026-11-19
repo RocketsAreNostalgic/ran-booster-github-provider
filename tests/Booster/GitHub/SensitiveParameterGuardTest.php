@@ -18,12 +18,6 @@ final class SensitiveParameterGuardTest extends TestCase {
 
 	private const SECRET_PARAMETER = '/\A(?:[a-z0-9]+_)*(?:token|secret|authorization|headers)\z/';
 
-	/**
-	 * The one file with a remaining unmarked parameter (`browse_pages()`) is also changed by an open
-	 * pull request; delete this entry when that attribute lands.
-	 */
-	private const COVERED_ELSEWHERE = array( 'RepositoryBrowser.php' );
-
 	public function test_every_secret_carrying_parameter_is_marked_sensitive(): void {
 		$missing = array();
 		$checked = 0;
@@ -68,10 +62,7 @@ final class SensitiveParameterGuardTest extends TestCase {
 				continue;
 			}
 			$relative = substr( $file->getPathname(), strlen( $root ) );
-			if ( in_array( $relative, self::COVERED_ELSEWHERE, true ) ) {
-				continue;
-			}
-			$name = 'RAN\\BoosterGitHubProvider\\V1\\' . str_replace( '/', '\\', substr( $relative, 0, -4 ) );
+			$name     = 'RAN\\BoosterGitHubProvider\\V1\\' . str_replace( '/', '\\', substr( $relative, 0, -4 ) );
 			if ( class_exists( $name ) || interface_exists( $name ) || trait_exists( $name ) ) {
 				$classes[] = $name;
 			}
