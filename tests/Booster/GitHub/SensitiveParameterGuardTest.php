@@ -19,18 +19,10 @@ final class SensitiveParameterGuardTest extends TestCase {
 	private const SECRET_PARAMETER = '/\A(?:[a-z0-9]+_)*(?:token|secret|authorization|headers)\z/';
 
 	/**
-	 * Source files whose attributes are added by a separate pull request. They are skipped
-	 * only so this guard can merge in either order; remove them once both have merged.
+	 * The one file with a remaining unmarked parameter (`browse_pages()`) is also changed by an open
+	 * pull request; delete this entry when that attribute lands.
 	 */
-	private const COVERED_ELSEWHERE = array(
-		'RepositoryBrowser.php',
-		'WebhookPolicy.php',
-		'ReleaseDeployments/WorkflowAssistance/GitHubRepositoryClient.php',
-		'ReleaseDeployments/WorkflowAssistance/GitHubRepositoryReleaseWorkflow.php',
-		'ReleaseDeployments/WorkflowAssistance/StarterSecurityCheck.php',
-		'ReleaseDeployments/WorkflowAssistance/TemplatePackRepositoryClient.php',
-		'ReleaseDeployments/WorkflowAssistance/WorkflowApplicationCoordinator.php',
-	);
+	private const COVERED_ELSEWHERE = array( 'RepositoryBrowser.php' );
 
 	public function test_every_secret_carrying_parameter_is_marked_sensitive(): void {
 		$missing = array();

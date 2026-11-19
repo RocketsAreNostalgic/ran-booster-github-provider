@@ -138,6 +138,41 @@ final class WebhookNormalizerTest extends TestCase {
 		self::assertSame( array(), $envelope->get_events() );
 	}
 
+	/** @return iterable<string, array{string, string|null}> */
+	public static function ping_bodies(): iterable {
+		yield 'numeric repository id' => array( '{"zen":"x","repository":{"id":123456,"full_name":"owner/example"}}', '123456' );
+		yield 'string repository id' => array( '{"repository":{"id":"123456"}}', '123456' );
+		yield 'id above the native integer range' => array( '{"repository":{"id":9223372036854775808}}', '9223372036854775808' );
+		yield 'no repository' => array( '{"zen":"Keep it logically awesome."}', null );
+		yield 'repository is not an object' => array( '{"repository":"owner/example"}', null );
+		yield 'id is missing' => array( '{"repository":{"full_name":"owner/example"}}', null );
+		yield 'id is an array' => array( '{"repository":{"id":[1]}}', null );
+		yield 'id is a float' => array( '{"repository":{"id":1.5}}', null );
+		yield 'id is zero' => array( '{"repository":{"id":0}}', null );
+		yield 'id is negative' => array( '{"repository":{"id":-5}}', null );
+		yield 'id has a leading zero' => array( '{"repository":{"id":"0123"}}', null );
+		yield 'id is not numeric' => array( '{"repository":{"id":"abc"}}', null );
+		yield 'id is too long' => array( '{"repository":{"id":"12345678901234567890"}}', null );
+		yield 'body is not JSON' => array( 'not-json', null );
+		yield 'body is empty' => array( '', null );
+	}
+
+	#[DataProvider( 'ping_bodies' )]
+	public function test_a_signed_ping_names_its_repository_only_when_the_id_is_usable( string $body, ?string $expected ): void {
+		$normalizer = $this->normalizer();
+		$envelope   = $normalizer->normalize_webhook( $this->request( $body, 'ping' ) );
+		$method     = new \ReflectionMethod( $normalizer, 'ping_repository_id' );
+
+		self::assertTrue( $envelope->is_probe(), 'A ping is accepted whatever its body holds.' );
+		self::assertSame( array(), $envelope->get_events() );
+		self::assertSame( $expected, $method->invoke( $normalizer, $body ) );
+		$envelope_class = new \ReflectionClass( $envelope );
+		if ( $envelope_class->hasMethod( 'get_repository_id' ) ) {
+			// A host that carries the id reports exactly what the provider extracted; an older host ignores the argument.
+			self::assertSame( $expected, $envelope_class->getMethod( 'get_repository_id' )->invoke( $envelope ) );
+		}
+	}
+
 	public function test_signed_unrelated_event_is_ignored_without_parsing_its_body(): void {
 		$body     = 'not-json-and-not-needed';
 		$request  = $this->request( $body, 'issues' );
