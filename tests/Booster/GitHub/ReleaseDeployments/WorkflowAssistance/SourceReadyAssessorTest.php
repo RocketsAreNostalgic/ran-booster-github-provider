@@ -251,9 +251,9 @@ final class SourceReadyAssessorTest extends TestCase {
 		self::assertContains( 'templates/index.html', $assessment->release_files() );
 	}
 
-	public function test_unstarred_plugin_name_header_is_accepted_and_annotated(): void {
+	public function test_unstarred_plugin_name_header_is_refused_in_parity_with_verify_release_script(): void {
 		$unstarred = "<?php\n/*\nPlugin Name: Example\nRequires PHP: 8.2\nRequires at least: 7.0\nVersion: 1.2.3\nUpdate URI: https://github.com/owner/example-plugin\n*/\n";
-		$result    = ( new SourceReadyAssessor() )->assess(
+		$solo      = ( new SourceReadyAssessor() )->assess(
 			$this->snapshot( array( 'example-plugin.php' => $unstarred ) ),
 			'plugin',
 			'example-plugin',
@@ -261,9 +261,8 @@ final class SourceReadyAssessorTest extends TestCase {
 			'https://github.com/' . self::REPOSITORY
 		);
 
-		self::assertTrue( $result->ready_for_bootstrap() );
-		self::assertSame( 'example-plugin.php', $result->header_path() );
-		self::assertStringContainsString( "x-release-please-start-version\nVersion: 1.2.3\nx-release-please-end", $result->modified_files()['example-plugin.php'] );
+		self::assertFalse( $solo->ready_for_bootstrap() );
+		self::assertSame( 'package_ambiguous', $solo->code() );
 
 		$duplicate = ( new SourceReadyAssessor() )->assess(
 			$this->snapshot(
@@ -277,6 +276,7 @@ final class SourceReadyAssessorTest extends TestCase {
 			self::VERSION,
 			'https://github.com/' . self::REPOSITORY
 		);
+		self::assertFalse( $duplicate->ready_for_bootstrap() );
 		self::assertSame( 'package_ambiguous', $duplicate->code() );
 	}
 

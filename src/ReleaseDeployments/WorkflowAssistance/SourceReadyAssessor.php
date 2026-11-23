@@ -8,8 +8,8 @@ use Throwable;
 
 /** Fixed API 3 source-ready rules for repository-root plugins and themes. */
 final class SourceReadyAssessor {
-	// The setup writes six files that GitHubRepositoryClient reads as assessment documents:
-	// two workflows, the origin record, RP config, and the build and verify scripts.
+	// The setup writes four files that GitHubRepositoryClient reads as assessment documents:
+	// the origin record, RP config, and the build and verify scripts (keeping six reserved).
 	private const MAX_SOURCE_INSPECTED_BLOBS = 250;
 	// Ten generated files and up to three missing parents (.github, workflows, scripts).
 	// Readback uses the GitHub client's 2,000-entry recursive tree limit.
@@ -224,6 +224,10 @@ final class SourceReadyAssessor {
 		}
 
 		$label = 'theme' === $type ? 'Theme Name' : 'Plugin Name';
+		// The fixed API 3 plugin verifier requires a starred Plugin Name header in the selected file.
+		if ( 'plugin' === $type && 1 !== preg_match( '/^[ \t]*\*[ \t]*Plugin Name:[ \t]*\S/m', $document ) ) {
+			return 'package_ambiguous';
+		}
 		// The fixed theme verifier accepts the ordinary unstarred style.css header.
 		if ( 'theme' === $type && 1 !== preg_match( '/^[ \t]*Theme Name:[ \t]*\S/m', $document ) ) {
 			return 'package_ambiguous';

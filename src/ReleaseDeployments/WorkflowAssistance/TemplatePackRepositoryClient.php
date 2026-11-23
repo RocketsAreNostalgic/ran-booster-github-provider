@@ -62,11 +62,14 @@ final class TemplatePackRepositoryClient {
 		$versions = array();
 		foreach ( $list['data'] as $release ) {
 			if ( ! is_array( $release ) || ! is_bool( $release['immutable'] ?? null ) || ! is_bool( $release['draft'] ?? null )
-				|| ! is_bool( $release['prerelease'] ?? null ) || ! is_string( $release['tag_name'] ?? null ) ) {
+				|| ! is_bool( $release['prerelease'] ?? null ) ) {
 				return $this->error( 'template_pack_invalid' );
 			}
 			if ( true !== $release['immutable'] || true === $release['draft'] || true === $release['prerelease'] ) {
 				continue;
+			}
+			if ( ! is_string( $release['tag_name'] ?? null ) ) {
+				return $this->error( 'template_pack_invalid' );
 			}
 			$version = $this->version_from_tag( $release['tag_name'] );
 			if ( null === $version ) {
@@ -319,7 +322,7 @@ final class TemplatePackRepositoryClient {
 			return $this->error( 'template_pack_unavailable' );
 		}
 		$body = wp_remote_retrieve_body( $response );
-		if ( 401 === $status ) {
+		if ( 401 === $status && array_key_exists( 'Authorization', $args['headers'] ) ) {
 			return $this->error( 'unauthorised' );
 		}
 		if ( 404 === $status ) {

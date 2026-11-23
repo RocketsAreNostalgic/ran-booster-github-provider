@@ -520,6 +520,60 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 			self::assertArrayNotHasKey( 'pack', $result, (string) $boundary );
 			self::assertCount( $boundary + 1, $transport->requests, (string) $boundary );
 		}
+
+		// Anonymous requests and post-redirect hops have no Authorization header, so 401 is unavailable.
+		$anon_transport = new TemplatePackScriptedTransport( array( $this->response( 401, array() ) ) );
+		self::assertSame( 'template_pack_unavailable', $this->client( $anon_transport )->discover()['code'] );
+
+		$redirect_401_transport = new TemplatePackScriptedTransport(
+			array(
+				$this->repository_response(),
+				$this->response( 200, array( $release ) ),
+				$this->response( 200, $release ),
+				$this->tag_response(),
+				$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
+				$this->redirect_response( 302, 'https://release-assets.githubusercontent.com/template-pack.zip' ),
+				$this->binary_response( 401, '' ),
+			)
+		);
+		self::assertSame( 'template_pack_unavailable', $this->client( $redirect_401_transport )->discover( 'operation-token' )['code'] );
+		self::assertCount( 7, $redirect_401_transport->requests );
+		self::assertArrayNotHasKey( 'Authorization', $redirect_401_transport->requests[6]['args']['headers'] );
+	}
+
+	public function test_untagged_drafts_are_skipped_while_untagged_immutable_stable_releases_fail_closed(): void {
+		$archive                      = TemplatePackApi3Fixture::archive();
+		$current                      = $this->release( 41, 'v1.2.3', $archive );
+		$untagged_draft               = $this->release( 50, 'v9.0.0', $archive, draft: true );
+		$untagged_draft['tag_name']   = null;
+		$untagged_mutable             = $this->release( 51, 'v8.0.0', $archive, immutable: false );
+		$untagged_mutable['tag_name'] = null;
+
+		$transport = new TemplatePackScriptedTransport(
+			array(
+				$this->repository_response(),
+				$this->response( 200, array( $untagged_draft, $untagged_mutable, $current ) ),
+				$this->response( 200, $current ),
+				$this->tag_response(),
+				$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
+				$this->binary_response( 200, $archive ),
+			)
+		);
+		$result    = $this->client( $transport )->discover();
+		self::assertSame( 'ok', $result['code'] );
+		self::assertSame( '1.2.3', $result['pack']->pack_version() );
+		self::assertCount( 6, $transport->requests );
+
+		$untagged_stable             = $this->release( 52, 'v2.0.0', $archive );
+		$untagged_stable['tag_name'] = null;
+		$invalid_transport           = new TemplatePackScriptedTransport(
+			array(
+				$this->repository_response(),
+				$this->response( 200, array( $untagged_stable, $current ) ),
+			)
+		);
+		self::assertSame( 'template_pack_invalid', $this->client( $invalid_transport )->discover()['code'] );
+		self::assertCount( 2, $invalid_transport->requests );
 	}
 
 	public function test_ineligible_older_historical_release_does_not_abort_newer_valid_release_discovery(): void {

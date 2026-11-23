@@ -581,15 +581,6 @@ final class GitHubRepositoryClient {
 			|| ( ( str_starts_with( $path, 'scripts/' ) || str_starts_with( $path, '.github/scripts/' ) || str_starts_with( $path, '.ci/' ) )
 				&& str_ends_with( strtolower( $path ), '.sh' ) )
 			|| in_array( $path, array( 'composer.json', 'Makefile' ), true )
-			|| in_array(
-				$path,
-				array(
-					'scripts/build-release.sh',
-					'scripts/verify-release.sh',
-					'scripts/upload-release-assets.sh',
-				),
-				true
-			)
 			|| str_ends_with( $path, 'block.json' ) || str_ends_with( strtolower( $path ), '.pot' );
 	}
 	private function valid_sha( mixed $value ): bool {
