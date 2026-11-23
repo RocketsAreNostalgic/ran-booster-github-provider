@@ -258,6 +258,54 @@ final class NativeTargetsTest extends TestCase {
 		self::assertSame( '', $status->candidate_provider_release_id );
 	}
 
+	/** @return iterable<string, array{string, string}> */
+	public static function rejected_candidate_validation_codes(): iterable {
+		yield 'digest missing' => array( 'digest_missing', 'digest_missing' );
+		yield 'unknown code stays generic incompatible' => array( 'future_validation_code', 'github_updater_release_incompatible' );
+	}
+
+	#[DataProvider( 'rejected_candidate_validation_codes' )]
+	public function test_candidate_validation_maps_digest_missing_without_collapsing_to_generic_incompatible( string $validation_code, string $expected_code ): void {
+		$target = $this->target( null );
+		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
+			$target,
+			new class( $validation_code ) {
+				public function __construct( private string $validation_code ) {
+				}
+
+				/** @return array<string, mixed> */
+				public function status(): array {
+					return array(
+						'state'                => 'active',
+						'declaration_accepted' => true,
+						'hooks_registered'     => true,
+						'code'                 => 'target_active',
+						'native'               => array(
+							'candidate_header_version'  => null,
+							'candidate_tag'             => 'v1.2.0',
+							'candidate_validation_code' => $this->validation_code,
+							'candidate_version'         => '1.2.0',
+							'failure_code'              => null,
+							'installed_version'         => '1.0.0',
+							'last_check'                => 1_700_000_000,
+							'last_native_outcome'       => null,
+							'offered_release_identity'  => null,
+							'offered_version'           => null,
+							'relationship'              => 'newer',
+						),
+					);
+				}
+			}
+		);
+
+		$status = $target->status();
+
+		self::assertTrue( $status->active );
+		self::assertSame( $expected_code, $status->candidate_code );
+		self::assertSame( 'v1.2.0', $status->candidate_release_tag );
+		self::assertSame( '1.2.0', $status->candidate_release_version );
+	}
+
 	public function test_queued_and_inactive_neutral_states_do_not_claim_native_authority(): void {
 		$target = $this->target( null );
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(

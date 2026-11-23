@@ -1074,15 +1074,21 @@ final class RepositoryResolverTest extends TestCase {
 				}
 				self::fail( 'A documented failed response must not become a success.' );
 			} catch ( RuntimeException $exception ) {
+				$expected_reason = 'revision' === $operation && 422 === $status ? 'ref_not_found' : $reason;
+				$expected_legacy = match ( true ) {
+					400 === $status && in_array( $operation, array( 'branch', 'revision' ), true ) => 400,
+					422 === $status && 'revision' === $operation => 404,
+					default => $legacy_status,
+				};
 				if ( $has_carrier ) {
 					$failure = \RAN\RepositoryProvider\ProviderFailure::carried( $exception );
 					self::assertNotNull( $failure );
-					self::assertSame( $reason, $failure->reason );
-					self::assertSame( 'redirect_blocked' === $reason ? null : $status, $failure->http_status );
+					self::assertSame( $expected_reason, $failure->reason );
+					self::assertSame( 'redirect_blocked' === $expected_reason ? null : $status, $failure->http_status );
 					self::assertSame( isset( $headers['retry-after'] ) ? 120 : null, $failure->retry_after );
 				} else {
 					self::assertSame( RuntimeException::class, $exception::class );
-					self::assertSame( 400 === $status && in_array( $operation, array( 'branch', 'revision' ), true ) ? 400 : $legacy_status, $exception->getCode() );
+					self::assertSame( $expected_legacy, $exception->getCode() );
 				}
 				self::assertStringNotContainsString( self::TOKEN, $exception->getMessage() );
 				self::assertStringNotContainsString( 'remote-canary', $exception->getMessage() );

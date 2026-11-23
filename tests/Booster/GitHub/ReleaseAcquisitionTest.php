@@ -100,6 +100,29 @@ final class ReleaseAcquisitionTest extends TestCase {
 		}
 	}
 
+	public function test_deleted_release_between_inspection_and_acquisition_rejects_as_invalid_release(): void {
+		$provider    = $this->provider( new RepositoryResolverSecretsStub() );
+		$repository  = new RepositoryReference( 'owner/example', '123456789', false, null );
+		$fingerprint = $this->fingerprint( $provider, $repository );
+		NeutralReleaseUpdaterFixtures::queue(
+			array(
+				NeutralReleaseUpdaterFixtures::response( 200, array( 'id' => 123456789 ) ),
+				NeutralReleaseUpdaterFixtures::response( 404, array( 'message' => 'Not Found' ) ),
+			)
+		);
+
+		try {
+			$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' );
+			self::fail( 'A release deleted between inspect and acquire must reject as invalid_release.' );
+		} catch ( RepositoryReleaseAcquisitionRejected $exception ) {
+			self::assertSame( RepositoryReleaseAcquisitionRejected::INVALID_RELEASE, $exception->reason );
+		}
+
+		foreach ( $GLOBALS['ran_booster_release_temp_paths'] as $path ) {
+			self::assertFileDoesNotExist( $path );
+		}
+	}
+
 	public function test_acquisition_failure_is_redacted_and_cleans_inspection_artifact(): void {
 		$provider    = $this->provider( new RepositoryResolverSecretsStub() );
 		$repository  = new RepositoryReference( 'owner/example', '123456789', false, null );

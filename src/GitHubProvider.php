@@ -642,6 +642,9 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			throw new RepositoryReleaseReadUnavailable( 'GitHub release inspection access is unavailable.', 502 );
 		}
 		if ( ! $this->success( $result, 'release_inspected', 'complete' ) || ! is_array( $result['value'] ) ) {
+			if ( $this->failure( $result, 'inspect', 'filesystem_unsupported' ) ) {
+				$this->filesystem_unsupported( 'inspection' );
+			}
 			if ( $this->failure( $result, 'inspect', 'invalid_release' ) ) {
 				throw RepositoryReleaseInspectionRejected::invalid_release();
 			}
@@ -725,8 +728,12 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			if ( ! $this->discard_rejected_artifact( $result ) ) {
 				throw RepositoryReleaseAcquisitionRejected::cleanup_failed();
 			}
+			if ( $this->failure( $result, 'acquire', 'filesystem_unsupported' ) ) {
+				$this->filesystem_unsupported( 'acquisition' );
+			}
 			if ( $this->failure( $result, 'acquire', 'invalid_release' )
 				|| $this->failure( $result, 'acquire', 'package_incompatible' )
+				|| $this->failure( $result, 'acquire', 'release_unavailable' )
 				|| $this->failure( $result, 'acquire', 'release_changed' ) ) {
 				throw RepositoryReleaseAcquisitionRejected::invalid_release();
 			}
@@ -881,7 +888,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	}
 
 	private function archive_authorizer( RepositoryReference $repository ): ?Closure {
-		if ( ! $repository->private ) {
+		if ( ! $repository->private && null === $repository->credential_id ) {
 			return null;
 		}
 
@@ -1121,6 +1128,9 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 		if ( ! $this->failure( $result, 'list', $code ) ) {
 			return;
+		}
+		if ( 'filesystem_unsupported' === $code ) {
+			$this->filesystem_unsupported( 'listing' );
 		}
 		if ( $this->read_unavailable( $result, 'list' ) ) {
 			if ( 'rate_limited' === $code && class_exists( ProviderFailure::class ) && property_exists( RepositoryReleaseReadUnavailable::class, 'failure' ) ) {

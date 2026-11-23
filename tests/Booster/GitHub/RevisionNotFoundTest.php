@@ -109,6 +109,47 @@ final class RevisionNotFoundTest extends TestCase {
 		self::assertCount( 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
 
+	/** @return iterable<string, array{string}> */
+	public static function revision_refs(): iterable {
+		yield 'branch' => array( 'missing' );
+		yield 'tag' => array( 'v9.9.9' );
+		yield 'commit' => array( str_repeat( 'b', 40 ) );
+	}
+
+	#[DataProvider( 'revision_refs' )]
+	public function test_revision_422_reports_ref_not_found_without_sending_an_access_probe( string $ref ): void {
+		$this->queue(
+			$this->response( 422, '{"message":"No commit found for SHA: upstream-canary"}' ),
+			$this->response( 200, '[]' )
+		);
+
+		try {
+			( new RepositoryBrowser( new RepositoryResolverSecretsStub() ) )->immutable_ref( 'owner/example', $ref, '42' );
+			self::fail( 'A 422 commit lookup must not resolve.' );
+		} catch ( RuntimeException $failure ) {
+			if ( class_exists( ProviderFailure::class ) && class_exists( ProviderRequestFailed::class ) ) {
+				self::assertInstanceOf( ProviderRequestFailed::class, $failure );
+				self::assertSame( 422, $failure->getCode() );
+				$carried = ProviderFailure::carried( $failure );
+				self::assertNotNull( $carried );
+				self::assertSame( 'ref_not_found', $carried->reason );
+				self::assertSame( 422, $carried->http_status );
+				self::assertSame( 'provider_reference_unavailable', $carried->deployment_outcome_code() );
+				self::assertNull( $carried->retry_after );
+				if ( property_exists( ProviderFailure::class, 'source_code' ) ) {
+					self::assertNull( get_object_vars( $carried )['source_code'] );
+				}
+			} else {
+				self::assertSame( RuntimeException::class, $failure::class );
+				self::assertSame( 404, $failure->getCode() );
+				self::assertSame( 'GitHub could not find that repository revision.', $failure->getMessage() );
+			}
+			self::assertStringNotContainsString( 'upstream-canary', $failure->getMessage() );
+		}
+
+		self::assertCount( 2, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
+	}
+
 	private function has_carrier(): bool {
 		return class_exists( ProviderFailure::class ) && class_exists( ProviderRequestFailed::class );
 	}

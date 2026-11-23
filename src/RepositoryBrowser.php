@@ -94,7 +94,7 @@ class RepositoryBrowser {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential.', 401, $status );
 		}
 
-		if ( $this->is_rate_limited_response( $response, $status ) ) {
+		if ( self::is_rate_limited_response( $response, $status ) ) {
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
 
@@ -193,7 +193,7 @@ class RepositoryBrowser {
 		if ( 401 === $status ) {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential while resolving the repository revision.', 401, $status );
 		}
-		if ( $this->is_rate_limited_response( $response, $status ) ) {
+		if ( self::is_rate_limited_response( $response, $status ) ) {
 			// The retry type stores only a normalized integer delay and fixed message.
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
@@ -207,6 +207,9 @@ class RepositoryBrowser {
 		}
 		if ( 410 === $status ) {
 			$this->fail_request( 'ref_not_found', 'The requested GitHub repository revision is no longer available.', 410, $status );
+		}
+		if ( 422 === $status ) {
+			$this->fail_request( 'ref_not_found', 'GitHub could not find that repository revision.', 404, $status );
 		}
 		if ( $status < 200 || $status >= 300 ) {
 			$this->fail_request( $this->http_failure_reason( $status ), 'GitHub could not resolve the repository revision.', 502, $status >= 400 && $status <= 599 ? $status : null );
@@ -262,7 +265,7 @@ class RepositoryBrowser {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential while resolving the repository branch.', 401, $status );
 		}
 
-		if ( $this->is_rate_limited_response( $response, $status ) ) {
+		if ( self::is_rate_limited_response( $response, $status ) ) {
 			// The retry type stores only a normalized integer delay and fixed message.
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
@@ -356,7 +359,7 @@ class RepositoryBrowser {
 		if ( 401 === $status ) {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential while checking the repository path.', 401, $status );
 		}
-		if ( $this->is_rate_limited_response( $response, $status ) ) {
+		if ( self::is_rate_limited_response( $response, $status ) ) {
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
 		if ( 403 === $status ) {
@@ -422,7 +425,7 @@ class RepositoryBrowser {
 			return $this->validation_failure( 'invalid', $expired ? 'credential_expired' : 'credential_rejected', 401, null, $expired ? $expires_at : null );
 		}
 
-		if ( $this->is_rate_limited_response( $response, $status ) ) {
+		if ( self::is_rate_limited_response( $response, $status ) ) {
 			return $this->validation_failure( 'rate_limited', 'rate_limited', $status, $response );
 		}
 
@@ -641,7 +644,7 @@ class RepositoryBrowser {
 		if ( 401 === $status ) {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential.', 401, $status );
 		}
-		if ( $this->is_rate_limited_response( $response, $status ) ) {
+		if ( self::is_rate_limited_response( $response, $status ) ) {
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
 		if ( 403 === $status ) {
@@ -828,7 +831,7 @@ class RepositoryBrowser {
 			: 'transport_other';
 	}
 
-	private function is_rate_limited_response( mixed $response, int $status ): bool {
+	public static function is_rate_limited_response( mixed $response, int $status ): bool {
 		if ( 429 === $status ) {
 			return true;
 		}
