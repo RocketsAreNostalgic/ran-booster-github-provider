@@ -424,18 +424,23 @@ final class RepositoryWebhookClientTest extends TestCase {
 		self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 	}
 
-	public function test_check_and_remove_report_absence_only_when_the_hook_list_is_readable(): void {
-		foreach ( array( 'check', 'remove' ) as $operation ) {
+	public function test_hook_operations_report_absence_when_the_hook_list_proves_it(): void {
+		foreach ( array( 'check', 'test', 'reconfigure', 'remove' ) as $operation ) {
 			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 				array( $this->response( 404, array() ), $this->response( 200, array( $this->hook( 56, 'https://other.example/hook' ) ) ) )
 			);
 
-			$result   = ( new RepositoryWebhookClient() )->{$operation}( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+			$client   = new RepositoryWebhookClient();
+			$result   = 'reconfigure' === $operation
+				? $client->reconfigure( 'owner/example', '55', 'https://site.example/hook', self::TOKEN, self::SECRET )
+				: $client->{$operation}( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
 			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
 
-			self::assertTrue( $result->succeeded(), $operation );
-			self::assertSame( 'check' === $operation ? 'hook_absent' : 'absence_confirmed', $result->code(), $operation );
-			self::assertTrue( $result->confirms_absence(), $operation );
+			$succeeds = in_array( $operation, array( 'check', 'remove' ), true );
+			self::assertSame( $succeeds ? 'succeeded' : 'failed', $result->state(), $operation );
+			self::assertSame( 'remove' === $operation ? 'absence_confirmed' : 'hook_absent', $result->code(), $operation );
+			self::assertSame( 'absent', $result->to_array()['delivery'], $operation );
+			self::assertSame( $succeeds, $result->confirms_absence(), $operation );
 			self::assertSame( array( 'GET', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ), $operation );
 			self::assertStringEndsWith( '/hooks/55', $requests[0]['url'] );
 			self::assertStringEndsWith( '/hooks?per_page=1', $requests[1]['url'] );
@@ -455,8 +460,14 @@ final class RepositoryWebhookClientTest extends TestCase {
 	}
 
 	#[DataProvider( 'unproven_absence_replies' )]
-	public function test_check_and_remove_never_report_success_when_hook_absence_is_unproven( mixed $status_or_error, mixed $body, string $state, string $code ): void {
-		foreach ( array( 'check', 'remove' ) as $operation ) {
+	public function test_hook_operations_do_not_report_unproven_absence( mixed $status_or_error, mixed $body, string $state, string $code ): void {
+		$fallback_codes = array(
+			'check'       => 'hook_readback_unavailable',
+			'test'        => 'hook_readback_unavailable',
+			'reconfigure' => 'preconfiguration_read_unavailable',
+			'remove'      => 'predelete_read_unavailable',
+		);
+		foreach ( $fallback_codes as $operation => $fallback ) {
 			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 				array(
 					$this->response( 404, array() ),
@@ -464,13 +475,17 @@ final class RepositoryWebhookClientTest extends TestCase {
 				)
 			);
 
-			$result   = ( new RepositoryWebhookClient() )->{$operation}( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+			$client   = new RepositoryWebhookClient();
+			$result   = 'reconfigure' === $operation
+				? $client->reconfigure( 'owner/example', '55', 'https://site.example/hook', self::TOKEN, self::SECRET )
+				: $client->{$operation}( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
 			$requests = \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests();
 
 			self::assertSame( $state, $result->state(), $operation );
-			self::assertSame( '' === $code ? ( 'check' === $operation ? 'hook_readback_unavailable' : 'predelete_read_unavailable' ) : $code, $result->code(), $operation );
+			self::assertSame( '' === $code ? $fallback : $code, $result->code(), $operation );
 			self::assertFalse( $result->succeeded(), $operation );
 			self::assertFalse( $result->confirms_absence(), $operation );
+			self::assertSame( 'unknown', $result->to_array()['delivery'], $operation );
 			self::assertSame( '55', $result->hook_id(), $operation );
 			$remediation = $result->to_array()['remediation'];
 			if ( 'remove' === $operation && 'failed' === $state ) {
@@ -478,7 +493,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 			} else {
 				self::assertStringNotContainsString( 'by hand', $remediation, $operation . ' offers no manual removal.' );
 			}
-			self::assertSame( array( 'GET', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ), 'No delete is attempted without a readable hook.' );
+			self::assertSame( array( 'GET', 'GET' ), array_column( array_column( $requests, 'arguments' ), 'method' ), $operation );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test-only secret-containment assertion.
 			self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 		}

@@ -23,7 +23,7 @@ final class WebhookNormalizerTest extends TestCase {
 	private const OWNER_SECRET     = 'owner-test-webhook-secret-0001';
 	private const OTHER_SECRET     = 'other-test-webhook-secret';
 	private const REPOSITORY       = 'RocketsAreNostalgic/ran-booster';
-	private const REPOSITORY_ID    = '9223372036854775807123';
+	private const REPOSITORY_ID    = '9223372036854775808';
 	private const COMMIT           = '0123456789abcdef0123456789abcdef01234567';
 	private const ZERO_COMMIT      = '0000000000000000000000000000000000000000';
 	private const DELIVERY_ID      = 'delivery-one';
@@ -179,6 +179,7 @@ final class WebhookNormalizerTest extends TestCase {
 		$envelope = $this->normalizer()->normalize_webhook( $request );
 
 		self::assertTrue( $envelope->is_ignored() );
+		$this->assert_reason( $envelope, 'ignored_type' );
 	}
 
 	public function test_exact_body_and_header_limits_are_accepted(): void {
@@ -498,9 +499,21 @@ final class WebhookNormalizerTest extends TestCase {
 		unset( $payload['repository']['id'] );
 		yield 'missing repository id' => array( $payload );
 
-		$payload                     = $valid;
-		$payload['repository']['id'] = 12.5;
-		yield 'lossy repository id' => array( $payload );
+		foreach (
+			array(
+				'lossy'        => 12.5,
+				'zero integer' => 0,
+				'zero string'  => '0',
+				'untrimmed'    => ' 123 ',
+				'non-numeric'  => 'abc',
+				'leading zero' => '0123',
+				'too long'     => '12345678901234567890',
+			) as $label => $repository_id
+		) {
+			$payload                     = $valid;
+			$payload['repository']['id'] = $repository_id;
+			yield $label . ' repository id' => array( $payload );
+		}
 
 		$payload = $valid;
 		unset( $payload['repository']['full_name'] );
@@ -527,39 +540,40 @@ final class WebhookNormalizerTest extends TestCase {
 	 * @param array<array-key,mixed> $payload
 	 */
 	#[DataProvider( 'ignored_push_provider' )]
-	public function test_non_deployable_pushes_are_ignored( array $payload ): void {
+	public function test_non_deployable_pushes_are_ignored( array $payload, ?string $reason ): void {
 		$body     = $this->encode( $payload );
 		$envelope = $this->normalizer()->normalize_webhook( $this->request( $body ) );
 
 		self::assertTrue( $envelope->is_ignored() );
 		self::assertSame( array(), $envelope->get_events() );
+		$this->assert_reason( $envelope, $reason );
 	}
 
 	/**
-	 * @return iterable<string, array{array<string, mixed>}>
+	 * @return iterable<string, array{array<string, mixed>, string|null}>
 	 */
 	public static function ignored_push_provider(): iterable {
 		$valid = self::static_valid_push_payload();
 
 		$payload            = $valid;
 		$payload['deleted'] = true;
-		yield 'deleted branch' => array( $payload );
+		yield 'deleted branch' => array( $payload, 'ignored_deletion' );
 		$payload['ref'] = 'refs/heads/bad..branch';
-		yield 'deleted malformed branch' => array( $payload );
+		yield 'deleted malformed branch' => array( $payload, 'ignored_deletion' );
 
 		$payload        = $valid;
 		$payload['ref'] = 'refs/tags/v1.0.0';
-		yield 'tag push' => array( $payload );
+		yield 'tag push' => array( $payload, 'ignored_ref' );
 		$payload['ref'] = 'refs/tags/foo.lock';
-		yield 'tag outside supported branch syntax' => array( $payload );
+		yield 'tag outside supported branch syntax' => array( $payload, 'ignored_ref' );
 
 		$payload          = $valid;
 		$payload['after'] = 'not-an-immutable-commit';
-		yield 'invalid commit' => array( $payload );
+		yield 'invalid commit' => array( $payload, null );
 
 		$payload          = $valid;
 		$payload['after'] = self::ZERO_COMMIT;
-		yield 'zero commit' => array( $payload );
+		yield 'zero commit' => array( $payload, 'ignored_zero_commits' );
 	}
 
 	#[DataProvider( 'authorized_scope_provider' )]
@@ -585,7 +599,8 @@ final class WebhookNormalizerTest extends TestCase {
 
 		$this->assert_rejected(
 			401,
-			fn (): WebhookEnvelope => $normalizer->normalize_webhook( $this->verified_request( $body, $scope, $target ) )
+			fn (): WebhookEnvelope => $normalizer->normalize_webhook( $this->verified_request( $body, $scope, $target ) ),
+			'scope_mismatch'
 		);
 	}
 
@@ -854,7 +869,7 @@ final class WebhookNormalizerTest extends TestCase {
 	/**
 	 * @param callable(): WebhookEnvelope $operation Normalizer operation expected to reject.
 	 */
-	private function assert_rejected( int $status_code, callable $operation ): void {
+	private function assert_rejected( int $status_code, callable $operation, ?string $reason = null ): void {
 		try {
 			$operation();
 			self::fail( 'Webhook request should have been rejected.' );
@@ -863,6 +878,16 @@ final class WebhookNormalizerTest extends TestCase {
 			self::assertNotSame( '', $exception->getMessage() );
 			self::assertStringNotContainsString( self::OWNER_SECRET, $exception->getMessage() );
 			self::assertStringNotContainsString( self::OTHER_SECRET, $exception->getMessage() );
+			if ( null !== $reason ) {
+				$this->assert_reason( $exception, $reason );
+			}
+		}
+	}
+
+	private function assert_reason( WebhookEnvelope|WebhookRejected $result, ?string $reason ): void {
+		$carrier = new \ReflectionClass( $result );
+		if ( $carrier->hasMethod( 'get_reason' ) ) {
+			self::assertSame( $reason, $carrier->getMethod( 'get_reason' )->invoke( $result ) );
 		}
 	}
 }
