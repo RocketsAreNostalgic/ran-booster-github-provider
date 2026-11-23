@@ -14,8 +14,9 @@ require_once __DIR__ . '/Support/TemplatePackApi3Fixture.php';
 
 final class TemplatePackArchiveContractTest extends TestCase {
 
-	private const LIVE_SHA = '7518b7c30b23fe95fb6c3c5211607657394ffcf440d258323d55c20b15bb5b14';
-	private const API1_SHA = '2c223e14287a1fab28aa91e92d6a454b27e647cfb33f1bb3df965ed995cd89db';
+	private const LIVE_SHA  = '7518b7c30b23fe95fb6c3c5211607657394ffcf440d258323d55c20b15bb5b14';
+	private const LIVE_SIZE = 13879;
+	private const API1_SHA  = '2c223e14287a1fab28aa91e92d6a454b27e647cfb33f1bb3df965ed995cd89db';
 
 	public function test_closed_api3_contract_renders_deterministic_plugin_and_theme_bundles(): void {
 		$archive = TemplatePackApi3Fixture::archive();
@@ -255,10 +256,12 @@ final class TemplatePackArchiveContractTest extends TestCase {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Optional explicit local immutable fixture.
 		$archive = file_get_contents( $path );
 		self::assertIsString( $archive );
+		self::assertSame( self::LIVE_SIZE, strlen( $archive ) );
+		self::assertSame( self::LIVE_SHA, hash( 'sha256', $archive ) );
 		$identity = self::live_identity();
 		$result   = TemplatePack::from_archive( $archive, $identity );
 
-		self::assertContains( $result['code'], array( 'template_pack_incompatible', 'template_pack_invalid' ) );
+		self::assertSame( 'template_pack_incompatible', $result['code'] );
 		self::assertArrayNotHasKey( 'pack', $result );
 	}
 
@@ -382,9 +385,9 @@ final class TemplatePackArchiveContractTest extends TestCase {
 	/** @return array<string, mixed> */
 	private static function live_identity(): array {
 		$commit  = 'df5508fffe1f3e6770b1e7d5d4af5bf195e676c9';
-		$archive = str_repeat( 'x', 13879 );
+		$archive = str_repeat( 'x', self::LIVE_SIZE );
 
-		return self::published_identity( $archive, 368127015, 'v0.2.1', $commit, 509118185, self::LIVE_SHA, 13879 );
+		return self::published_identity( $archive, 368127015, 'v0.2.1', $commit, 509118185, self::LIVE_SHA, self::LIVE_SIZE );
 	}
 
 	/** @return array<string, mixed> */

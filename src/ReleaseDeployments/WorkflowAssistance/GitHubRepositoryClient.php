@@ -8,22 +8,29 @@ use Closure;
 use Throwable;
 /** Fixed-scope GitHub operations for assisted workflow setup. */
 final class GitHubRepositoryClient {
-	private const API_ROOT      = 'https://api.github.com';
-	private const MAX_BODY      = 262144;
-	private const MAX_TREE      = 2000;
-	private const MAX_DOCUMENTS = 256;
+	private const API_ROOT                = 'https://api.github.com';
+	private const MAX_BODY                = 262144;
+	private const MAX_TREE                = 2000;
+	private const MAX_DOCUMENTS           = 256;
+	private const REQUEST_TIMEOUT_SECONDS = 12;
+	private const SNAPSHOT_BUDGET_SECONDS = 30.0;
 	// Leave room in GitHub's anonymous 60-request hourly quota for target and pack discovery.
 	private const MAX_ANONYMOUS_DOCUMENTS = 24;
 	private const MAX_CHANGES             = 32;
 	/** @var Closure(string,string,array<string,mixed>):mixed */
 	private Closure $send;
-	public function __construct( ?callable $send = null, private ?Closure $assert_operation = null ) {
-		$this->send = null === $send
+	/** @var Closure():float */
+	private Closure $clock;
+	public function __construct( ?callable $send = null, private ?Closure $assert_operation = null, ?callable $clock = null ) {
+		$this->send  = null === $send
 			? static fn ( string $method, string $url, #[\SensitiveParameter] array $args ): mixed => wp_safe_remote_request(
 				$url,
 				array_merge( $args, array( 'method' => $method ) )
 			)
 			: Closure::fromCallable( $send );
+		$this->clock = null === $clock
+			? static fn (): float => hrtime( true ) / 1000000000.0
+			: Closure::fromCallable( $clock );
 	}
 
 	/**
@@ -139,7 +146,8 @@ final class GitHubRepositoryClient {
 			|| ! $this->valid_branch( $default_branch ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
-		$tree = $this->tree_entries( $repository, $sha, $token );
+		$deadline = ( $this->clock )() + self::SNAPSHOT_BUDGET_SECONDS;
+		$tree     = $this->tree_entries( $repository, $sha, $token );
 		if ( 'ok' !== $tree['code'] ) {
 			return $tree;
 		}
@@ -162,7 +170,11 @@ final class GitHubRepositoryClient {
 		}
 		$documents = array();
 		foreach ( $candidates as $path => $blob_sha ) {
-			$blob = $this->blob( $repository, $blob_sha, $token );
+			$timeout = $this->remaining_timeout( $deadline );
+			if ( null === $timeout ) {
+				return $this->error( 'remote_unavailable' );
+			}
+			$blob = $this->fetch_blob( $repository, $blob_sha, $token, $timeout );
 			if ( 'ok' !== $blob['code'] ) {
 				return $blob;
 			}
@@ -171,7 +183,11 @@ final class GitHubRepositoryClient {
 
 		$prefixes = array();
 		foreach ( $prefix_candidates as $path => $blob_sha ) {
-			$prefix = $this->request( 'GET', '/repos/' . $repository . '/git/blobs/' . $blob_sha, $token, null, array(), true );
+			$timeout = $this->remaining_timeout( $deadline );
+			if ( null === $timeout ) {
+				return $this->error( 'remote_unavailable' );
+			}
+			$prefix = $this->request( 'GET', '/repos/' . $repository . '/git/blobs/' . $blob_sha, $token, null, array(), true, $timeout );
 			if ( 'ok' !== $prefix['code'] ) {
 				return $prefix;
 			}
@@ -188,10 +204,16 @@ final class GitHubRepositoryClient {
 	 * @return array<array-key,mixed>
 	 */
 	public function blob( string $repository, string $sha, #[\SensitiveParameter] string $token = '' ): array {
+		return $this->fetch_blob( $repository, $sha, $token, self::REQUEST_TIMEOUT_SECONDS );
+	}
+	/**
+	 * @return array<array-key,mixed>
+	 */
+	private function fetch_blob( string $repository, string $sha, #[\SensitiveParameter] string $token, int $timeout ): array {
 		if ( ! $this->valid_repository( $repository ) || ! $this->valid_sha( $sha ) ) {
 			return $this->error( 'invalid_request' );
 		}
-		$response = $this->request( 'GET', '/repos/' . $repository . '/git/blobs/' . $sha, $token );
+		$response = $this->request( 'GET', '/repos/' . $repository . '/git/blobs/' . $sha, $token, null, array(), false, $timeout );
 		if ( 'ok' !== $response['code'] ) {
 			return $response;
 		}
@@ -429,7 +451,7 @@ final class GitHubRepositoryClient {
 	 * @param array<int,string> $special
 	 * @return array<string,mixed>
 	 */
-	private function request( string $method, string $path, #[\SensitiveParameter] string $token, ?array $body = null, array $special = array(), bool $raw_prefix = false ): array {
+	private function request( string $method, string $path, #[\SensitiveParameter] string $token, ?array $body = null, array $special = array(), bool $raw_prefix = false, int $timeout = self::REQUEST_TIMEOUT_SECONDS ): array {
 		if ( ! $this->valid_token( $token ) || ! str_starts_with( $path, '/repos/' ) ) {
 			return $this->error( 'invalid_request' );
 		}
@@ -443,7 +465,7 @@ final class GitHubRepositoryClient {
 		}
 		$args = array(
 			'headers'             => $headers,
-			'timeout'             => 12,
+			'timeout'             => max( 1, min( self::REQUEST_TIMEOUT_SECONDS, $timeout ) ),
 			'redirection'         => 0,
 			'reject_unsafe_urls'  => true,
 			'limit_response_size' => $raw_prefix ? 43 : self::MAX_BODY,
@@ -470,14 +492,11 @@ final class GitHubRepositoryClient {
 		if ( isset( $special[ $status ] ) ) {
 			return $this->error( $special[ $status ] );
 		}
-		if ( 403 === $status && '0' === wp_remote_retrieve_header( $response, 'x-ratelimit-remaining' ) ) {
+		if ( $this->is_rate_limited( $status, $response ) ) {
 			return $this->error( 'rate_limited' );
 		}
 		if ( in_array( $status, array( 401, 403 ), true ) ) {
 			return $this->error( 'unauthorised' );
-		}
-		if ( 429 === $status ) {
-			return $this->error( 'rate_limited' );
 		}
 		if ( $status < 200 || $status >= 300 || ! is_string( $response['body'] ?? '' ) || strlen( $raw ) > self::MAX_BODY ) {
 			return $this->error( 'remote_unavailable' );
@@ -525,17 +544,46 @@ final class GitHubRepositoryClient {
 			&& ! str_starts_with( $value, '/' ) && ! str_contains( $value, '\\' ) && ! str_contains( $value, "\0" )
 			&& 1 !== preg_match( '#(?:\A|/)\.\.?(/|\z)#', $value ) && 1 === preg_match( '//u', $value );
 	}
+	/** @param array<string,mixed> $response */
+	private function is_rate_limited( int $status, array $response ): bool {
+		if ( 429 === $status ) {
+			return true;
+		}
+		if ( 403 !== $status ) {
+			return false;
+		}
+		if ( '0' === $this->header_string( wp_remote_retrieve_header( $response, 'x-ratelimit-remaining' ) ) ) {
+			return true;
+		}
+		$retry_after = $this->header_string( wp_remote_retrieve_header( $response, 'retry-after' ) );
+		if ( '' === $retry_after ) {
+			return false;
+		}
+		if ( 1 === preg_match( '/\A\d+\z/', $retry_after ) ) {
+			return true;
+		}
+		$retry_at = \DateTimeImmutable::createFromFormat( '!D, d M Y H:i:s \G\M\T', $retry_after, new \DateTimeZone( 'GMT' ) );
+		return false !== $retry_at && $retry_at->format( 'D, d M Y H:i:s \G\M\T' ) === $retry_after;
+	}
+	private function header_string( mixed $value ): string {
+		return is_string( $value ) ? trim( $value ) : '';
+	}
+	private function remaining_timeout( float $deadline ): ?int {
+		$remaining = $deadline - ( $this->clock )();
+		if ( $remaining <= 0.0 ) {
+			return null;
+		}
+		return min( self::REQUEST_TIMEOUT_SECONDS, max( 1, (int) ceil( $remaining ) ) );
+	}
 	private function assessment_document( string $path ): bool {
 		return ( ! str_contains( $path, '/' ) && ( str_ends_with( strtolower( $path ), '.php' )
 			|| in_array( $path, array( 'style.css', 'package.json', 'readme.txt', '.prettierignore', InitialReleaseBundle::ORIGIN_PATH, 'release-please-config.json' ), true ) ) )
-			|| ( str_starts_with( $path, '.github/workflows/' ) && 1 === preg_match( '/\.ya?ml\z/i', $path ) )
 			|| ( ( str_starts_with( $path, 'scripts/' ) || str_starts_with( $path, '.github/scripts/' ) || str_starts_with( $path, '.ci/' ) )
 				&& str_ends_with( strtolower( $path ), '.sh' ) )
 			|| in_array( $path, array( 'composer.json', 'Makefile' ), true )
 			|| in_array(
 				$path,
 				array(
-					InitialReleaseBundle::WORKFLOW_PATH,
 					'scripts/build-release.sh',
 					'scripts/verify-release.sh',
 					'scripts/upload-release-assets.sh',

@@ -39,6 +39,7 @@ final class D23ApplicationTransport {
 	private string $base_sha       = self::BASE;
 	private string $pull_state     = 'open';
 	private ?string $merged_at     = null;
+	private string $pull_base_ref  = 'main';
 	private string $pull_base_sha  = self::BASE;
 	private string $pull_scenario  = 'none';
 	private string $uncertain_at   = '';
@@ -78,6 +79,12 @@ final class D23ApplicationTransport {
 	}
 	public function drift_pull_base(): void {
 		$this->pull_base_sha = str_repeat( '9', 40 );
+	}
+	public function drift_pull_base_ref( string $base = 'develop' ): void {
+		$this->pull_base_ref = $base;
+	}
+	public function drift_pull_head_sha(): void {
+		$this->branch_head = str_repeat( '8', 40 );
 	}
 	public function mutate_default_document( string $path, string $content ): void {
 		$this->add_base( $path, $content );
@@ -363,11 +370,12 @@ final class D23ApplicationTransport {
 	/**
 	 * @return array<array-key,mixed>
 	 */
-	private function pull( string $name = '', string $state = '', string $base = 'main' ): array {
+	private function pull( string $name = '', string $state = '', string $base = '' ): array {
 		$branch   = array_values( array_filter( $this->requests, static fn ( array $request ): bool => str_ends_with( (string) wp_parse_url( $request['url'], PHP_URL_PATH ), '/git/refs' ) ) );
 		$ref_body = array() !== $branch ? $this->body( $branch[ array_key_last( $branch ) ]['args'] ) : array( 'ref' => 'refs/heads/ran-booster/release-setup-v2-aaaaaaaaaaaa-unknown' );
 		$name     = '' !== $name ? $name : substr( $ref_body['ref'], strlen( 'refs/heads/' ) );
 		$state    = '' !== $state ? $state : $this->pull_state;
+		$base     = '' !== $base ? $base : $this->pull_base_ref;
 		return array(
 			'number'    => 17,
 			'state'     => $state,

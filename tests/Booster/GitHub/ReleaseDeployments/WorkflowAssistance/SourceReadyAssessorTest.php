@@ -251,6 +251,53 @@ final class SourceReadyAssessorTest extends TestCase {
 		self::assertContains( 'templates/index.html', $assessment->release_files() );
 	}
 
+	public function test_unstarred_plugin_name_header_is_accepted_and_annotated(): void {
+		$unstarred = "<?php\n/*\nPlugin Name: Example\nRequires PHP: 8.2\nRequires at least: 7.0\nVersion: 1.2.3\nUpdate URI: https://github.com/owner/example-plugin\n*/\n";
+		$result    = ( new SourceReadyAssessor() )->assess(
+			$this->snapshot( array( 'example-plugin.php' => $unstarred ) ),
+			'plugin',
+			'example-plugin',
+			self::VERSION,
+			'https://github.com/' . self::REPOSITORY
+		);
+
+		self::assertTrue( $result->ready_for_bootstrap() );
+		self::assertSame( 'example-plugin.php', $result->header_path() );
+		self::assertStringContainsString( "x-release-please-start-version\nVersion: 1.2.3\nx-release-please-end", $result->modified_files()['example-plugin.php'] );
+
+		$duplicate = ( new SourceReadyAssessor() )->assess(
+			$this->snapshot(
+				array(
+					'example-plugin.php' => $this->plugin_header(),
+					'unstarred.php'      => $unstarred,
+				)
+			),
+			'plugin',
+			'example-plugin',
+			self::VERSION,
+			'https://github.com/' . self::REPOSITORY
+		);
+		self::assertSame( 'package_ambiguous', $duplicate->code() );
+	}
+
+	public function test_workflow_yaml_tree_entry_without_downloaded_document_still_triggers_automation_conflict(): void {
+		$base                                = $this->snapshot( array( 'example-plugin.php' => $this->plugin_header() ) );
+		$entries                             = $base->entries();
+		$entries['.github/workflows/ci.yml'] = array(
+			'type' => 'blob',
+			'mode' => '100644',
+			'sha'  => str_repeat( 'c', 40 ),
+			'size' => 32,
+		);
+		$snapshot                            = new RepositorySnapshot( $base->repository_id(), $base->repository(), 'main', $base->sha(), $entries, array( 'example-plugin.php' => $this->plugin_header() ) );
+
+		self::assertNull( $snapshot->document( '.github/workflows/ci.yml' ) );
+		self::assertSame(
+			'release_automation_conflict',
+			( new SourceReadyAssessor() )->assess( $snapshot, 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY )->code()
+		);
+	}
+
 	public function test_version_and_repository_contracts_fail_closed(): void {
 		$assessor  = new SourceReadyAssessor();
 		$constant  = $assessor->assess( $this->snapshot( array( 'example-plugin.php' => $this->plugin_header() . "define( 'EXAMPLE_VERSION', '1.2.3' );\n" ) ), 'plugin', 'example-plugin', self::VERSION, 'https://github.com/' . self::REPOSITORY );

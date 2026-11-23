@@ -207,7 +207,7 @@ final class SourceReadyAssessor {
 			foreach ( $snapshot->document_paths() as $path ) {
 				if ( ! str_contains( $path, '/' ) && str_ends_with( strtolower( $path ), '.php' ) ) {
 					$document = $snapshot->document( $path );
-					if ( is_string( $document ) && 1 === preg_match( '/^[ \t]*\*[ \t]*Plugin Name:[ \t]*\S/m', $document ) ) {
+					if ( is_string( $document ) && 1 === preg_match( '/^[ \t]*(?:\*[ \t]*)?Plugin Name:[ \t]*\S/m', $document ) ) {
 						$candidates[] = $path;
 					}
 				}
@@ -318,7 +318,10 @@ final class SourceReadyAssessor {
 	}
 
 	public function has_competing_release_automation( RepositorySnapshot $snapshot ): bool {
-		foreach ( array_keys( $snapshot->entries() ) as $path ) {
+		foreach ( $snapshot->entries() as $path => $entry ) {
+			if ( 'blob' === $entry['type'] && str_starts_with( $path, '.github/workflows/' ) && 1 === preg_match( '/\.ya?ml\z/i', $path ) ) {
+				return true;
+			}
 			if ( ! in_array( $path, self::GENERATED_PATHS, true )
 				&& in_array( basename( $path ), array( '.release-please-manifest.json', 'release-please-config.json' ), true ) ) {
 				return true;
@@ -326,18 +329,14 @@ final class SourceReadyAssessor {
 		}
 
 		foreach ( $snapshot->document_paths() as $path ) {
-			$workflow = str_starts_with( $path, '.github/workflows/' ) && 1 === preg_match( '/\.ya?ml\z/i', $path );
-			$script   = ( str_starts_with( $path, 'scripts/' ) || str_starts_with( $path, '.github/scripts/' ) || str_starts_with( $path, '.ci/' ) )
+			$script = ( str_starts_with( $path, 'scripts/' ) || str_starts_with( $path, '.github/scripts/' ) || str_starts_with( $path, '.ci/' ) )
 				&& str_ends_with( strtolower( $path ), '.sh' );
-			$config   = in_array( $path, array( 'package.json', 'composer.json', 'Makefile' ), true );
-			if ( ! $workflow && ! $script && ! $config ) {
+			$config = in_array( $path, array( 'package.json', 'composer.json', 'Makefile' ), true );
+			if ( ! $script && ! $config ) {
 				continue;
 			}
 
 			$content = $snapshot->document( $path ) ?? '';
-			if ( $workflow ) {
-				return true;
-			}
 
 			$commands = $content;
 			if ( in_array( $path, array( 'package.json', 'composer.json' ), true ) ) {

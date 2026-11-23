@@ -49,8 +49,9 @@ final class SetupRecordStore {
 		return $this->state;
 	}
 
-	private ?string $claim_token      = null;
-	private ?string $claim_connection = null;
+	private ?string $claim_token = null;
+	/** @var array{connection:object,handle:mixed,options:mixed,name:string,owner:int}|null */
+	private ?array $claim_lock = null;
 	/**
 	 * @return array<string,mixed>|null
 	 * @phpstan-impure Reads mutable shared WordPress option state.
@@ -88,78 +89,98 @@ final class SetupRecordStore {
 			return null;
 		}
 		$claim = bin2hex( random_bytes( 16 ) );
-		if ( ! $this->acquire_claim_lock() ) {
+		$lock  = $this->acquire_claim_lock();
+		if ( null === $lock ) {
 			return null;
 		}
-		$this->claim_token      = $claim;
-		$this->claim_connection = $this->connection_fingerprint();
-		if ( function_exists( 'wp_cache_delete' ) ) {
-			wp_cache_delete( $this->state->setup_option(), 'options' );
-		}
+		$this->claim_token = $claim;
+		$this->claim_lock  = $lock;
+		$this->refresh_record_cache();
 		if ( $this->occupied( $repository_id ) ) {
 			$this->release_claim( $repository_id, $claim );
 			return null;
 		}
-		return $claim;
+		return $this->has_active_claim() ? $claim : null;
 	}
 
 	/** Release only the exact connection-local lock held by this store instance. */
 	public function release_claim( string $repository_id, string $claim ): bool {
-		if ( ! $this->number( $repository_id ) || ! $this->has_active_claim() || null === $this->claim_token || ! hash_equals( $this->claim_token, $claim ) ) {
+		if ( ! $this->number( $repository_id ) || ! $this->has_active_claim() || null === $this->claim_token || null === $this->claim_lock || ! hash_equals( $this->claim_token, $claim ) ) {
 			return false;
 		}
-		$released = $this->release_claim_lock();
+		$released = $this->release_claim_lock( $this->claim_lock );
 		if ( $released ) {
-			$this->claim_token      = null;
-			$this->claim_connection = null;
+			$this->claim_token = null;
+			$this->claim_lock  = null;
 		}
 		return $released;
 	}
 
 	/** Keep a failed release claim only while its original database connection remains current. */
 	private function has_active_claim(): bool {
-		if ( null === $this->claim_token ) {
+		if ( null === $this->claim_token || null === $this->claim_lock ) {
 			return false;
 		}
-		if ( null !== $this->claim_connection && hash_equals( $this->claim_connection, $this->connection_fingerprint() ) ) {
+		if ( $this->claim_lock_owned( $this->claim_lock ) ) {
 			return true;
 		}
-		$this->claim_token      = null;
-		$this->claim_connection = null;
+		$this->claim_token = null;
+		$this->claim_lock  = null;
 		return false;
 	}
 
-	private function connection_fingerprint(): string {
+	/**
+	 * @param array{connection:object,handle:mixed,options:mixed,name:string,owner:int} $lock
+	 * @phpstan-impure Reads mutable connection-local server lock ownership.
+	 */
+	private function claim_lock_owned( array $lock ): bool {
 		global $wpdb;
-		if ( ! is_object( $wpdb ) ) {
-			return '';
+		$connection = $lock['connection'];
+		if ( $wpdb !== $connection || ( $wpdb->dbh ?? null ) !== $lock['handle'] || ( $wpdb->options ?? null ) !== $lock['options']
+			|| ! method_exists( $connection, 'prepare' ) || ! method_exists( $connection, 'get_var' ) ) {
+			return false;
 		}
-		$fingerprint = (string) spl_object_id( $wpdb );
-		if ( isset( $wpdb->dbh ) && is_object( $wpdb->dbh ) ) {
-			$fingerprint .= ':' . spl_object_id( $wpdb->dbh );
-		} elseif ( isset( $wpdb->dbh ) && is_resource( $wpdb->dbh ) ) {
-			$fingerprint .= ':' . get_resource_id( $wpdb->dbh );
-		}
-		return $fingerprint;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verify server connection identity and lock ownership via CONNECTION_ID() and IS_USED_LOCK().
+		$current = $connection->get_var( $connection->prepare( 'SELECT CONNECTION_ID() = %d AND IS_USED_LOCK(%s) = %d', $lock['owner'], $lock['name'], $lock['owner'] ) );
+		return '' === trim( (string) ( $connection->last_error ?? '' ) ) && '1' === (string) $current;
 	}
 
-	private function acquire_claim_lock(): bool {
+	/** @return array{connection:object,handle:mixed,options:mixed,name:string,owner:int}|null */
+	private function acquire_claim_lock(): ?array {
+		global $wpdb;
+		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) ) {
+			return null;
+		}
+		$connection = $wpdb;
+		$handle     = $wpdb->dbh ?? null;
+		$options    = $wpdb->options ?? null;
+		$name       = $this->state->setup_lock_name();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Capture the exact server connection that acquired the setup advisory lock.
+		$acquired = $connection->get_var( $connection->prepare( 'SELECT IF(GET_LOCK(%s, 0) = 1, CONNECTION_ID(), 0)', $name ) );
+		if ( '' !== trim( (string) ( $connection->last_error ?? '' ) ) || ! is_numeric( $acquired ) || (int) $acquired < 1 ) {
+			return null;
+		}
+		$lock = array(
+			'connection' => $connection,
+			'handle'     => $handle,
+			'options'    => $options,
+			'name'       => $name,
+			'owner'      => (int) $acquired,
+		);
+		return $this->claim_lock_owned( $lock ) ? $lock : null;
+	}
+
+	/** @param array{connection:object,handle:mixed,options:mixed,name:string,owner:int} $lock */
+	private function release_claim_lock( array $lock ): bool {
+		if ( ! $this->claim_lock_owned( $lock ) ) {
+			return false;
+		}
 		global $wpdb;
 		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) ) {
 			return false;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Connection-local advisory lock serializes remote setup and the shared evidence option.
-		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $this->state->setup_lock_name() ) );
-		return '' === trim( (string) ( $wpdb->last_error ?? '' ) ) && '1' === (string) $result;
-	}
-
-	private function release_claim_lock(): bool {
-		global $wpdb;
-		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) ) {
-			return false;
-		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Connection-local advisory locks are released automatically if the database connection closes.
-		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $this->state->setup_lock_name() ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Release the advisory lock only on the exact server connection that acquired it.
+		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT IF(CONNECTION_ID() = %d AND IS_USED_LOCK(%s) = %d, RELEASE_LOCK(%s), 0)', $lock['owner'], $lock['name'], $lock['owner'], $lock['name'] ) );
 		return '' === trim( (string) ( $wpdb->last_error ?? '' ) ) && '1' === (string) $result;
 	}
 
@@ -170,9 +191,13 @@ final class SetupRecordStore {
 	 * @phpstan-impure Reads and mutates shared connection-backed record state.
 	 */
 	public function refresh_source_revision( string $repository_id, string $type, string $identifier, int $revision ): ?array {
-		$acquired = ! $this->has_active_claim();
-		if ( $acquired && ! $this->acquire_claim_lock() ) {
-			return null;
+		$active_lock = $this->has_active_claim() ? $this->claim_lock : null;
+		$acquired    = null === $active_lock;
+		if ( $acquired ) {
+			$active_lock = $this->acquire_claim_lock();
+			if ( null === $active_lock ) {
+				return null;
+			}
 		}
 		$readback = null;
 		$released = true;
@@ -180,13 +205,14 @@ final class SetupRecordStore {
 			$this->refresh_record_cache();
 			$record = $this->find( $repository_id );
 			if ( null !== $record && $revision > $record['source_revision']
-				&& hash_equals( $type, $record['package_type'] ) && hash_equals( $identifier, $record['package_identifier'] ) ) {
+				&& hash_equals( $type, $record['package_type'] ) && hash_equals( $identifier, $record['package_identifier'] )
+				&& $this->claim_lock_owned( $active_lock ) ) {
 				$record['source_revision'] = $revision;
-				$readback                  = $this->persist_record( $record ) ? $this->find( $repository_id ) : null;
+				$readback                  = $this->persist_record( $record ) && $this->claim_lock_owned( $active_lock ) ? $this->find( $repository_id ) : null;
 			}
 		} finally {
 			if ( $acquired ) {
-				$released = $this->release_claim_lock();
+				$released = $this->release_claim_lock( $active_lock );
 			}
 		}
 		return $released ? $readback : null;
@@ -197,18 +223,24 @@ final class SetupRecordStore {
 		if ( null === $record ) {
 			return false;
 		}
-		$acquired = ! $this->has_active_claim();
-		if ( $acquired && ! $this->acquire_claim_lock() ) {
-			return false;
+		$active_lock = $this->has_active_claim() ? $this->claim_lock : null;
+		$acquired    = null === $active_lock;
+		if ( $acquired ) {
+			$active_lock = $this->acquire_claim_lock();
+			if ( null === $active_lock ) {
+				return false;
+			}
 		}
 		$saved    = false;
 		$released = true;
 		try {
 			$this->refresh_record_cache();
-			$saved = $this->persist_record( $record );
+			if ( $this->claim_lock_owned( $active_lock ) ) {
+				$saved = $this->persist_record( $record ) && $this->claim_lock_owned( $active_lock );
+			}
 		} finally {
 			if ( $acquired ) {
-				$released = $this->release_claim_lock();
+				$released = $this->release_claim_lock( $active_lock );
 			}
 		}
 		return $saved && $released;

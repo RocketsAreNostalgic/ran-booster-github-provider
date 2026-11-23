@@ -221,6 +221,94 @@ final class GitHubRepositoryReleaseWorkflowTest extends TestCase {
 		self::assertCount( $requests_before, $transport->requests, 'No GitHub request is made.' );
 	}
 
+	public function test_store_throw_absent_credential_and_remote_401_remain_distinct_across_operations(): void {
+		$status = WorkflowProviderFixtures::target();
+
+		// Prepare a reusable preview via anonymous inspect.
+		$seed_transport = new D23ApplicationTransport();
+		$preview        = $this->workflow( new WorkflowCredentialStore(), null, $seed_transport )->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), null );
+		self::assertTrue( $preview->successful() );
+
+		// 1. Store throw -> workflow_remote_unavailable / provider_unavailable, zero HTTP requests.
+		$throw_transport               = new D23ApplicationTransport();
+		$throw_store                   = new WorkflowCredentialStore();
+		$throw_store->material_failure = new \RuntimeException( 'store-secret-canary' );
+		$throw_workflow                = $this->workflow( $throw_store, null, $throw_transport );
+		$throw_inspect                 = $throw_workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), 'eligible' );
+		$throw_setup                   = $throw_workflow->setup( $status, $preview->preview_key(), 'owner/example-plugin', WorkflowProviderFixtures::preflight(), 'eligible' );
+		$throw_records                 = new SetupRecordStore();
+		self::assertTrue( $throw_records->save( $this->record() ) );
+		$throw_outcome = $this->workflow( $throw_store, $throw_records, $throw_transport )->outcome( $status, 'eligible' );
+		foreach ( array(
+			'inspect' => $throw_inspect,
+			'setup'   => $throw_setup,
+			'outcome' => $throw_outcome,
+		) as $op => $res ) {
+			self::assertSame( 'workflow_remote_unavailable', $res->workflow_code(), $op );
+			self::assertSame( 'credential_authorisation', $res->failure_stage(), $op );
+			self::assertSame( 'provider_unavailable', $res->diagnostic_code(), $op );
+			self::assertStringNotContainsString( 'store-secret-canary', $res->workflow_code() . $res->failure_stage() . $res->diagnostic_code() . $res->correlation_reference(), $op );
+		}
+		self::assertSame( array(), $throw_transport->requests );
+
+		// 2. Credential absent -> workflow_unauthorised / credential_authorisation_unavailable, zero HTTP requests.
+		$absent_transport                = new D23ApplicationTransport();
+		$absent_store                    = new WorkflowCredentialStore();
+		$absent_store->eligible_material = null;
+		$absent_workflow                 = $this->workflow( $absent_store, null, $absent_transport );
+		$absent_inspect                  = $absent_workflow->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), 'eligible' );
+		$absent_setup                    = $absent_workflow->setup( $status, $preview->preview_key(), 'owner/example-plugin', WorkflowProviderFixtures::preflight(), 'eligible' );
+		$absent_outcome                  = $this->workflow( $absent_store, $throw_records, $absent_transport )->outcome( $status, 'eligible' );
+		foreach ( array(
+			'inspect' => $absent_inspect,
+			'setup'   => $absent_setup,
+			'outcome' => $absent_outcome,
+		) as $op => $res ) {
+			self::assertSame( 'workflow_unauthorised', $res->workflow_code(), $op );
+			self::assertSame( 'credential_authorisation', $res->failure_stage(), $op );
+			self::assertSame( 'credential_authorisation_unavailable', $res->diagnostic_code(), $op );
+		}
+		self::assertSame( array(), $absent_transport->requests );
+
+		// 3. Valid credential rejected by GitHub with HTTP 401 -> workflow_unauthorised after sending HTTP request.
+		$remote_requests = 0;
+		$unauthorized    = static function ( string $method, string $url, array $args ) use ( &$remote_requests ): array {
+			unset( $method, $url );
+			self::assertSame( 'Bearer test-token', $args['headers']['Authorization'] ?? null );
+			++$remote_requests;
+			return array(
+				'response' => array( 'code' => 401 ),
+				'body'     => '{"message":"Bad credentials"}',
+			);
+		};
+		$valid_store     = new WorkflowCredentialStore();
+		$records_401     = new SetupRecordStore();
+		$coordinator_401 = new WorkflowApplicationCoordinator(
+			new GitHubRepositoryClient( $unauthorized ),
+			new TemplatePackRepositoryClient( $unauthorized ),
+			new SourceReadyAssessor(),
+			$records_401
+		);
+		$workflow_401    = new GitHubRepositoryReleaseWorkflow( $valid_store, $coordinator_401, $records_401 );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Preserve this existing extracted host-fixture binding shared by the test setup and WordPress or Core doubles.
+		$GLOBALS['ran_booster_release_deployments_test_options'] = array();
+		$res_inspect = $workflow_401->inspect( $status, 'stable', WorkflowProviderFixtures::preflight(), 'eligible' );
+		$res_setup   = $workflow_401->setup( $status, $preview->preview_key(), 'owner/example-plugin', WorkflowProviderFixtures::preflight(), 'eligible' );
+		self::assertTrue( $records_401->save( $this->record() ) );
+		$res_outcome = $workflow_401->outcome( $status, 'eligible' );
+		foreach ( array(
+			'inspect' => $res_inspect,
+			'setup'   => $res_setup,
+			'outcome' => $res_outcome,
+		) as $op => $res ) {
+			self::assertSame( 'workflow_unauthorised', $res->workflow_code(), $op );
+			self::assertSame( 'credential_authorisation', $res->failure_stage(), $op );
+			self::assertSame( 'credential_authorisation_unavailable', $res->diagnostic_code(), $op );
+			self::assertStringNotContainsString( 'Bad credentials', $res->workflow_code() . $res->failure_stage() . $res->diagnostic_code() . $res->correlation_reference(), $op );
+		}
+		self::assertSame( 4, $remote_requests );
+	}
+
 	public function test_an_operation_guard_that_stops_credential_reading_keeps_its_existing_outcome(): void {
 		$credentials = new WorkflowCredentialStore();
 		$workflow    = $this->workflow(

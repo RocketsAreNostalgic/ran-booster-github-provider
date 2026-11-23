@@ -67,8 +67,11 @@ final class StarterOrigin {
 					return null;
 				}
 				$root_keys[ $root_match[1] ] = true;
-				$jobs                        = 'jobs:' === $key;
-				$release                     = false;
+				$jobs                        = 'jobs' === $root_match[1];
+				if ( $jobs && 1 !== preg_match( '/\Ajobs:(?:[ \t]+#[^\r\n]*|[ \t]*)\z/', $key ) ) {
+					return null;
+				}
+				$release = false;
 				if ( $jobs ) {
 					if ( $jobs_seen ) {
 						return null;
@@ -76,7 +79,7 @@ final class StarterOrigin {
 					$jobs_seen = true;
 				}
 			} elseif ( $jobs && 2 === $indent ) {
-				if ( 'release:' !== $key || $release_seen ) {
+				if ( 1 !== preg_match( '/\Arelease:(?:[ \t]+#[^\r\n]*|[ \t]*)\z/', $key ) || $release_seen ) {
 					return null;
 				}
 				$release_seen = true;
