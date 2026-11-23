@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 use RAN\Activity\ActivityProgress;
+use RAN\BoosterGitHubProvider\V1\GitHubRepositoryIdentity;
 use RAN\RepositoryProvider\ProviderCredentialStore;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreview;
@@ -248,6 +249,6 @@ final class GitHubRepositoryReleaseWorkflow {
 	}
 	private function workflow_url( RepositoryReleaseWorkflowTarget $status ): string {
 		$url = $status->expected_update_uri();
-		return 1 === preg_match( '#\Ahttps://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z#D', $url ) ? $url . '/actions' : '';
+		return GitHubRepositoryIdentity::is_valid_github_url( $url ) ? $url . '/actions' : '';
 	}
 }

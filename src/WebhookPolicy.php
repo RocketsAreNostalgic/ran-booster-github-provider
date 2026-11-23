@@ -129,19 +129,10 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 	}
 
 	private function is_owner( string $owner ): bool {
-		return 1 === preg_match( '/\A[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?\z/D', $owner );
+		return GitHubRepositoryIdentity::is_valid_owner( $owner );
 	}
 
 	private function is_repository( string $repository ): bool {
-		if ( 1 !== substr_count( $repository, '/' ) ) {
-			return false;
-		}
-
-		list($owner, $name) = explode( '/', $repository, 2 );
-
-		return $this->is_owner( $owner )
-			&& '.' !== $name
-			&& '..' !== $name
-			&& 1 === preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $name );
+		return GitHubRepositoryIdentity::is_valid_repository( $repository );
 	}
 }

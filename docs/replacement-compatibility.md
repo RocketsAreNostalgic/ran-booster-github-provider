@@ -7,7 +7,7 @@ implementation fingerprint. This library publishes no WordPress replacement
 marker and this method does not activate replacement support.
 
 The implementation identity is `ran/booster-github-provider`, compatibility
-revision `1`, Provider API 15. The facet list describes the actual aggregate,
+revision `2`, Provider API 15. The facet list describes the actual aggregate,
 including inherited repository browsing; workflow management is V4, not V3.
 Ordinary package version changes do not change this revision. Changes to
 credential interpretation, retained signing authority, source identity or

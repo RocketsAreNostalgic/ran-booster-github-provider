@@ -111,9 +111,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 
 		if ( 'ping' === $event ) {
 			$this->assert_operation?->__invoke();
-			// The certified older host's probe() takes no argument and ignores one, so only reflection can pass it past its static signature.
-			$probe = ( new \ReflectionMethod( WebhookEnvelope::class, 'probe' ) )->invoke( null, $this->ping_repository_id( $body ) );
-			return $probe instanceof WebhookEnvelope ? $probe : WebhookEnvelope::probe();
+			return CoreContractBridge::webhook_probe( $this->ping_repository_id( $body ) );
 		}
 
 		if ( 'push' !== $event ) {
@@ -124,11 +122,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		$push    = $this->validate_push_payload( $payload );
 
 		if ( ! $this->policy->authorize_webhook( $verification, $push['repository_id'], $push['repository'] ) ) {
-			// The older host constructor ignores the optional reason argument.
-			$rejection = ( new \ReflectionClass( WebhookRejected::class ) )->newInstanceArgs(
-				array( 401, 'Webhook authentication failed.', 'scope_mismatch' )
-			);
-			throw $rejection;
+			throw CoreContractBridge::webhook_rejected( 401, 'Webhook authentication failed.', 'scope_mismatch' );
 		}
 
 		if ( $push['deleted'] || ! str_starts_with( $push['ref'], 'refs/heads/' ) ) {
@@ -162,9 +156,7 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 
 	private function ignored( ?string $reason = null ): WebhookEnvelope {
 		$this->assert_operation?->__invoke();
-		// Pass the reason through reflection so the older zero-argument host method can ignore it.
-		$envelope = ( new \ReflectionMethod( WebhookEnvelope::class, 'ignored' ) )->invoke( null, $reason );
-		return $envelope instanceof WebhookEnvelope ? $envelope : WebhookEnvelope::ignored();
+		return CoreContractBridge::webhook_ignored( $reason );
 	}
 
 	private function event( WebhookRequest $request ): string {
@@ -241,9 +233,8 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 
 		$repository    = trim( $payload['repository']['full_name'], " \t\n\r\0\x0B/" );
 		$repository_id = $this->parse_repository_id( $payload['repository']['id'] );
-		$parts         = explode( '/', $repository );
 
-		if ( null === $repository_id || 2 !== count( $parts ) || '' === trim( $parts[0] ) || '' === trim( $parts[1] )
+		if ( null === $repository_id || ! GitHubRepositoryIdentity::is_valid_repository( $repository )
 			|| '' === trim( $payload['ref'] ) || '' === trim( $payload['after'] )
 		) {
 			throw new WebhookRejected( 400, 'GitHub push payload is invalid.' );

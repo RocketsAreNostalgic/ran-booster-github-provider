@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 use InvalidArgumentException;
+use RAN\BoosterGitHubProvider\V1\GitHubRepositoryIdentity;
 
 /**
  * Bounded, immutable Git tree and selected text blobs read at one exact SHA.
@@ -29,7 +30,7 @@ final readonly class RepositorySnapshot {
 		private array $blob_prefixes = array()
 	) {
 		if ( 1 !== preg_match( '/\A[1-9][0-9]*\z/D', $repository_id )
-			|| 1 !== preg_match( '#\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z#D', $repository )
+			|| ! GitHubRepositoryIdentity::is_valid_repository( $repository )
 			|| ! self::valid_branch( $default_branch )
 			|| 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $sha )
 			|| count( $entries ) > self::MAX_ENTRIES

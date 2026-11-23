@@ -116,32 +116,45 @@ final class StarterOrigin {
 	/**
 	 * Bounded metadata JSON with duplicate/escaped-equivalent key rejection.
 	 *
+	 * @param int<1,max> $depth
 	 * @return array<array-key,mixed>|null
 	 */
-	public static function json( string $bytes, int $limit ): ?array {
+	public static function json( string $bytes, int $limit, int $depth = 24, int $flags = 0 ): ?array {
 		if ( strlen( $bytes ) > $limit || str_contains( $bytes, "\0" ) ) {
 			return null;
 		}
 		try {
-			$data = json_decode( $bytes, true, 24, JSON_THROW_ON_ERROR );
-			preg_match_all( '/"(?:[^"\\\\]|\\\\.)*"|[{}\[\]:]/s', $bytes, $matches );
-			$stack = array();
-			foreach ( $matches[0] as $index => $token ) {
-				if ( '{' === $token || '[' === $token ) {
-					$stack[] = array(); } elseif ( '}' === $token || ']' === $token ) {
-					array_pop( $stack ); } elseif ( str_starts_with( $token, '"' ) && ':' === ( $matches[0][ $index + 1 ] ?? '' ) ) {
-										$key = json_decode( $token, true, 2, JSON_THROW_ON_ERROR );
-						$level               = count( $stack ) - 1;
-						if ( $level < 0 || isset( $stack[ $level ][ $key ] ) ) {
-							return null;
-						}
-						$stack[ $level ][ $key ] = true;
-					}
+			$data = json_decode( $bytes, true, $depth, JSON_THROW_ON_ERROR | $flags );
+			if ( ! is_array( $data ) || ! self::has_unique_object_keys( $bytes ) ) {
+				return null;
 			}
-			return is_array( $data ) ? $data : null;
+			return $data;
 		} catch ( Throwable ) {
 			return null;
 		}
+	}
+
+	/** Reject duplicate JSON keys, including equivalent escaped spellings, after syntax validation. */
+	public static function has_unique_object_keys( string $bytes ): bool {
+		preg_match_all( '/"(?:[^"\\\\]|\\\\.)*"|[{}\[\]:]/s', $bytes, $matches );
+		$stack  = array();
+		$tokens = $matches[0];
+		foreach ( $tokens as $index => $token ) {
+			if ( '{' === $token || '[' === $token ) {
+				$stack[] = array();
+			} elseif ( '}' === $token || ']' === $token ) {
+				array_pop( $stack );
+			} elseif ( str_starts_with( $token, '"' ) && ':' === ( $tokens[ $index + 1 ] ?? '' ) ) {
+				$key   = json_decode( $token, true, 2, JSON_THROW_ON_ERROR );
+				$level = count( $stack ) - 1;
+				if ( $level < 0 || isset( $stack[ $level ][ $key ] ) ) {
+					return false;
+				}
+				$stack[ $level ][ $key ] = true;
+			}
+		}
+
+		return true;
 	}
 	public static function version( mixed $value ): bool {
 		return is_string( $value ) && strlen( $value ) <= 63 && 1 === preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $value );

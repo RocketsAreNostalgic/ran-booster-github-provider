@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 use Closure;
+use RAN\BoosterGitHubProvider\V1\GitHubHttpClient;
 use Throwable;
 
 /** On-demand public advisory read. Never authorises adoption, execution or a write. */
@@ -119,24 +120,17 @@ final class StarterSecurityCheck {
 	/** @return array<string,mixed>|null */
 	private function read( string $path, #[\SensitiveParameter] string $token, bool $raw = false ): ?array {
 		try {
-			$headers = array(
-				'Accept'               => $raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
-				'X-GitHub-Api-Version' => '2022-11-28',
+			$headers  = GitHubHttpClient::build_headers(
+				$raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
+				GitHubHttpClient::API_VERSION,
+				null,
+				$token
 			);
-			if ( '' !== $token ) {
-				$headers['Authorization'] = 'Bearer ' . $token;
-			}
 			$response = ( $this->send )(
-				'https://api.github.com' . $path,
-				array(
-					'headers'             => $headers,
-					'timeout'             => 15,
-					'redirection'         => 0,
-					'limit_response_size' => 65537,
-					'reject_unsafe_urls'  => true,
-				)
+				GitHubHttpClient::API_ORIGIN . $path,
+				GitHubHttpClient::build_request_args( 15, $headers, 65537 )
 			);
-			if ( ! is_array( $response ) || 200 !== ( $response['response']['code'] ?? null ) || ! is_string( $response['body'] ?? null ) || strlen( $response['body'] ) > 65536 ) {
+			if ( ! is_array( $response ) || 200 !== GitHubHttpClient::response_code( $response ) || ! is_string( $response['body'] ?? null ) || strlen( $response['body'] ) > 65536 ) {
 				return null;
 			}
 			// Preserve JSON array/object distinctions before associative validation.

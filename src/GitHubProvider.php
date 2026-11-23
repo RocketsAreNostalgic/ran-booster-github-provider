@@ -27,7 +27,6 @@ use RAN\RepositoryProvider\ProviderCredentialStore;
 use RAN\RepositoryProvider\ProviderDiagnosticResult;
 use RAN\RepositoryProvider\ProviderDiagnostics;
 use RAN\RepositoryProvider\ProviderMetadata;
-use RAN\RepositoryProvider\ProviderFailure;
 use RAN\RepositoryProvider\ProviderWebhookPolicy;
 use RAN\RepositoryProvider\PublicRepositoryBrowseMetadata;
 use RAN\RepositoryProvider\RepositoryBrowseRequest;
@@ -585,21 +584,12 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			);
 		}
 
-		if ( property_exists( RepositoryReleaseCandidateList::class, 'search_exhausted' )
-			&& property_exists( RepositoryReleaseCandidateList::class, 'diagnostics' )
-			&& array_key_exists( 'search_exhausted', $result['value'] )
-			&& array_key_exists( 'diagnostics', $result['value'] ) ) {
-			// The certified host predates these optional constructor parameters.
-			return ( new \ReflectionClass( RepositoryReleaseCandidateList::class ) )->newInstanceArgs(
-				array(
-					'candidates'       => $candidates,
-					'search_exhausted' => $result['value']['search_exhausted'],
-					'diagnostics'      => $result['value']['diagnostics'],
-				)
-			);
-		}
-
-		return new RepositoryReleaseCandidateList( $candidates );
+		return CoreContractBridge::release_candidate_list(
+			$candidates,
+			array_key_exists( 'search_exhausted', $result['value'] ) && array_key_exists( 'diagnostics', $result['value'] ),
+			$result['value']['search_exhausted'] ?? null,
+			$result['value']['diagnostics'] ?? null
+		);
 	}
 
 	public function inspect_release(
@@ -867,24 +857,16 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	}
 
 	private function is_valid_repository_locator( string $locator ): bool {
-		$parts = explode( '/', $locator );
-
-		return 2 === count( $parts )
-			&& 1 === preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] )
-			&& 1 === preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] )
-			&& '.' !== $parts[0]
-			&& '..' !== $parts[0]
-			&& '.' !== $parts[1]
-			&& '..' !== $parts[1];
+		return GitHubRepositoryIdentity::is_valid_repository( $locator );
 	}
 
 	private function encode_repository_name( string $full_name ): string {
-		if ( ! $this->is_valid_repository_locator( $full_name ) ) {
+		$encoded = GitHubRepositoryIdentity::encode_repository( $full_name );
+		if ( null === $encoded ) {
 			throw new RuntimeException( 'GitHub repository names must use the owner/repository form.' );
 		}
-		$parts = explode( '/', $full_name );
 
-		return rawurlencode( $parts[0] ) . '/' . rawurlencode( $parts[1] );
+		return $encoded;
 	}
 
 	private function archive_authorizer( RepositoryReference $repository ): ?Closure {
@@ -1050,16 +1032,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	 * @param 'listing'|'inspection'|'acquisition' $operation
 	 */
 	private function filesystem_unsupported( string $operation ): never {
-		$message = 'GitHub release ' . $operation . ' requires a direct filesystem.';
-		if ( class_exists( ProviderFailure::class ) && property_exists( RepositoryReleaseReadUnavailable::class, 'failure' ) ) {
-			// The certified older host has only RuntimeException's three constructor arguments.
-			$failure = ( new \ReflectionClass( RepositoryReleaseReadUnavailable::class ) )->newInstanceArgs(
-				array( $message, 501, null, new ProviderFailure( 'site_filesystem_unsupported' ) )
-			);
-			throw $failure;
-		}
-
-		throw new RuntimeException( $message, 501 );
+		throw CoreContractBridge::filesystem_unsupported( 'GitHub release ' . $operation . ' requires a direct filesystem.' );
 	}
 
 	private function ensure_direct_filesystem(): bool {
@@ -1133,21 +1106,9 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			$this->filesystem_unsupported( 'listing' );
 		}
 		if ( $this->read_unavailable( $result, 'list' ) ) {
-			if ( 'rate_limited' === $code && class_exists( ProviderFailure::class ) && property_exists( RepositoryReleaseReadUnavailable::class, 'failure' ) ) {
-				$provider_failure = property_exists( ProviderFailure::class, 'source_code' )
-					? ( new \ReflectionClass( ProviderFailure::class ) )->newInstanceArgs(
-						array(
-							'reason'      => 'rate_limited',
-							'retry_after' => $result['retry_after'],
-							'source_code' => 'release_updater.' . $code,
-						)
-					)
-					: new ProviderFailure( 'rate_limited', retry_after: $result['retry_after'] );
-				// The certified older host has only RuntimeException's three constructor arguments.
-				$failure = ( new \ReflectionClass( RepositoryReleaseReadUnavailable::class ) )->newInstanceArgs(
-					array( $message, 502, null, $provider_failure )
-				);
-				throw $failure;
+			if ( 'rate_limited' === $code ) {
+				$retry_after = is_int( $result['retry_after'] ?? null ) ? $result['retry_after'] : null;
+				throw CoreContractBridge::release_read_unavailable( $message, 502, 'rate_limited', $retry_after, 'release_updater.' . $code );
 			}
 			throw new RepositoryReleaseReadUnavailable( $message, 502 );
 		}
