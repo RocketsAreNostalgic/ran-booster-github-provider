@@ -10,21 +10,27 @@ use Throwable;
 /** Fixed-purpose reader for the canonical public template-pack repository. */
 final class TemplatePackRepositoryClient {
 
-	private const API_ROOT         = 'https://api.github.com';
-	private const REPOSITORY       = 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates';
-	private const REPOSITORY_ID    = '1322743261';
-	private const RELEASE_WINDOW   = 20;
-	private const JSON_BODY_LIMIT  = 262144;
-	private const ASSET_BODY_LIMIT = 2097152;
-	private const ASSET_NAME       = 'ran-booster-release-bootstrap-templates.zip';
-	private const REDIRECT_HOOK    = 'requests-requests.before_redirect';
+	private const API_ROOT               = 'https://api.github.com';
+	private const REPOSITORY             = 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates';
+	private const REPOSITORY_ID          = '1322743261';
+	private const RELEASE_WINDOW         = 20;
+	private const JSON_BODY_LIMIT        = 262144;
+	private const ASSET_BODY_LIMIT       = 2097152;
+	private const ASSET_NAME             = 'ran-booster-release-bootstrap-templates.zip';
+	private const REDIRECT_HOOK          = 'requests-requests.before_redirect';
+	private const ALLOWED_REDIRECT_HOSTS = array(
+		'api.github.com',
+		'github-releases.githubusercontent.com',
+		'objects.githubusercontent.com',
+		'release-assets.githubusercontent.com',
+	);
 
 	/** @var Closure(string,string,array<string,mixed>):mixed */
 	private Closure $send;
 
 	public function __construct( ?callable $send = null, private ?Closure $assert_operation = null ) {
 		$this->send = null === $send
-			? static fn ( string $method, string $url, array $args ): mixed => wp_safe_remote_request(
+			? static fn ( string $method, string $url, #[\SensitiveParameter] array $args ): mixed => wp_safe_remote_request(
 				$url,
 				array_merge( $args, array( 'method' => $method ) )
 			)
@@ -263,20 +269,25 @@ final class TemplatePackRepositoryClient {
 			$args['headers']['Authorization'] = 'Bearer ' . $token;
 		}
 		$redirect_scrubber = null;
-		if ( $redirects > 0 && ( '' !== $token || null !== $this->assert_operation ) ) {
-			$origin = self::API_ROOT . $path;
-			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- WordPress Requests redirect hook passes five positional arguments; only headers and original request are required.
-			$redirect_scrubber = function ( mixed &$location, array &$headers, mixed $data, mixed $options, mixed $original ) use ( $origin ): void {
-				if ( ! is_object( $original ) || ! isset( $original->url ) || $origin !== $original->url ) {
+		if ( $redirects > 0 ) {
+			$expected_url = self::API_ROOT . $path;
+			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- WordPress Requests redirect hook passes five positional arguments; location, headers and original request are required.
+			$redirect_scrubber = function ( mixed &$location, #[\SensitiveParameter] array &$headers, mixed $data, mixed $options, mixed $original ) use ( &$expected_url ): void {
+				if ( ! is_object( $original ) || ! isset( $original->url ) || ! is_string( $original->url ) || $expected_url !== $original->url ) {
 					return;
 				}
 
 				$this->assert_operation?->__invoke();
+				$validated = $this->validated_redirect_location( $location );
+				if ( null === $validated ) {
+					throw new \RuntimeException( 'The template-pack redirect target is unsafe.' );
+				}
 				foreach ( array_keys( $headers ) as $name ) {
 					if ( 'authorization' === strtolower( (string) $name ) ) {
 						unset( $headers[ $name ] );
 					}
 				}
+				$expected_url = $validated;
 			};
 			add_action( self::REDIRECT_HOOK, $redirect_scrubber, 10, 5 );
 		}
@@ -307,6 +318,39 @@ final class TemplatePackRepositoryClient {
 			'code' => 'ok',
 			'body' => $body,
 		);
+	}
+
+	private function validated_redirect_location( mixed $location ): ?string {
+		if (
+			! is_string( $location )
+			|| '' === $location
+			|| strlen( $location ) > 4096
+			|| 1 === preg_match( '/[\x00-\x1F\x7F]/', $location )
+		) {
+			return null;
+		}
+		$parts = wp_parse_url( $location );
+		if (
+			! is_array( $parts )
+			|| 'https' !== strtolower( (string) ( $parts['scheme'] ?? '' ) )
+			|| ! is_string( $parts['host'] ?? null )
+			|| '' === $parts['host']
+			|| isset( $parts['user'] )
+			|| isset( $parts['pass'] )
+			|| ( isset( $parts['port'] ) && 443 !== $parts['port'] )
+			|| isset( $parts['fragment'] )
+		) {
+			return null;
+		}
+		$host = strtolower( $parts['host'] );
+		if (
+			false !== filter_var( $host, FILTER_VALIDATE_IP )
+			|| ! in_array( $host, self::ALLOWED_REDIRECT_HOSTS, true )
+		) {
+			return null;
+		}
+
+		return $location;
 	}
 
 	private function positive_int( mixed $value ): ?int {

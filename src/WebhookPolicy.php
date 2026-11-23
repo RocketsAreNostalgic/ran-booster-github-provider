@@ -127,7 +127,7 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 	}
 
 	private function is_owner( string $owner ): bool {
-		return 1 === preg_match( '/^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?$/', $owner );
+		return 1 === preg_match( '/\A[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?\z/D', $owner );
 	}
 
 	private function is_repository( string $repository ): bool {
@@ -137,6 +137,9 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 
 		list($owner, $name) = explode( '/', $repository, 2 );
 
-		return $this->is_owner( $owner ) && 1 === preg_match( '/^[A-Za-z0-9_.-]{1,100}$/', $name );
+		return $this->is_owner( $owner )
+			&& '.' !== $name
+			&& '..' !== $name
+			&& 1 === preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $name );
 	}
 }

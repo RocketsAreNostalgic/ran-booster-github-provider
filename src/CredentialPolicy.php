@@ -125,6 +125,6 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 	}
 
 	private function is_owner( string $owner ): bool {
-		return 1 === preg_match( '/^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?$/', $owner );
+		return 1 === preg_match( '/\A[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?\z/D', $owner );
 	}
 }

@@ -284,7 +284,14 @@ final class RepositoryWebhookClient {
 	}
 	private function repository_path( string $repository ): string {
 		$parts = explode( '/', trim( $repository ) );
-		if ( 2 !== count( $parts ) || 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] ) || 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] ) ) {
+		if ( 2 !== count( $parts )
+			|| 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] )
+			|| 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] )
+			|| '.' === $parts[0]
+			|| '..' === $parts[0]
+			|| '.' === $parts[1]
+			|| '..' === $parts[1]
+		) {
 			throw new RuntimeException( 'The GitHub repository identity is invalid.', 400 );
 		}
 		return '/repos/' . rawurlencode( $parts[0] ) . '/' . rawurlencode( $parts[1] );

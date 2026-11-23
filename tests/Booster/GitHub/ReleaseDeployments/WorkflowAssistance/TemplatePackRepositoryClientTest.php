@@ -180,6 +180,169 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		self::assertSame( array(), \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\template_pack_repository_actions( 'requests-requests.before_redirect' ) );
 	}
 
+	public function test_multi_hop_redirects_assert_operation_scrub_headers_and_redact_traces(): void {
+		$archive      = TemplatePackApi3Fixture::archive();
+		$release      = $this->release( 41, 'v1.2.3', $archive );
+		$canary_token = 'ghp_redirect_trace_canary_1234567890';
+		$assert_calls = 0;
+		$responses    = array(
+			$this->repository_response(),
+			$this->response( 200, array( $release ) ),
+			$this->response( 200, $release ),
+			$this->tag_response(),
+			$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
+			$this->binary_response( 200, $archive ),
+		);
+		$hop_urls     = array(
+			'https://github-releases.githubusercontent.com/hop-1.zip',
+			'https://objects.githubusercontent.com/hop-2.zip',
+			'https://release-assets.githubusercontent.com/hop-3.zip',
+		);
+		$hop_count    = 0;
+		$client       = new TemplatePackRepositoryClient(
+			static function ( string $method, string $url, array $args ) use ( &$responses, $hop_urls, &$hop_count, &$assert_calls ): array {
+				unset( $method );
+				if ( 'application/octet-stream' === ( $args['headers']['Accept'] ?? null ) ) {
+					$actions = \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\template_pack_repository_actions( 'requests-requests.before_redirect' );
+					self::assertCount( 1, $actions );
+					$callback = $actions[0]['callback'];
+					self::assertInstanceOf( \Closure::class, $callback );
+					$reflection = new \ReflectionFunction( $callback );
+					self::assertCount( 1, $reflection->getParameters()[1]->getAttributes( \SensitiveParameter::class ) );
+
+					$current_url = $url;
+					foreach ( $hop_urls as $next_url ) {
+						$before_asserts = $assert_calls;
+						$location       = $next_url;
+						$headers        = $args['headers'];
+						call_user_func_array(
+							$callback,
+							array( &$location, &$headers, null, array(), (object) array( 'url' => $current_url ) )
+						);
+						self::assertSame( $before_asserts + 1, $assert_calls, 'assert_operation must execute on every redirect hop.' );
+						self::assertArrayNotHasKey( 'Authorization', $headers, 'Authorization header must be stripped on every redirect hop.' );
+						$current_url = $next_url;
+						++$hop_count;
+					}
+				}
+
+				$response = array_shift( $responses );
+				self::assertNotNull( $response );
+				return $response;
+			},
+			static function () use ( &$assert_calls ): void {
+				++$assert_calls;
+			}
+		);
+
+		self::assertSame( 'ok', $client->discover( $canary_token )['code'] );
+		self::assertSame( 3, $hop_count );
+
+		// Throwing from assert_operation on hop 2 must abort the redirect and redact $headers in the stack trace.
+		$responses_abort = array(
+			$this->repository_response(),
+			$this->response( 200, array( $release ) ),
+			$this->response( 200, $release ),
+			$this->tag_response(),
+			$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
+			$this->binary_response( 200, $archive ),
+		);
+		$abort_state     = new class() {
+			public bool $abort_on_hop = false;
+			public string $trace      = '';
+		};
+		$abort_client    = new TemplatePackRepositoryClient(
+			static function ( string $method, string $url, array $args ) use ( &$responses_abort, $abort_state ): array {
+				unset( $method );
+				if ( 'application/octet-stream' === ( $args['headers']['Accept'] ?? null ) ) {
+					$actions  = \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\template_pack_repository_actions( 'requests-requests.before_redirect' );
+					$callback = $actions[0]['callback'];
+					$hop1     = 'https://github-releases.githubusercontent.com/hop-1.zip';
+					$headers1 = $args['headers'];
+					call_user_func_array( $callback, array( &$hop1, &$headers1, null, array(), (object) array( 'url' => $url ) ) );
+
+					$abort_state->abort_on_hop = true;
+					$hop2                      = 'https://objects.githubusercontent.com/hop-2.zip';
+					$headers2                  = $args['headers'];
+					try {
+						call_user_func_array( $callback, array( &$hop2, &$headers2, null, array(), (object) array( 'url' => $hop1 ) ) );
+					} catch ( \RuntimeException $exception ) {
+						$abort_state->trace = $exception->getTraceAsString();
+						throw $exception;
+					}
+				}
+				$response = array_shift( $responses_abort );
+				self::assertNotNull( $response );
+				return $response;
+			},
+			static function () use ( $abort_state ): void {
+				if ( $abort_state->abort_on_hop ) {
+					throw new \RuntimeException( 'operation cancelled on hop 2' );
+				}
+			}
+		);
+
+		self::assertSame( 'template_pack_unavailable', $abort_client->discover( $canary_token )['code'] );
+		self::assertNotSame( '', $abort_state->trace );
+		self::assertStringNotContainsString( $canary_token, $abort_state->trace );
+	}
+
+	public function test_redirect_handler_rejects_disallowed_schemes_hosts_and_userinfo_on_any_hop(): void {
+		$archive = TemplatePackApi3Fixture::archive();
+		$release = $this->release( 41, 'v1.2.3', $archive );
+		$bad     = array(
+			'http downgrade'   => 'http://release-assets.githubusercontent.com/template-pack.zip',
+			'third-party host' => 'https://downloads.example.test/template-pack.zip',
+			'userinfo present' => 'https://user:pass@objects.githubusercontent.com/template-pack.zip',
+			'non-443 port'     => 'https://objects.githubusercontent.com:8443/template-pack.zip',
+			'relative path'    => '/template-pack.zip',
+		);
+
+		foreach ( $bad as $label => $bad_location ) {
+			foreach ( array( '', 'operation-token' ) as $token ) {
+				foreach ( array( 1, 2 ) as $bad_hop ) {
+					$responses = array(
+						$this->repository_response(),
+						$this->response( 200, array( $release ) ),
+						$this->response( 200, $release ),
+						$this->tag_response(),
+						$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
+						$this->binary_response( 200, $archive ),
+					);
+					$client    = new TemplatePackRepositoryClient(
+						static function ( string $method, string $url, array $args ) use ( &$responses, $bad_location, $bad_hop ): array {
+							unset( $method );
+							if ( 'application/octet-stream' === ( $args['headers']['Accept'] ?? null ) ) {
+								$actions = \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\template_pack_repository_actions( 'requests-requests.before_redirect' );
+								self::assertCount( 1, $actions );
+								$callback = $actions[0]['callback'];
+								$current  = $url;
+								if ( 2 === $bad_hop ) {
+									$hop1     = 'https://github-releases.githubusercontent.com/hop-1.zip';
+									$headers1 = $args['headers'];
+									call_user_func_array( $callback, array( &$hop1, &$headers1, null, array(), (object) array( 'url' => $current ) ) );
+									$current = $hop1;
+								}
+								$location = $bad_location;
+								$headers  = $args['headers'];
+								call_user_func_array( $callback, array( &$location, &$headers, null, array(), (object) array( 'url' => $current ) ) );
+							}
+							$response = array_shift( $responses );
+							self::assertNotNull( $response );
+							return $response;
+						}
+					);
+
+					self::assertSame(
+						'template_pack_unavailable',
+						$client->discover( $token )['code'],
+						sprintf( '%s (hop %d, auth=%s) must fail closed.', $label, $bad_hop, '' === $token ? 'no' : 'yes' )
+					);
+				}
+			}
+		}
+	}
+
 	public function test_repository_and_asset_digest_mismatches_fail_closed(): void {
 		$wrong_repository = new TemplatePackScriptedTransport(
 			array(
