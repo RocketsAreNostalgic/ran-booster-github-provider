@@ -112,11 +112,13 @@ final class RepositoryWebhookClient {
 	public function test( string $repository, string $hook_id, string $callback_url, #[\SensitiveParameter] string $token ): RepositoryWebhookOperationResult {
 		$deadline  = microtime( true ) + self::TOTAL_TIMEOUT;
 		$hook_read = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
-		$hook      = 200 === $hook_read['status'] ? $this->decode_hook( $hook_read['body'] ) : null;
+		if ( 404 === $hook_read['status'] ) {
+			return $this->hook_absence_failure( $repository, $hook_id, $token, $deadline, 'hook_readback_unavailable' )
+				?? $this->result( 'failed', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' );
+		}
+		$hook = 200 === $hook_read['status'] ? $this->decode_hook( $hook_read['body'] ) : null;
 		if ( null === $hook || ! hash_equals( $hook_id, (string) $this->hook_id( $hook ) ) ) {
-			return 404 === $hook_read['status']
-				? $this->result( 'failed', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' )
-				: ( 200 === $hook_read['status'] ? $this->uncertain( 'hook_readback_unavailable', $hook_id ) : $this->failure_result( $hook_read, 'hook_readback_unavailable', $hook_id ) );
+			return 200 === $hook_read['status'] ? $this->uncertain( 'hook_readback_unavailable', $hook_id ) : $this->failure_result( $hook_read, 'hook_readback_unavailable', $hook_id );
 		}
 		$configuration = $this->configuration( $hook, $callback_url );
 		if ( in_array( 'unknown', $configuration, true ) ) {
@@ -133,13 +135,15 @@ final class RepositoryWebhookClient {
 		return $this->result( 'succeeded', 'ping_requested', $hook_id, $configuration, 'unknown', 'GitHub accepted the ping request. Only an authenticated inbound delivery can verify the signing secret.' );
 	}
 	public function reconfigure( string $repository, string $hook_id, string $callback_url, #[\SensitiveParameter] string $token, #[\SensitiveParameter] string $secret ): RepositoryWebhookOperationResult {
-		$deadline    = microtime( true ) + self::TOTAL_TIMEOUT;
-		$before      = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
+		$deadline = microtime( true ) + self::TOTAL_TIMEOUT;
+		$before   = $this->request( 'GET', $this->hook_path( $repository, $hook_id ), $token, null, self::READ_BYTES, $deadline );
+		if ( 404 === $before['status'] ) {
+			return $this->hook_absence_failure( $repository, $hook_id, $token, $deadline, 'preconfiguration_read_unavailable' )
+				?? $this->result( 'failed', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' );
+		}
 		$before_hook = 200 === $before['status'] ? $this->decode_hook( $before['body'] ) : null;
 		if ( null === $before_hook || ! hash_equals( $hook_id, (string) $this->hook_id( $before_hook ) ) ) {
-			return 404 === $before['status']
-				? $this->result( 'failed', 'hook_absent', $hook_id, $this->unknown_configuration(), 'absent', 'The recorded hook no longer exists.' )
-				: ( 200 === $before['status'] ? $this->uncertain( 'preconfiguration_read_unavailable', $hook_id ) : $this->failure_result( $before, 'preconfiguration_read_unavailable', $hook_id ) );
+			return 200 === $before['status'] ? $this->uncertain( 'preconfiguration_read_unavailable', $hook_id ) : $this->failure_result( $before, 'preconfiguration_read_unavailable', $hook_id );
 		}
 		if ( 'matched' !== $this->configuration( $before_hook, $callback_url )['endpoint'] ) {
 			return 'unknown' === $this->configuration( $before_hook, $callback_url )['endpoint'] ? $this->uncertain( 'hook_ownership_unavailable', $hook_id ) : $this->result( 'failed', 'hook_ownership_mismatch', $hook_id, $this->configuration( $before_hook, $callback_url ), 'unknown', 'Inspect the remote hook; its callback does not match this site.' );
@@ -306,12 +310,18 @@ final class RepositoryWebhookClient {
 	}
 	/** @return list<array<string,mixed>>|null */
 	private function decode_list( string $body ): ?array {
+		// Preserve the JSON shape before converting hook fields to associative arrays.
+		$raw = json_decode( $body, false, 32, JSON_BIGINT_AS_STRING );
+		if ( ! is_array( $raw ) ) {
+			return null;
+		}
+
 		$data = json_decode( $body, true, 32, JSON_BIGINT_AS_STRING );
 		if ( ! is_array( $data ) || ! array_is_list( $data ) ) {
 			return null;
 		}
-		foreach ( $data as $hook ) {
-			if ( ! is_array( $hook ) || null === $this->hook_id( $hook ) ) {
+		foreach ( $data as $index => $hook ) {
+			if ( ! $raw[ $index ] instanceof \stdClass || ! is_array( $hook ) || null === $this->hook_id( $hook ) ) {
 				return null;
 			}
 		}

@@ -117,20 +117,22 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		}
 
 		if ( 'push' !== $event ) {
-			$this->assert_operation?->__invoke();
-			return WebhookEnvelope::ignored();
+			return $this->ignored( 'ignored_type' );
 		}
 
 		$payload = $this->decode_push_payload( $body );
 		$push    = $this->validate_push_payload( $payload );
 
 		if ( ! $this->policy->authorize_webhook( $verification, $push['repository_id'], $push['repository'] ) ) {
-			throw new WebhookRejected( 401, 'Webhook authentication failed.' );
+			// The older host constructor ignores the optional reason argument.
+			$rejection = ( new \ReflectionClass( WebhookRejected::class ) )->newInstanceArgs(
+				array( 401, 'Webhook authentication failed.', 'scope_mismatch' )
+			);
+			throw $rejection;
 		}
 
 		if ( $push['deleted'] || ! str_starts_with( $push['ref'], 'refs/heads/' ) ) {
-			$this->assert_operation?->__invoke();
-			return WebhookEnvelope::ignored();
+			return $this->ignored( $push['deleted'] ? 'ignored_deletion' : 'ignored_ref' );
 		}
 
 		$branch = substr( $push['ref'], strlen( 'refs/heads/' ) );
@@ -138,9 +140,11 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			throw new WebhookRejected( 400, 'GitHub push payload is invalid.' );
 		}
 
-		if ( ! $this->is_deployable_commit( $push['commit'] ) ) {
-			$this->assert_operation?->__invoke();
-			return WebhookEnvelope::ignored();
+		if ( 1 !== preg_match( '/\A[a-f0-9]{40,64}\z/i', $push['commit'] ) ) {
+			return $this->ignored();
+		}
+		if ( 1 === preg_match( '/\A0{40,64}\z/', $push['commit'] ) ) {
+			return $this->ignored( 'ignored_zero_commits' );
 		}
 
 		$this->assert_operation?->__invoke();
@@ -154,6 +158,13 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 				$delivery
 			)
 		);
+	}
+
+	private function ignored( ?string $reason = null ): WebhookEnvelope {
+		$this->assert_operation?->__invoke();
+		// Pass the reason through reflection so the older zero-argument host method can ignore it.
+		$envelope = ( new \ReflectionMethod( WebhookEnvelope::class, 'ignored' ) )->invoke( null, $reason );
+		return $envelope instanceof WebhookEnvelope ? $envelope : WebhookEnvelope::ignored();
 	}
 
 	private function event( WebhookRequest $request ): string {
@@ -229,10 +240,10 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 		}
 
 		$repository    = trim( $payload['repository']['full_name'], " \t\n\r\0\x0B/" );
-		$repository_id = $this->normalize_repository_id( $payload['repository']['id'] );
+		$repository_id = $this->parse_repository_id( $payload['repository']['id'] );
 		$parts         = explode( '/', $repository );
 
-		if ( 2 !== count( $parts ) || '' === trim( $parts[0] ) || '' === trim( $parts[1] )
+		if ( null === $repository_id || 2 !== count( $parts ) || '' === trim( $parts[0] ) || '' === trim( $parts[1] )
 			|| '' === trim( $payload['ref'] ) || '' === trim( $payload['after'] )
 		) {
 			throw new WebhookRejected( 400, 'GitHub push payload is invalid.' );
@@ -258,26 +269,11 @@ final readonly class WebhookNormalizer implements WebhookNormalizerContract {
 			return null;
 		}
 		$repository = is_array( $payload ) && is_array( $payload['repository'] ?? null ) ? $payload['repository'] : array();
-		$id         = $repository['id'] ?? null;
-		$id         = is_int( $id ) ? (string) $id : $id;
+		return $this->parse_repository_id( $repository['id'] ?? null );
+	}
 
+	private function parse_repository_id( mixed $id ): ?string {
+		$id = is_int( $id ) ? (string) $id : $id;
 		return is_string( $id ) && 1 === preg_match( '/\A[1-9][0-9]{0,18}\z/D', $id ) ? $id : null;
-	}
-
-	private function normalize_repository_id( mixed $repository_id ): string {
-		if ( is_int( $repository_id ) && $repository_id >= 0 ) {
-			return (string) $repository_id;
-		}
-
-		if ( is_string( $repository_id ) && '' !== trim( $repository_id ) ) {
-			return $repository_id;
-		}
-
-		throw new WebhookRejected( 400, 'GitHub push payload is invalid.' );
-	}
-
-	private function is_deployable_commit( string $commit ): bool {
-		return 1 === preg_match( '/\A[a-f0-9]{40,64}\z/i', $commit )
-			&& 1 !== preg_match( '/\A0{40,64}\z/', $commit );
 	}
 }
