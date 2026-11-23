@@ -224,15 +224,16 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 			self::assertGreaterThan( $asset_hops[ $i - 1 ]['assert_before'], $asset_hops[ $i ]['assert_before'] );
 		}
 
-		// Anonymous requests follow valid same-host relative and allowlisted redirects as well.
+		// Anonymous requests follow valid same-host relative redirects preserving directory and empty-segment semantics.
 		$anon_responses = array(
 			$this->repository_response(),
 			$this->response( 200, array( $release ) ),
 			$this->response( 200, $release ),
 			$this->tag_response(),
 			$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
-			$this->redirect_response( 302, 'https://release-assets.githubusercontent.com/dir/step1.zip' ),
-			$this->redirect_response( 302, 'step2.zip' ),
+			$this->redirect_response( 302, 'https://release-assets.githubusercontent.com/packs/v1/start' ),
+			$this->redirect_response( 302, '.' ),
+			$this->redirect_response( 302, 'asset.zip' ),
 			$this->binary_response( 200, $archive ),
 		);
 		$anon_urls      = array();
@@ -253,10 +254,41 @@ final class TemplatePackRepositoryClientTest extends TestCase {
 		self::assertSame(
 			array(
 				'https://api.github.com/repos/RocketsAreNostalgic/ran-booster-release-bootstrap-templates/releases/assets/114',
-				'https://release-assets.githubusercontent.com/dir/step1.zip',
-				'https://release-assets.githubusercontent.com/dir/step2.zip',
+				'https://release-assets.githubusercontent.com/packs/v1/start',
+				'https://release-assets.githubusercontent.com/packs/v1/',
+				'https://release-assets.githubusercontent.com/packs/v1/asset.zip',
 			),
 			$anon_urls
+		);
+
+		// Empty path segments in Location must be preserved verbatim rather than collapsed.
+		$double_slash_responses = array(
+			$this->repository_response(),
+			$this->response( 200, array( $release ) ),
+			$this->response( 200, $release ),
+			$this->tag_response(),
+			$this->response( 200, array( 'sha' => TemplatePackApi3Fixture::COMMIT ) ),
+			$this->redirect_response( 302, 'https://release-assets.githubusercontent.com/packs//bundle.zip' ),
+			$this->binary_response( 200, $archive ),
+		);
+		$double_slash_urls      = array();
+		$double_slash_client    = new TemplatePackRepositoryClient(
+			static function ( string $method, string $url, array $args ) use ( &$double_slash_responses, &$double_slash_urls ): array {
+				unset( $method );
+				if ( 'application/octet-stream' === ( $args['headers']['Accept'] ?? null ) ) {
+					$double_slash_urls[] = $url;
+				}
+				$response = array_shift( $double_slash_responses );
+				if ( null === $response ) {
+					throw new \RuntimeException( 'Unexpected extra double-slash request.' );
+				}
+				return $response;
+			}
+		);
+		self::assertSame( 'ok', $double_slash_client->discover( '' )['code'] );
+		self::assertSame(
+			'https://release-assets.githubusercontent.com/packs//bundle.zip',
+			$double_slash_urls[1] ?? null
 		);
 
 		// Aborting assert_operation on hop 2 stops redirects and keeps any canary token out of traces.

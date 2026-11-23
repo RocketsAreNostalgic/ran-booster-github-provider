@@ -380,25 +380,40 @@ final class TemplatePackRepositoryClient {
 		if ( '' === $path ) {
 			return '/';
 		}
-		$trailing_slash = str_ends_with( $path, '/' );
-		$segments       = explode( '/', $path );
-		$output         = array();
-		foreach ( $segments as $segment ) {
-			if ( '' === $segment || '.' === $segment ) {
-				continue;
+		$input  = str_starts_with( $path, '/' ) ? $path : '/' . $path;
+		$output = '';
+		while ( '' !== $input ) {
+			if ( str_starts_with( $input, '../' ) ) {
+				$input = substr( $input, 3 );
+			} elseif ( str_starts_with( $input, './' ) ) {
+				$input = substr( $input, 2 );
+			} elseif ( str_starts_with( $input, '/./' ) ) {
+				$input = '/' . substr( $input, 3 );
+			} elseif ( '/.' === $input ) {
+				$input = '/';
+			} elseif ( str_starts_with( $input, '/../' ) ) {
+				$input      = '/' . substr( $input, 4 );
+				$last_slash = strrpos( $output, '/' );
+				$output     = false === $last_slash ? '' : substr( $output, 0, $last_slash );
+			} elseif ( '/..' === $input ) {
+				$input      = '/';
+				$last_slash = strrpos( $output, '/' );
+				$output     = false === $last_slash ? '' : substr( $output, 0, $last_slash );
+			} elseif ( '.' === $input || '..' === $input ) {
+				$input = '';
+			} else {
+				$next_slash = strpos( $input, '/', 1 );
+				if ( false === $next_slash ) {
+					$output .= $input;
+					$input   = '';
+				} else {
+					$output .= substr( $input, 0, $next_slash );
+					$input   = substr( $input, $next_slash );
+				}
 			}
-			if ( '..' === $segment ) {
-				array_pop( $output );
-				continue;
-			}
-			$output[] = $segment;
-		}
-		$normalized = '/' . implode( '/', $output );
-		if ( $trailing_slash && '/' !== $normalized ) {
-			$normalized .= '/';
 		}
 
-		return $normalized;
+		return '' === $output ? '/' : $output;
 	}
 
 	private function positive_int( mixed $value ): ?int {
