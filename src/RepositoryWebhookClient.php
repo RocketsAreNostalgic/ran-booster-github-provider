@@ -390,7 +390,7 @@ final class RepositoryWebhookClient {
 				? $this->result( 'failed', 'transport_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not be reached. Nothing was changed on GitHub.' )
 				: $this->result( 'ambiguous', 'transport_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not be reached; the outcome is unknown.' );
 		}
-		if ( $this->is_rate_limited( $response['response'], $status ) ) {
+		if ( RepositoryBrowser::is_rate_limited_response( $response['response'], $status ) ) {
 			return $nothing_changed
 				? $this->result( 'failed', 'rate_limited', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rate limited the request. Nothing was changed on GitHub.' )
 				: $this->result( 'ambiguous', 'rate_limited', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
@@ -402,29 +402,6 @@ final class RepositoryWebhookClient {
 			400, 422 => $this->result( 'failed', 'http_4xx_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the fixed webhook inputs.' ),
 			default => $nothing_changed ? $this->refused_before_create( $fallback_code ) : $this->uncertain( $fallback_code, $hook_id ),
 		};
-	}
-	/** A 429, or a 403 that carries GitHub's documented rate-limit signals, is a rate limit and not an access refusal. */
-	private function is_rate_limited( mixed $response, int $status ): bool {
-		if ( 429 === $status ) {
-			return true;
-		}
-		if ( 403 !== $status ) {
-			return false;
-		}
-		$remaining = wp_remote_retrieve_header( $response, 'x-ratelimit-remaining' );
-		if ( is_string( $remaining ) && '0' === trim( $remaining ) ) {
-			return true;
-		}
-		$retry_after = wp_remote_retrieve_header( $response, 'retry-after' );
-		if ( ! is_string( $retry_after ) || '' === trim( $retry_after ) ) {
-			return false;
-		}
-		$retry_after = trim( $retry_after );
-		if ( 1 === preg_match( '/\A\d+\z/', $retry_after ) ) {
-			return true;
-		}
-		$retry_at = \DateTimeImmutable::createFromFormat( '!D, d M Y H:i:s \G\M\T', $retry_after, new \DateTimeZone( 'GMT' ) );
-		return false !== $retry_at && $retry_at->format( 'D, d M Y H:i:s \G\M\T' ) === $retry_after;
 	}
 	/** Set-up stopped before sending any create request, so nothing on GitHub changed and no record should be kept. */
 	private function refused_before_create( string $code ): RepositoryWebhookOperationResult {

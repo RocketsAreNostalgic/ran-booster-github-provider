@@ -8,6 +8,7 @@ require_once __DIR__ . '/Support/RepositoryResolverWordPressFunctions.php';
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RAN\BoosterGitHubProvider\V1\RepositoryBrowser;
 use RAN\BoosterGitHubProvider\V1\RepositoryWebhookClient;
 use RAN\BoosterGitHubProvider\V1\RepositoryResolverWpError;
 
@@ -462,21 +463,27 @@ final class RepositoryWebhookClientTest extends TestCase {
 		}
 	}
 
-	/** @return iterable<string, array{int|RepositoryResolverWpError, string, string, string}> */
+	/** @return iterable<string, array{int|RepositoryResolverWpError, string, string, string, array<string,string>}> */
 	public static function unproven_absence_replies(): iterable {
-		yield 'hook list also 404' => array( 404, '[]', 'failed', 'repository_not_found_or_no_access' );
-		yield 'hook list forbidden' => array( 403, '[]', 'failed', 'permission_denied' );
-		yield 'hook list rate limited' => array( 429, '[]', 'ambiguous', 'rate_limited' );
-		yield 'hook list server error' => array( 503, '[]', 'ambiguous', '' );
-		yield 'hook list transport failure' => array( new RepositoryResolverWpError( 'http_request_failed' ), '', 'ambiguous', 'transport_other' );
+		yield 'hook list bad request' => array( 400, '{}', 'failed', 'http_4xx_other', array() );
+		yield 'hook list unauthorized' => array( 401, '{}', 'failed', 'credential_rejected', array() );
+		yield 'hook list also 404' => array( 404, '[]', 'failed', 'repository_not_found_or_no_access', array() );
+		yield 'hook list forbidden' => array( 403, '[]', 'failed', 'permission_denied', array() );
+		yield 'hook list 403 primary rate limit' => array( 403, '{}', 'ambiguous', 'rate_limited', array( 'x-ratelimit-remaining' => '0' ) );
+		yield 'hook list 403 retry-after rate limit' => array( 403, '{}', 'ambiguous', 'rate_limited', array( 'retry-after' => '60' ) );
+		yield 'hook list validation failed' => array( 422, '{}', 'failed', 'http_4xx_other', array() );
+		yield 'hook list rate limited' => array( 429, '[]', 'ambiguous', 'rate_limited', array() );
+		yield 'hook list server error' => array( 503, '[]', 'ambiguous', '', array() );
+		yield 'hook list transport failure' => array( new RepositoryResolverWpError( 'http_request_failed' ), '', 'ambiguous', 'transport_other', array() );
 		foreach ( self::invalid_hook_lists() as $label => [ $body ] ) {
-			yield $label => array( 200, $body, 'ambiguous', '' );
+			yield $label => array( 200, $body, 'ambiguous', '', array() );
 		}
-		yield 'hook list contradicts the 404' => array( 200, '[{"id":55}]', 'ambiguous', '' );
+		yield 'hook list contradicts the 404' => array( 200, '[{"id":55}]', 'ambiguous', '', array() );
 	}
 
+	/** @param array<string,string> $headers */
 	#[DataProvider( 'unproven_absence_replies' )]
-	public function test_hook_operations_do_not_report_unproven_absence( int|RepositoryResolverWpError $status_or_error, string $body, string $state, string $code ): void {
+	public function test_hook_operations_do_not_report_unproven_absence( int|RepositoryResolverWpError $status_or_error, string $body, string $state, string $code, array $headers ): void {
 		$fallback_codes = array(
 			'test'        => 'hook_readback_unavailable',
 			'reconfigure' => 'preconfiguration_read_unavailable',
@@ -487,7 +494,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 				array(
 					$this->response( 404, array() ),
-					is_int( $status_or_error ) ? $this->raw_response( $status_or_error, $body ) : $status_or_error,
+					is_int( $status_or_error ) ? $this->raw_response( $status_or_error, $body, $headers ) : $status_or_error,
 				)
 			);
 
@@ -504,7 +511,7 @@ final class RepositoryWebhookClientTest extends TestCase {
 			self::assertSame( 'unknown', $result->to_array()['delivery'], $operation );
 			self::assertSame( '55', $result->hook_id(), $operation );
 			$remediation = $result->to_array()['remediation'];
-			if ( 'remove' === $operation && 'failed' === $state ) {
+			if ( 'remove' === $operation && in_array( $code, array( 'credential_rejected', 'permission_denied', 'repository_not_found_or_no_access' ), true ) ) {
 				self::assertStringEndsWith( ' Or remove the webhook by hand on GitHub.', $remediation );
 			} else {
 				self::assertStringNotContainsString( 'by hand', $remediation, $operation . ' offers no manual removal.' );
@@ -665,6 +672,56 @@ final class RepositoryWebhookClientTest extends TestCase {
 
 		self::assertSame( 'failed', $result->state() );
 		self::assertSame( 'permission_denied', $result->code() );
+	}
+
+	/** @return iterable<string, array{int, array<string,string>, bool, string, string}> */
+	public static function browser_rate_limit_parity_cases(): iterable {
+		yield '403 padded zero remaining' => array( 403, array( 'x-ratelimit-remaining' => ' 0 ' ), true, 'ambiguous', 'rate_limited' );
+		yield '403 retry-after zero' => array( 403, array( 'retry-after' => '0' ), true, 'ambiguous', 'rate_limited' );
+		yield '403 invalid http date stays permission denied' => array( 403, array( 'retry-after' => 'Wed, 32 Oct 2026 07:28:00 GMT' ), false, 'failed', 'permission_denied' );
+		yield '400 with rate-limit headers stays input rejection' => array(
+			400,
+			array(
+				'x-ratelimit-remaining' => '0',
+				'retry-after'           => '60',
+			),
+			false,
+			'failed',
+			'http_4xx_other',
+		);
+		yield '401 with rate-limit headers stays credential rejection' => array(
+			401,
+			array(
+				'x-ratelimit-remaining' => '0',
+				'retry-after'           => '60',
+			),
+			false,
+			'failed',
+			'credential_rejected',
+		);
+		yield '422 with rate-limit headers stays input rejection' => array(
+			422,
+			array(
+				'x-ratelimit-remaining' => '0',
+				'retry-after'           => '60',
+			),
+			false,
+			'failed',
+			'http_4xx_other',
+		);
+	}
+
+	/** @param array<string,string> $headers */
+	#[DataProvider( 'browser_rate_limit_parity_cases' )]
+	public function test_webhook_rate_limit_classification_reuses_browser_predicate( int $status, array $headers, bool $rate_limited, string $state, string $code ): void {
+		$response = $this->response( $status, array(), $headers );
+		self::assertSame( $rate_limited, RepositoryBrowser::is_rate_limited_response( $response, $status ) );
+
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $response ) );
+		$result = ( new RepositoryWebhookClient() )->check( 'owner/example', '55', 'https://site.example/hook', self::TOKEN );
+
+		self::assertSame( $state, $result->state() );
+		self::assertSame( $code, $result->code() );
 	}
 
 	public function test_ping_acceptance_does_not_use_provider_delivery_history_as_signing_proof(): void {

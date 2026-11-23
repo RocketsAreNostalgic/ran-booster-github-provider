@@ -143,6 +143,87 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		}
 	}
 
+	public function test_acquisition_maps_a_deleted_or_changed_release_to_an_invalid_release_rejection(): void {
+		$repository  = new RepositoryReference( 'owner/example', '123456789', false, null );
+		$fingerprint = 'v2:' . str_repeat( 'b', 64 );
+		foreach ( array( 'release_unavailable', 'release_changed' ) as $code ) {
+			foreach ( array( 'not_applicable', 'complete' ) as $cleanup ) {
+				$provider = $this->provider( new PublicReleaseSourceFixture( $this->listing(), array(), $this->envelope( false, $code, null, $cleanup ) ) );
+				try {
+					$provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' );
+					self::fail( 'A ' . $code . ' acquisition was not rejected.' );
+				} catch ( RepositoryReleaseAcquisitionRejected $failure ) {
+					self::assertSame( RepositoryReleaseAcquisitionRejected::INVALID_RELEASE, $failure->reason, $code . ':' . $cleanup );
+				}
+			}
+		}
+
+		$with_retry                = $this->envelope( false, 'release_unavailable', null, 'complete' );
+		$with_retry['retry_after'] = 5;
+		try {
+			$this->provider( new PublicReleaseSourceFixture( $this->listing(), array(), $with_retry ) )
+				->acquire_release( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' );
+			self::fail( 'A release_unavailable acquisition with retry_after must stay 502.' );
+		} catch ( \RuntimeException $failure ) {
+			self::assertNotInstanceOf( RepositoryReleaseAcquisitionRejected::class, $failure );
+			self::assertSame( 502, $failure->getCode() );
+		}
+
+		try {
+			$this->provider( new PublicReleaseSourceFixture( $this->listing(), array(), $this->envelope( false, 'release_unavailable', null, 'failed' ) ) )
+				->acquire_release( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' );
+			self::fail( 'A release_unavailable acquisition with failed cleanup must report cleanup_failed.' );
+		} catch ( RepositoryReleaseAcquisitionRejected $failure ) {
+			self::assertSame( RepositoryReleaseAcquisitionRejected::CLEANUP_FAILED, $failure->reason );
+		}
+	}
+
+	public function test_source_filesystem_unsupported_maps_to_fixed_site_condition_across_release_reads(): void {
+		$repository  = new RepositoryReference( 'owner/example', '123456789', false, null );
+		$fingerprint = 'v2:' . str_repeat( 'b', 64 );
+		$operations  = array(
+			'listing'     => static fn ( GitHubProvider $provider ): mixed => $provider->list_release_candidates( 'plugin', $repository, 'stable' ),
+			'inspection'  => static fn ( GitHubProvider $provider ): mixed => $provider->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' ),
+			'acquisition' => static fn ( GitHubProvider $provider ): mixed => $provider->acquire_release( 'plugin', $repository, '42', 'v1.2.3', $fingerprint, 'stable' ),
+		);
+		foreach ( $operations as $name => $operation ) {
+			$cleanups = 'listing' === $name ? array( 'not_applicable' ) : array( 'not_applicable', 'complete' );
+			foreach ( $cleanups as $cleanup ) {
+				$envelope = $this->envelope( false, 'filesystem_unsupported', null, $cleanup );
+				$provider = $this->provider( new PublicReleaseSourceFixture( $envelope, $envelope, $envelope ) );
+				try {
+					$operation( $provider );
+					self::fail( 'Source filesystem_unsupported was not reported as 501 for ' . $name . '.' );
+				} catch ( \RuntimeException $failure ) {
+					self::assertSame( 'GitHub release ' . $name . ' requires a direct filesystem.', $failure->getMessage(), $name );
+					self::assertSame( 501, $failure->getCode(), $name );
+					if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+						self::assertInstanceOf( RepositoryReleaseReadUnavailable::class, $failure, $name );
+						$carried = \RAN\RepositoryProvider\ProviderFailure::carried( $failure );
+						self::assertNotNull( $carried );
+						self::assertSame( 'site_filesystem_unsupported', $carried->reason );
+						self::assertNull( $carried->http_status );
+						self::assertNull( $carried->retry_after );
+					} else {
+						self::assertNotInstanceOf( RepositoryReleaseReadUnavailable::class, $failure, $name );
+					}
+				}
+			}
+		}
+
+		$malformed                = $this->envelope( false, 'filesystem_unsupported', null, 'complete' );
+		$malformed['retry_after'] = 5;
+		foreach ( array( 'inspection', 'acquisition' ) as $name ) {
+			$provider = $this->provider( new PublicReleaseSourceFixture( $this->listing(), $malformed, $malformed ) );
+			try {
+				$operations[ $name ]( $provider );
+				self::fail( 'Malformed filesystem_unsupported must fail closed as 502.' );
+			} catch ( \RuntimeException $failure ) {
+				self::assertSame( 502, $failure->getCode(), $name );
+			}
+		}
+	}
+
 	/** @return iterable<string, array{string, ?int, string}> */
 	public static function unmapped_inspection_failures(): iterable {
 		yield 'operation failed' => array( 'operation_failed', null, 'complete' );
@@ -278,9 +359,12 @@ final class PublicReleaseResultMappingTest extends TestCase {
 				$provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
 				self::fail( 'A failed listing must not become a candidate list.' );
 			} catch ( \RuntimeException $failure ) {
+				$is_filesystem = 'filesystem_unsupported' === $code;
+				$expects_read  = in_array( $code, array( 'credential_unavailable', 'repository_access_unavailable', 'rate_limited' ), true )
+					|| ( $is_filesystem && class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && property_exists( RepositoryReleaseReadUnavailable::class, 'failure' ) );
 				self::assertSame( $message, $failure->getMessage(), $code );
-				self::assertSame( 502, $failure->getCode() );
-				self::assertSame( in_array( $code, array( 'credential_unavailable', 'repository_access_unavailable', 'rate_limited' ), true ), $failure instanceof RepositoryReleaseReadUnavailable );
+				self::assertSame( $is_filesystem ? 501 : 502, $failure->getCode(), $code );
+				self::assertSame( $expects_read, $failure instanceof RepositoryReleaseReadUnavailable, $code );
 				self::assertNull( $failure->getPrevious() );
 			}
 		}

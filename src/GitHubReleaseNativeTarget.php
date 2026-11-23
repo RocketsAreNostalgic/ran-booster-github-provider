@@ -189,6 +189,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 			'archive_entry_limit' => 'package_archive_entry_limit',
 			'archive_update_uri_mismatch' => 'package_update_uri_invalid',
 			'archive_php_requirement_incompatible', 'archive_wordpress_requirement_incompatible' => 'package_compatibility_invalid',
+			'digest_missing' => 'digest_missing',
 			default => 'github_updater_release_incompatible',
 		};
 	}

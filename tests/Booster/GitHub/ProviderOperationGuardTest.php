@@ -139,6 +139,84 @@ final class ProviderOperationGuardTest extends TestCase {
 		yield 'historical-private' => array( true, true );
 	}
 
+	public function test_public_archive_uses_explicit_credential_when_configured_and_fails_closed_when_missing(): void {
+		$token = 'synthetic-public-material';
+		foreach ( array( false, true ) as $guarded ) {
+			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+				array(
+					$this->repository_response( false ),
+					array(
+						'response' => array( 'code' => 200 ),
+						'body'     => str_repeat( 'a', 40 ),
+					),
+				)
+			);
+			$available = true;
+			$store     = new RepositoryResolverSecretsStub( array( 'public-profile' => $token ) );
+			$provider  = $guarded
+				? $this->provider(
+					static function () use ( &$available ): bool {
+						return $available;
+					},
+					$store
+				)
+				: GitHubProvider::create( $store, new EmptyAuthenticatedWebhookDeliveryEvidenceReader(), new \stdClass() );
+			self::assertInstanceOf( GitHubProvider::class, $provider );
+
+			$archive = $provider->prepare_archive(
+				new ArchiveRequest( new RepositoryReference( 'owner/example', '42', false, 'public-profile' ), 'main' )
+			);
+			self::assertInstanceOf( AuthenticatedPreparedArchive::class, $archive );
+			try {
+				$authenticated = $archive->authenticate_request( array(), $archive->get_url() );
+				self::assertSame( 'Bearer ' . $token, $authenticated['headers']['Authorization'] ?? null );
+				self::assertNotEmpty( $store->lookups );
+				self::assertSame( array( 'public-profile' ), array_values( array_unique( $store->lookups ) ) );
+				if ( $guarded ) {
+					$available = false;
+					try {
+						$archive->authenticate_request( array(), $archive->get_url() );
+						self::fail( 'Guarded public archive must refuse credentials after selection loss.' );
+					} catch ( RuntimeException $failure ) {
+						self::assertSame( 'Provider archive operation is unavailable.', $failure->getMessage() );
+					}
+				}
+			} finally {
+				$archive->cleanup();
+			}
+		}
+
+		// Public repository with null credential remains anonymous with no credential lookup.
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
+			array(
+				$this->repository_response( false ),
+				array(
+					'response' => array( 'code' => 200 ),
+					'body'     => str_repeat( 'a', 40 ),
+				),
+			)
+		);
+		$store    = new RepositoryResolverSecretsStub( array( 'public-profile' => $token ) );
+		$provider = GitHubProvider::create( $store, new EmptyAuthenticatedWebhookDeliveryEvidenceReader(), new \stdClass() );
+		self::assertInstanceOf( GitHubProvider::class, $provider );
+		$anonymous = $provider->prepare_archive(
+			new ArchiveRequest( new RepositoryReference( 'owner/example', '42', false, null ), 'main' )
+		);
+		self::assertInstanceOf( AuthenticatedPreparedArchive::class, $anonymous );
+		try {
+			self::assertSame( array(), $store->lookups );
+			$authorizer_method = new \ReflectionMethod( GitHubProvider::class, 'archive_authorizer' );
+			self::assertNull( $authorizer_method->invoke( $provider, new RepositoryReference( 'owner/example', '42', false, null ) ) );
+		} finally {
+			$anonymous->cleanup();
+		}
+
+		// Public repository with a missing explicit credential fails closed rather than downgrading to anonymous.
+		$this->expectException( RuntimeException::class );
+		$this->expectExceptionMessage( 'The selected GitHub credential is not configured.' );
+		$authorizer_method->invoke( $provider, new RepositoryReference( 'owner/example', '42', false, 'missing-profile' ) );
+	}
+
 	#[DataProvider( 'default_credential_identities' )]
 	public function test_private_archive_reacquires_exact_resolved_default_without_substitution( string $identity, bool $historical ): void {
 		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
