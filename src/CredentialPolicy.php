@@ -35,8 +35,9 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 			throw new RuntimeException( 'GitHub credential kind must be classic or fine-grained.' );
 		}
 
-		$owner = isset( $configuration['owner'] ) && is_string( $configuration['owner'] )
-			? trim( $configuration['owner'] )
+		$raw_owner = $configuration['owner'] ?? null;
+		$owner     = is_string( $raw_owner ) && 0 === preg_match( '/[\x00-\x1F\x7F]/', $raw_owner )
+			? trim( $raw_owner, ' ' )
 			: '';
 
 		if ( 'fine-grained' === $kind && ! $this->is_owner( $owner ) ) {
@@ -91,7 +92,7 @@ final readonly class CredentialPolicy implements ProviderCredentialPolicy, Submi
 		return array( self::TOKEN_CONSTANT );
 	}
 
-	public function credential_from_constants( array $constants ): ?array {
+	public function credential_from_constants( #[\SensitiveParameter] array $constants ): ?array {
 		$token = $constants[ self::TOKEN_CONSTANT ] ?? '';
 		if ( ! is_string( $token ) || '' === trim( $token ) ) {
 			return null;

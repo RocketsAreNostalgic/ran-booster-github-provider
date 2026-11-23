@@ -464,15 +464,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	}
 
 	public function expected_update_uri( RepositoryReference $repository ): string {
-		$parts = explode( '/', $repository->locator );
-		if ( 2 !== count( $parts )
-			|| 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] )
-			|| 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] )
-			|| '.' === $parts[0]
-			|| '..' === $parts[0]
-			|| '.' === $parts[1]
-			|| '..' === $parts[1]
-		) {
+		if ( ! $this->is_valid_repository_locator( $repository->locator ) ) {
 			return '';
 		}
 
@@ -867,12 +859,23 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 	}
 
-	private function encode_repository_name( string $full_name ): string {
-		$parts = explode( '/', $full_name );
+	private function is_valid_repository_locator( string $locator ): bool {
+		$parts = explode( '/', $locator );
 
-		if ( 2 !== count( $parts ) || '' === $parts[0] || '' === $parts[1] ) {
+		return 2 === count( $parts )
+			&& 1 === preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] )
+			&& 1 === preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] )
+			&& '.' !== $parts[0]
+			&& '..' !== $parts[0]
+			&& '.' !== $parts[1]
+			&& '..' !== $parts[1];
+	}
+
+	private function encode_repository_name( string $full_name ): string {
+		if ( ! $this->is_valid_repository_locator( $full_name ) ) {
 			throw new RuntimeException( 'GitHub repository names must use the owner/repository form.' );
 		}
+		$parts = explode( '/', $full_name );
 
 		return rawurlencode( $parts[0] ) . '/' . rawurlencode( $parts[1] );
 	}

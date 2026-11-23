@@ -27,8 +27,10 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 	public function normalize_webhook( array $metadata, #[\SensitiveParameter] mixed $secret ): array {
 		$label        = $this->required_string( $metadata['label'] ?? null, 'Webhook secret label' );
 		$scope        = $this->required_string( $metadata['scope'] ?? null, 'Webhook secret scope' );
-		$target       = isset( $metadata['target'] ) && is_string( $metadata['target'] )
-			? trim( $metadata['target'], " \t\n\r\0\x0B/" )
+		$raw_target   = $metadata['target'] ?? null;
+		$has_control  = is_string( $raw_target ) && 1 === preg_match( '/[\x00-\x1F\x7F]/', $raw_target );
+		$target       = is_string( $raw_target ) && ! $has_control
+			? trim( $raw_target, ' /' )
 			: '';
 		$secret       = $this->required_secret( $secret );
 		$authority_id = isset( $metadata['authority_id'] ) && is_string( $metadata['authority_id'] )

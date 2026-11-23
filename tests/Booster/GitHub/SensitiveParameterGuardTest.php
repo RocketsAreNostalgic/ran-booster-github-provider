@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub;
 
 use PHPUnit\Framework\TestCase;
+use RAN\BoosterGitHubProvider\V1\CredentialPolicy;
 use RAN\BoosterGitHubProvider\V1\GitHubProvider;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\GitHubRepositoryClient;
+use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\StarterSecurityCheck;
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplatePackRepositoryClient;
 use RAN\BoosterGitHubProvider\V1\RepositoryBrowser;
+use RAN\BoosterGitHubProvider\V1\RepositoryWebhookClient;
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 use RAN\RepositoryProvider\RepositoryReference;
@@ -69,37 +72,64 @@ final class SensitiveParameterGuardTest extends TestCase {
 		$valid_token = new ReflectionMethod( GitHubRepositoryClient::class, 'valid_token' );
 		self::assertCount( 1, $valid_token->getParameters()[0]->getAttributes( \SensitiveParameter::class ) );
 
-		foreach ( array( new GitHubRepositoryClient(), new TemplatePackRepositoryClient() ) as $client ) {
-			$send_property = new ReflectionProperty( $client, 'send' );
-			$send_closure  = $send_property->getValue( $client );
+		$webhook_request = new ReflectionMethod( RepositoryWebhookClient::class, 'request' );
+		self::assertCount( 1, $webhook_request->getParameters()[2]->getAttributes( \SensitiveParameter::class ) );
+		self::assertCount( 1, $webhook_request->getParameters()[3]->getAttributes( \SensitiveParameter::class ) );
+
+		$credential_constants = new ReflectionMethod( CredentialPolicy::class, 'credential_from_constants' );
+		self::assertCount( 1, $credential_constants->getParameters()[0]->getAttributes( \SensitiveParameter::class ) );
+
+		foreach ( array(
+			array( new GitHubRepositoryClient(), 2 ),
+			array( new TemplatePackRepositoryClient(), 2 ),
+			array( new StarterSecurityCheck(), 1 ),
+		) as $entry ) {
+			$send_property = new ReflectionProperty( $entry[0], 'send' );
+			$send_closure  = $send_property->getValue( $entry[0] );
 			self::assertInstanceOf( \Closure::class, $send_closure );
 			$send_reflection = new ReflectionFunction( $send_closure );
-			self::assertCount( 1, $send_reflection->getParameters()[2]->getAttributes( \SensitiveParameter::class ) );
+			self::assertCount( 1, $send_reflection->getParameters()[ $entry[1] ]->getAttributes( \SensitiveParameter::class ) );
 		}
 
 		// Throwing from assert_operation inside guarded_get must redact the Authorization header in the backtrace.
-		$canary  = 'ghp_sensitive_trace_canary_9876543210';
-		$browser = new RepositoryBrowser(
-			new RepositoryResolverSecretsStub( array( 'profile-1' => $canary ) ),
-			static function (): void {
-				throw new RuntimeException( 'operation aborted' );
-			}
-		);
-		$caught  = null;
+		$canary          = 'ghp_sensitive_trace_canary_9876543210';
+		$previous_ignore = ini_get( 'zend.exception_ignore_args' );
+		// phpcs:ignore WordPress.PHP.IniSet.Risky -- Enable exception arguments only during this isolated test assertion to prove SensitiveParameterValue redaction.
+		ini_set( 'zend.exception_ignore_args', '0' );
 		try {
-			$guarded_get->invoke(
-				$browser,
-				'https://api.github.com/repos/owner/example',
-				array( 'headers' => array( 'Authorization' => 'Bearer ' . $canary ) )
+			$browser = new RepositoryBrowser(
+				new RepositoryResolverSecretsStub( array( 'profile-1' => $canary ) ),
+				static function (): void {
+					throw new RuntimeException( 'operation aborted' );
+				}
 			);
-		} catch ( RuntimeException $exception ) {
-			$caught = $exception;
-		}
-		self::assertInstanceOf( RuntimeException::class, $caught );
-		self::assertStringNotContainsString( $canary, $caught->getTraceAsString() );
-		foreach ( $caught->getTrace() as $frame ) {
-			if ( 'guarded_get' === ( $frame['function'] ?? '' ) && isset( $frame['args'][1] ) ) {
-				self::assertInstanceOf( \SensitiveParameterValue::class, $frame['args'][1] );
+			$caught  = null;
+			try {
+				$guarded_get->invoke(
+					$browser,
+					'https://api.github.com/repos/owner/example',
+					array( 'headers' => array( 'Authorization' => 'Bearer ' . $canary ) )
+				);
+			} catch ( RuntimeException $exception ) {
+				$caught = $exception;
+			}
+			self::assertInstanceOf( RuntimeException::class, $caught );
+			self::assertStringNotContainsString( $canary, $caught->getTraceAsString() );
+			$found_frame = false;
+			foreach ( $caught->getTrace() as $frame ) {
+				if ( 'guarded_get' === ( $frame['function'] ?? '' ) ) {
+					$found_frame = true;
+					$frame_args  = $frame['args'] ?? null;
+					self::assertIsArray( $frame_args );
+					self::assertArrayHasKey( 1, $frame_args );
+					self::assertInstanceOf( \SensitiveParameterValue::class, $frame_args[1] );
+				}
+			}
+			self::assertTrue( $found_frame, 'Expected guarded_get frame in exception trace.' );
+		} finally {
+			if ( is_string( $previous_ignore ) ) {
+				// phpcs:ignore WordPress.PHP.IniSet.Risky -- Restore previous ini value after isolated test assertion.
+				ini_set( 'zend.exception_ignore_args', $previous_ignore );
 			}
 		}
 
