@@ -310,12 +310,18 @@ final class RepositoryWebhookClient {
 	}
 	/** @return list<array<string,mixed>>|null */
 	private function decode_list( string $body ): ?array {
+		// Preserve the JSON shape before converting hook fields to associative arrays.
+		$raw = json_decode( $body, false, 32, JSON_BIGINT_AS_STRING );
+		if ( ! is_array( $raw ) ) {
+			return null;
+		}
+
 		$data = json_decode( $body, true, 32, JSON_BIGINT_AS_STRING );
 		if ( ! is_array( $data ) || ! array_is_list( $data ) ) {
 			return null;
 		}
-		foreach ( $data as $hook ) {
-			if ( ! is_array( $hook ) || null === $this->hook_id( $hook ) ) {
+		foreach ( $data as $index => $hook ) {
+			if ( ! $raw[ $index ] instanceof \stdClass || ! is_array( $hook ) || null === $this->hook_id( $hook ) ) {
 				return null;
 			}
 		}

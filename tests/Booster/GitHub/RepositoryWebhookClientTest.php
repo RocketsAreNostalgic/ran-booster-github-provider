@@ -250,17 +250,25 @@ final class RepositoryWebhookClientTest extends TestCase {
 		self::assertCount( 3, \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests() );
 	}
 
-	public function test_an_invalid_hook_list_stops_set_up_before_any_create_request(): void {
-		foreach ( array( array( 'message' => 'not a list' ), array( array( 'name' => 'web' ) ) ) as $body ) {
-			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->response( 200, $body ) ) );
+	/** @return iterable<string, array{string}> */
+	public static function invalid_hook_lists(): iterable {
+		yield 'hook list is an object' => array( '{"message":"not a list"}' );
+		yield 'hook list is an empty object' => array( '{}' );
+		yield 'hook list is a sequential numeric-key object' => array( '{"0":{"id":99}}' );
+		yield 'hook list entry lacks an identity' => array( '[{"name":"web"}]' );
+	}
 
-			$result = ( new RepositoryWebhookClient() )->setup( 'owner/example', 'https://site.example/hook', self::TOKEN, self::SECRET );
+	#[DataProvider( 'invalid_hook_lists' )]
+	public function test_an_invalid_hook_list_stops_set_up_before_any_create_request( string $body ): void {
+		\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue( array( $this->raw_response( 200, $body ), $this->response( 503, array() ) ) );
 
-			self::assertSame( 'failed', $result->state() );
-			self::assertSame( 'hook_inventory_invalid', $result->code() );
-			self::assertNull( $result->hook_id() );
-			self::assertSame( array( 'GET' ), array_column( array_column( \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests(), 'arguments' ), 'method' ) );
-		}
+		$result = ( new RepositoryWebhookClient() )->setup( 'owner/example', 'https://site.example/hook', self::TOKEN, self::SECRET );
+
+		self::assertSame( 'failed', $result->state() );
+		self::assertSame( 'hook_inventory_invalid', $result->code() );
+		self::assertSame( 'unknown', $result->to_array()['delivery'] );
+		self::assertNull( $result->hook_id() );
+		self::assertSame( array( 'GET' ), array_column( array_column( \RAN\BoosterGitHubProvider\V1\repository_resolver_http_requests(), 'arguments' ), 'method' ) );
 	}
 
 	public function test_several_matching_hooks_stop_set_up_before_any_create_request(): void {
@@ -424,10 +432,17 @@ final class RepositoryWebhookClientTest extends TestCase {
 		self::assertStringNotContainsString( self::TOKEN, json_encode( $result->to_array(), JSON_THROW_ON_ERROR ) );
 	}
 
-	public function test_hook_operations_report_absence_when_the_hook_list_proves_it(): void {
+	/** @return iterable<string, array{string}> */
+	public static function absence_hook_lists(): iterable {
+		yield 'empty array' => array( '[]' );
+		yield 'array with a different hook' => array( '[{"id":56}]' );
+	}
+
+	#[DataProvider( 'absence_hook_lists' )]
+	public function test_hook_operations_report_absence_when_the_hook_list_proves_it( string $body ): void {
 		foreach ( array( 'check', 'test', 'reconfigure', 'remove' ) as $operation ) {
 			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
-				array( $this->response( 404, array() ), $this->response( 200, array( $this->hook( 56, 'https://other.example/hook' ) ) ) )
+				array( $this->response( 404, array() ), $this->raw_response( 200, $body ) )
 			);
 
 			$client   = new RepositoryWebhookClient();
@@ -447,31 +462,32 @@ final class RepositoryWebhookClientTest extends TestCase {
 		}
 	}
 
-	/** @return iterable<string, array{mixed, mixed, string, string}> */
+	/** @return iterable<string, array{int|RepositoryResolverWpError, string, string, string}> */
 	public static function unproven_absence_replies(): iterable {
-		yield 'hook list also 404' => array( 404, array(), 'failed', 'repository_not_found_or_no_access' );
-		yield 'hook list forbidden' => array( 403, array(), 'failed', 'permission_denied' );
-		yield 'hook list rate limited' => array( 429, array(), 'ambiguous', 'rate_limited' );
-		yield 'hook list server error' => array( 503, array(), 'ambiguous', '' );
-		yield 'hook list transport failure' => array( new RepositoryResolverWpError( 'http_request_failed' ), array(), 'ambiguous', 'transport_other' );
-		yield 'hook list is not a list' => array( 200, array( 'message' => 'not a list' ), 'ambiguous', '' );
-		yield 'hook list entry lacks an identity' => array( 200, array( array( 'name' => 'web' ) ), 'ambiguous', '' );
-		yield 'hook list contradicts the 404' => array( 200, array( array( 'id' => 55 ) ), 'ambiguous', '' );
+		yield 'hook list also 404' => array( 404, '[]', 'failed', 'repository_not_found_or_no_access' );
+		yield 'hook list forbidden' => array( 403, '[]', 'failed', 'permission_denied' );
+		yield 'hook list rate limited' => array( 429, '[]', 'ambiguous', 'rate_limited' );
+		yield 'hook list server error' => array( 503, '[]', 'ambiguous', '' );
+		yield 'hook list transport failure' => array( new RepositoryResolverWpError( 'http_request_failed' ), '', 'ambiguous', 'transport_other' );
+		foreach ( self::invalid_hook_lists() as $label => [ $body ] ) {
+			yield $label => array( 200, $body, 'ambiguous', '' );
+		}
+		yield 'hook list contradicts the 404' => array( 200, '[{"id":55}]', 'ambiguous', '' );
 	}
 
 	#[DataProvider( 'unproven_absence_replies' )]
-	public function test_hook_operations_do_not_report_unproven_absence( mixed $status_or_error, mixed $body, string $state, string $code ): void {
+	public function test_hook_operations_do_not_report_unproven_absence( int|RepositoryResolverWpError $status_or_error, string $body, string $state, string $code ): void {
 		$fallback_codes = array(
-			'check'       => 'hook_readback_unavailable',
 			'test'        => 'hook_readback_unavailable',
 			'reconfigure' => 'preconfiguration_read_unavailable',
+			'check'       => 'hook_readback_unavailable',
 			'remove'      => 'predelete_read_unavailable',
 		);
 		foreach ( $fallback_codes as $operation => $fallback ) {
 			\RAN\BoosterGitHubProvider\V1\repository_resolver_http_queue(
 				array(
 					$this->response( 404, array() ),
-					is_int( $status_or_error ) ? $this->response( $status_or_error, $body ) : $status_or_error,
+					is_int( $status_or_error ) ? $this->raw_response( $status_or_error, $body ) : $status_or_error,
 				)
 			);
 
@@ -822,11 +838,19 @@ final class RepositoryWebhookClientTest extends TestCase {
 	 * @param array<array-key,mixed> $headers
 	 */
 	private function response( int $status, mixed $body, array $headers = array() ): array {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test transport fixture.
+		return $this->raw_response( $status, json_encode( $body, JSON_THROW_ON_ERROR ), $headers );
+	}
+
+	/**
+	 * @param array<array-key,mixed> $headers
+	 * @return array<string,mixed>
+	 */
+	private function raw_response( int $status, string $body, array $headers = array() ): array {
 		return array(
 			'response' => array( 'code' => $status ),
 			'headers'  => $headers,
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test transport fixture.
-			'body'     => json_encode( $body, JSON_THROW_ON_ERROR ),
+			'body'     => $body,
 		);
 	}
 }
