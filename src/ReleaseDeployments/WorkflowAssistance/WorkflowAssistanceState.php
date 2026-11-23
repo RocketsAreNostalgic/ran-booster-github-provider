@@ -65,7 +65,7 @@ final readonly class WorkflowAssistanceState {
 						return false;
 					}
 					if ( $expiration <= time() || false === $stored ) {
-						$this->consume_preview( $existing );
+						$this->delete_preview_transient( $existing );
 						if ( ! $this->preview_lock_owned( $claim ) || false !== $this->read_preview( $existing ) || ! $this->preview_lock_owned( $claim ) ) {
 							return false;
 						}
@@ -83,7 +83,7 @@ final readonly class WorkflowAssistanceState {
 				$stored = set_transient( $this->preview_prefix() . $key, $preview, $ttl );
 				if ( ! $stored || ! $this->preview_lock_owned( $claim ) ) {
 					// The index preceded creation; compensate only this new key after ownership loss.
-					$this->consume_preview( $key );
+					$this->delete_preview_transient( $key );
 					return false;
 				}
 				return true;
@@ -96,6 +96,43 @@ final readonly class WorkflowAssistanceState {
 	}
 
 	public function consume_preview( string $key ): bool {
+		if ( ! $this->valid_preview_key( $key ) ) {
+			return false;
+		}
+		if ( 'bundled' === $this->storage_namespace ) {
+			return $this->delete_preview_transient( $key );
+		}
+		return $this->with_preview_lock(
+			function ( array $claim ) use ( $key ): bool {
+				$index = $this->preview_index();
+				if ( null === $index || ! $this->preview_lock_owned( $claim ) ) {
+					return false;
+				}
+				if ( ! $this->delete_preview_transient( $key ) ) {
+					return false;
+				}
+				if ( ! $this->preview_lock_owned( $claim ) || false !== $this->read_preview( $key ) || ! $this->preview_lock_owned( $claim ) ) {
+					return false;
+				}
+				if ( ! array_key_exists( $key, $index ) ) {
+					return true;
+				}
+				$updated = $index;
+				unset( $updated[ $key ] );
+				$next = array() === $updated ? null : $updated;
+				if ( ! $this->persist_preview_index( $index, $next, $claim['name'], $claim['owner'] ) || ! $this->preview_lock_owned( $claim ) ) {
+					return false;
+				}
+				if ( null === $next ) {
+					$missing = new \stdClass();
+					return get_option( $this->preview_index_option(), $missing ) === $missing && $this->preview_lock_owned( $claim );
+				}
+				return get_option( $this->preview_index_option() ) === $next && $this->preview_lock_owned( $claim );
+			}
+		);
+	}
+
+	private function delete_preview_transient( string $key ): bool {
 		return $this->valid_preview_key( $key ) && delete_transient( $this->preview_prefix() . $key );
 	}
 
@@ -112,7 +149,7 @@ final readonly class WorkflowAssistanceState {
 					return false;
 				}
 				foreach ( $index as $key => $expiration ) {
-					$this->consume_preview( $key );
+					$this->delete_preview_transient( $key );
 					if ( ! $this->preview_lock_owned( $claim ) || false !== $this->read_preview( $key ) || ! $this->preview_lock_owned( $claim ) ) {
 						return false;
 					}

@@ -39,7 +39,7 @@ final class TemplatePackRepositoryClient {
 	/**
 	 * Select the newest eligible stable immutable release; never fall back to an older format.
 	 *
-	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
+	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'|'unauthorised'}
 	 */
 	public function discover( #[\SensitiveParameter] string $token = '' ): array {
 		$repository = $this->repository( $token );
@@ -58,25 +58,45 @@ final class TemplatePackRepositoryClient {
 			return $this->error( 'template_pack_invalid' );
 		}
 
-		$candidates = array();
-		$versions   = array();
+		$stable   = array();
+		$versions = array();
 		foreach ( $list['data'] as $release ) {
-			$candidate = $this->candidate( $release );
-			if ( false === $candidate ) {
-				continue;
-			}
-			if ( null === $candidate || isset( $versions[ $candidate['version'] ] ) ) {
+			if ( ! is_array( $release ) || ! is_bool( $release['immutable'] ?? null ) || ! is_bool( $release['draft'] ?? null )
+				|| ! is_bool( $release['prerelease'] ?? null ) ) {
 				return $this->error( 'template_pack_invalid' );
 			}
-			$versions[ $candidate['version'] ] = true;
-			$candidates[]                      = $candidate;
+			if ( true !== $release['immutable'] || true === $release['draft'] || true === $release['prerelease'] ) {
+				continue;
+			}
+			if ( ! is_string( $release['tag_name'] ?? null ) ) {
+				return $this->error( 'template_pack_invalid' );
+			}
+			$version = $this->version_from_tag( $release['tag_name'] );
+			if ( null === $version ) {
+				continue;
+			}
+			if ( isset( $versions[ $version ] ) ) {
+				return $this->error( 'template_pack_invalid' );
+			}
+			$versions[ $version ] = true;
+			$stable[]             = array(
+				'version' => $version,
+				'release' => $release,
+			);
 		}
-		usort( $candidates, static fn ( array $left, array $right ): int => version_compare( $right['version'], $left['version'] ) );
+		if ( array() === $stable ) {
+			return $this->error( 'template_pack_unavailable' );
+		}
+		usort( $stable, static fn ( array $left, array $right ): int => version_compare( $right['version'], $left['version'] ) );
+		$candidate = $this->candidate( $stable[0]['release'] );
+		if ( ! is_array( $candidate ) ) {
+			return $this->error( 'template_pack_invalid' );
+		}
 
-		return array() === $candidates ? $this->error( 'template_pack_unavailable' ) : $this->verified_release( $candidates[0], $token );
+		return $this->verified_release( $candidate, $token );
 	}
 
-	/** @return array{code:'ok'|'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
+	/** @return array{code:'ok'|'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'|'unauthorised'} */
 	private function repository( #[\SensitiveParameter] string $token ): array {
 		$response = $this->json_request( '/repos/' . self::REPOSITORY, 65536, $token );
 		if ( 'ok' !== $response['code'] ) {
@@ -91,7 +111,7 @@ final class TemplatePackRepositoryClient {
 
 	/**
 	 * @param array{release_id:int,release_tag:string,release_target:string,version:string,asset_count:int,asset_id:int,asset_name:string,asset_state:string,asset_content_type:string,asset_size:int,asset_digest:string,asset_sha256:string} $candidate
-	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'}
+	 * @return array{code:'ok',pack:TemplatePack}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'|'unauthorised'}
 	 */
 	private function verified_release( array $candidate, #[\SensitiveParameter] string $token ): array {
 		$release = $this->json_request(
@@ -225,7 +245,7 @@ final class TemplatePackRepositoryClient {
 		);
 	}
 
-	/** @return array{code:'ok',data:array<array-key,mixed>}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
+	/** @return array{code:'ok',data:array<array-key,mixed>}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'|'unauthorised'} */
 	private function json_request( string $path, int $limit, #[\SensitiveParameter] string $token ): array {
 		$response = $this->request( $path, 'application/vnd.github+json', $limit, 0, $token );
 		if ( 'ok' !== $response['code'] ) {
@@ -243,12 +263,12 @@ final class TemplatePackRepositoryClient {
 		) : $this->error( 'template_pack_invalid' );
 	}
 
-	/** @return array{code:'ok',body:string}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
+	/** @return array{code:'ok',body:string}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'|'unauthorised'} */
 	private function binary_request( string $path, int $expected_size, #[\SensitiveParameter] string $token ): array {
 		return $this->request( $path, 'application/octet-stream', min( self::ASSET_BODY_LIMIT, $expected_size + 1 ), 3, $token );
 	}
 
-	/** @return array{code:'ok',body:string}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'} */
+	/** @return array{code:'ok',body:string}|array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'template_pack_incompatible'|'unauthorised'} */
 	private function request( string $path, string $accept, int $limit, int $redirects, #[\SensitiveParameter] string $token ): array {
 		if ( ! str_starts_with( $path, '/repos/' ) || $limit < 1 || $limit > self::ASSET_BODY_LIMIT ) {
 			return $this->error( 'template_pack_invalid' );
@@ -302,6 +322,9 @@ final class TemplatePackRepositoryClient {
 			return $this->error( 'template_pack_unavailable' );
 		}
 		$body = wp_remote_retrieve_body( $response );
+		if ( 401 === $status && array_key_exists( 'Authorization', $args['headers'] ) ) {
+			return $this->error( 'unauthorised' );
+		}
 		if ( 404 === $status ) {
 			return $this->error( 'template_pack_changed' );
 		}
@@ -436,8 +459,8 @@ final class TemplatePackRepositoryClient {
 	}
 
 	/**
-	 * @param 'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed' $code
-	 * @return array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'}
+	 * @param 'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'unauthorised' $code
+	 * @return array{code:'template_pack_invalid'|'template_pack_unavailable'|'template_pack_changed'|'unauthorised'}
 	 */
 	private function error( string $code ): array {
 		return array( 'code' => $code );

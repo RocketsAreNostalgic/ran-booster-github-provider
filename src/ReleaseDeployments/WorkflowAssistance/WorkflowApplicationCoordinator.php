@@ -68,10 +68,16 @@ final class WorkflowApplicationCoordinator {
 		}
 		$progress?->progress( 'gh.template_pack' );
 		$latest = $this->templates->discover( $token );
+		if ( 'unauthorised' === $latest['code'] ) {
+			return $this->result( $status, 'unauthorised', false, $key );
+		}
 		if ( 'ok' !== $latest['code'] || $latest['pack']->identity() !== $preview['template_identity'] ) {
 			return $this->result( $status, 'template_superseded', false, $key );
 		}
 		$remote = $this->bootstrap_bundle( $status, $token, $latest['pack'], $progress );
+		if ( 'unauthorised' === $remote['code'] ) {
+			return $this->result( $status, 'unauthorised', false, $key );
+		}
 		if ( 'ok' !== $remote['code'] || ! $this->preview_matches_bundle( $preview, $remote ) ) {
 			return $this->result( $status, 'target_changed', false, $key );
 		}
@@ -107,8 +113,7 @@ final class WorkflowApplicationCoordinator {
 		}
 		$pr = $pull['pull'];
 		if ( ! hash_equals( $record['repo_id'], $repo['repository_id'] ) || ! hash_equals( $record['default_branch'], $repo['default_branch'] )
-			|| ! hash_equals( $record['setup_branch'], $pr['head'] ) || ! hash_equals( $record['head_sha'], $pr['head_sha'] ) || ! hash_equals( $record['default_branch'], $pr['base'] )
-			|| ( ! $pr['merged'] && ! hash_equals( $record['base_sha'], $pr['base_sha'] ) ) ) {
+			|| ! hash_equals( $record['setup_branch'], $pr['head'] ) || ! hash_equals( $record['head_sha'], $pr['head_sha'] ) || ! hash_equals( $record['default_branch'], $pr['base'] ) ) {
 			return $this->result( $status, 'target_changed' );
 		}
 		if ( 'open' === $pr['state'] ) {
@@ -296,14 +301,14 @@ final class WorkflowApplicationCoordinator {
 	 * @return array{type:string,identifier:string,code:string,successful:bool,preview_key:string,failure_stage:string,diagnostic_code:string}
 	 */
 	private function open_claimed_draft( RepositoryReleaseWorkflowTarget $status, string $preview_key, array $remote, #[\SensitiveParameter] string $token ): array {
-		if ( ! $this->records->workflow_state()->consume_preview( $preview_key ) ) {
-			return $this->result( $status, 'invalid_request', false, $preview_key );
-		}
 		$bundle = $remote['bundle'];
 		$branch = sprintf( 'ran-booster/release-setup-v3-%s-%s', substr( $remote['base_sha'], 0, 12 ), substr( $bundle->hash(), 0, 8 ) );
 		$lookup = $this->find_pull( $remote['repository'], $branch, $remote['default_branch'], $token );
 		if ( 'ok' !== $lookup['code'] ) {
 			return $this->result( $status, $lookup['code'], false, $preview_key );
+		}
+		if ( ! $this->records->workflow_state()->consume_preview( $preview_key ) ) {
+			return $this->result( $status, 'invalid_request', false, $preview_key );
 		}
 		$pull = $lookup['pull'];
 		$head = null === $pull ? $this->create_atomic_commit( $remote, $bundle, $branch, $token ) : $pull['head_sha'];

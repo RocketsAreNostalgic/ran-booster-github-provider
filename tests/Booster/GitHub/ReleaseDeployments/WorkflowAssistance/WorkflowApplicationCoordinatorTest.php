@@ -577,10 +577,20 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 		$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
 		self::assertSame( 'workflow_setup_open', $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' )['code'] );
 
+		// Advancing main updates the open PR base SHA without drifting the PR target branch or setup head.
+		$transport->drift_pull_base();
+		self::assertSame( 'workflow_pr_open', $coordinator->outcome( $status, 'token' )['code'] );
+
 		$transport->close_pull();
 		self::assertSame( 'workflow_pr_closed', $coordinator->outcome( $status, 'token' )['code'] );
+
 		$transport->reopen_pull();
-		$transport->drift_pull_base();
+		$transport->drift_pull_base_ref( 'develop' );
+		self::assertSame( 'workflow_target_changed', $coordinator->outcome( $status, 'token' )['code'] );
+
+		$transport->drift_pull_base_ref( 'main' );
+		self::assertSame( 'workflow_pr_open', $coordinator->outcome( $status, 'token' )['code'] );
+		$transport->drift_pull_head_sha();
 		self::assertSame( 'workflow_target_changed', $coordinator->outcome( $status, 'token' )['code'] );
 	}
 
@@ -758,7 +768,87 @@ final class WorkflowApplicationCoordinatorTest extends TestCase {
 				$transport->write_counts,
 				$scenario
 			);
-			self::assertNull( $coordinator->preview( $inspect['preview_key'], $status ), $scenario );
+			self::assertNotNull( $coordinator->preview( $inspect['preview_key'], $status ), $scenario );
+		}
+	}
+
+	public function test_transient_find_pull_failure_preserves_preview_for_retry(): void {
+		foreach ( array( 'bundled', 'retry_ns' ) as $namespace ) {
+			$this->setUp();
+			$transport   = new D23ApplicationTransport();
+			$records     = new SetupRecordStore( new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\WorkflowAssistanceState( $namespace ) );
+			$fail_lookup = true;
+			$send        = static function ( string $method, string $url, array $arguments ) use ( $transport, &$fail_lookup ): array {
+				if ( $fail_lookup && 'GET' === $method && str_contains( $url, '/pulls?' ) ) {
+					$fail_lookup = false;
+					return array(
+						'response' => array( 'code' => 503 ),
+						'body'     => '{}',
+					);
+				}
+				return $transport( $method, $url, $arguments );
+			};
+			$coordinator = new WorkflowApplicationCoordinator(
+				new GitHubRepositoryClient( $send ),
+				new TemplatePackRepositoryClient( $transport ),
+				new SourceReadyAssessor(),
+				$records
+			);
+			$status      = WorkflowProviderFixtures::target();
+			$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
+			self::assertSame( 'workflow_inspected', $inspect['code'], $namespace );
+
+			$first = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
+			self::assertSame( 'workflow_remote_unavailable', $first['code'], $namespace );
+			self::assertSame( 0, array_sum( $transport->write_counts ), $namespace );
+			self::assertNotNull( $coordinator->preview( $inspect['preview_key'], $status ), $namespace );
+
+			$retry = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
+			self::assertSame( 'workflow_setup_open', $retry['code'], $namespace );
+			self::assertNull( $coordinator->preview( $inspect['preview_key'], $status ), $namespace );
+			self::assertNotNull( $records->find( '101' ), $namespace );
+		}
+	}
+
+	public function test_setup_preserves_unauthorised_when_template_discovery_or_target_returns_401(): void {
+		foreach ( array( 'template', 'target' ) as $stage ) {
+			$this->setUp();
+			$transport   = new D23ApplicationTransport();
+			$records     = new SetupRecordStore();
+			$state       = new class() {
+				public bool $armed = false;
+			};
+			$send        = static function ( string $method, string $url, array $arguments ) use ( $transport, $stage, $state ): array {
+				if ( $state->armed && 'template' === $stage && str_contains( $url, TemplatePackApi3Fixture::REPOSITORY ) ) {
+					return array(
+						'response' => array( 'code' => 401 ),
+						'body'     => '{}',
+					);
+				}
+				if ( $state->armed && 'target' === $stage && str_contains( $url, '/repos/owner/example-plugin' ) ) {
+					return array(
+						'response' => array( 'code' => 401 ),
+						'body'     => '{}',
+					);
+				}
+				return $transport( $method, $url, $arguments );
+			};
+			$coordinator = new WorkflowApplicationCoordinator(
+				new GitHubRepositoryClient( $send ),
+				new TemplatePackRepositoryClient( $send ),
+				new SourceReadyAssessor(),
+				$records
+			);
+			$status      = WorkflowProviderFixtures::target();
+			$inspect     = $coordinator->inspect( $status, 'stable', $this->ready_preflight(), 'token' );
+			self::assertSame( 'workflow_inspected', $inspect['code'], $stage );
+
+			$state->armed = true;
+			$setup        = $coordinator->setup( $status, $inspect['preview_key'], 'owner/example-plugin', $this->ready_preflight(), 'token' );
+			self::assertSame( 'workflow_unauthorised', $setup['code'], $stage );
+			self::assertSame( 'credential_authorisation', $setup['failure_stage'], $stage );
+			self::assertSame( 0, array_sum( $transport->write_counts ), $stage );
+			self::assertNotNull( $coordinator->preview( $inspect['preview_key'], $status ), $stage );
 		}
 	}
 

@@ -153,6 +153,41 @@ final class SetupRecordStoreTest extends TestCase {
 		self::assertTrue( $store->save( $this->record() ) );
 		self::assertSame( 1, $GLOBALS['wpdb']->lock_acquisitions );
 	}
+	public function test_server_reconnect_inside_same_database_wrapper_drops_stale_claim_and_fences_writes(): void {
+		$store      = new SetupRecordStore();
+		$connection = $GLOBALS['wpdb'];
+		$claim      = $store->claim( '123456789', 'plugin', 'example-plugin/example-plugin.php', 3 );
+		self::assertNotNull( $claim );
+
+		// Same PHP $wpdb object, new MySQL CONNECTION_ID() after server reconnect.
+		$connection->reconnect();
+		self::assertFalse( $connection->is_lock_held() );
+		self::assertFalse( $store->release_claim( '123456789', $claim ) );
+
+		// While another connection holds the lock, the reconnected store cannot write without re-acquiring.
+		$contender = new \RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\SetupClaimDatabase();
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Acquire the advisory lock on a competing database connection.
+		$GLOBALS['wpdb'] = $contender;
+		$other           = new SetupRecordStore();
+		$other_claim     = $other->claim( '987654321', 'theme', 'example-theme', 2 );
+		self::assertNotNull( $other_claim );
+
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the reconnected wrapper to prove it fails closed while contended.
+		$GLOBALS['wpdb'] = $connection;
+		self::assertFalse( $store->save( $this->record() ) );
+		self::assertNull( $store->find( '123456789' ) );
+
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Release the contender lock, then verify fenced save re-acquires cleanly.
+		$GLOBALS['wpdb'] = $contender;
+		self::assertTrue( $other->release_claim( '987654321', $other_claim ) );
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the reconnected wrapper for fenced persistence.
+		$GLOBALS['wpdb'] = $connection;
+		$acquisitions    = $connection->lock_acquisitions;
+		self::assertTrue( $store->save( $this->record() ) );
+		self::assertGreaterThan( $acquisitions, $connection->lock_acquisitions );
+		self::assertNotNull( $store->find( '123456789' ) );
+		$contender->disconnect();
+	}
 	public function test_one_global_claim_serializes_distinct_repository_records(): void {
 		$first            = new SetupRecordStore();
 		$second           = new SetupRecordStore();

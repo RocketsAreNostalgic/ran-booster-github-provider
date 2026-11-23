@@ -251,8 +251,20 @@ if ( ! function_exists( __NAMESPACE__ . '\\wp_remote_retrieve_body' ) ) {
 if ( ! function_exists( __NAMESPACE__ . '\\wp_remote_retrieve_header' ) ) {
 	/** @param array<string,mixed> $response */
 	function wp_remote_retrieve_header( array $response, string $header ): string {
-		$value = $response['headers'][ $header ] ?? '';
-		return is_string( $value ) ? $value : '';
+		$headers = $response['headers'] ?? array();
+		if ( ! is_array( $headers ) ) {
+			return '';
+		}
+		if ( array_key_exists( $header, $headers ) ) {
+			return is_string( $headers[ $header ] ) ? $headers[ $header ] : '';
+		}
+		$needle = strtolower( $header );
+		foreach ( $headers as $name => $value ) {
+			if ( is_string( $name ) && strtolower( $name ) === $needle ) {
+				return is_string( $value ) ? $value : '';
+			}
+		}
+		return '';
 	}
 }
 

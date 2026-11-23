@@ -235,7 +235,7 @@ final class GitHubRepositoryClientTest extends TestCase {
 			)
 		);
 		foreach ( $documents as $path => $content ) {
-			if ( in_array( $path, array( 'config/release-please-config.json', 'docs/release.sh' ), true ) ) {
+			if ( in_array( $path, array( '.github/workflows/ci.yml', 'config/release-please-config.json', 'docs/release.sh' ), true ) ) {
 				continue;
 			}
 			$responses[] = $this->response(
@@ -252,11 +252,12 @@ final class GitHubRepositoryClientTest extends TestCase {
 		$transport = new D23GitHubTransport( $responses );
 		$result    = ( new GitHubRepositoryClient( $transport ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA );
 		self::assertSame( 'ok', $result['code'] );
+		self::assertTrue( $result['snapshot']->has( '.github/workflows/ci.yml' ) );
 		self::assertSame(
-			array( '.ci/publish.sh', '.github/scripts/release.sh', '.github/workflows/ci.yml', 'Makefile', 'composer.json', 'example.php', 'scripts/package.sh' ),
+			array( '.ci/publish.sh', '.github/scripts/release.sh', 'Makefile', 'composer.json', 'example.php', 'scripts/package.sh' ),
 			$result['snapshot']->document_paths()
 		);
-		self::assertCount( 8, $transport->requests );
+		self::assertCount( 7, $transport->requests );
 	}
 
 	public function test_snapshot_reads_only_a_bounded_prefix_of_large_runtime_blobs(): void {
@@ -372,10 +373,10 @@ final class GitHubRepositoryClientTest extends TestCase {
 		$tree = array();
 		for ( $index = 0; $index < 257; ++$index ) {
 			$tree[] = array(
-				'path' => '.github/workflows/check-' . $index . '.yml',
+				'path' => 'scripts/check-' . $index . '.sh',
 				'type' => 'blob',
 				'mode' => '100644',
-				'sha'  => sha1( 'workflow-' . $index ),
+				'sha'  => sha1( 'script-' . $index ),
 				'size' => 1,
 			);
 		}
@@ -394,6 +395,97 @@ final class GitHubRepositoryClientTest extends TestCase {
 
 		self::assertSame( 'invalid_response', $result['code'] );
 		self::assertCount( 1, $transport->requests );
+
+		// Workflow YAML blobs are never downloaded, so even many workflow entries issue zero blob requests.
+		$workflow_tree = array();
+		for ( $index = 0; $index < 257; ++$index ) {
+			$workflow_tree[] = array(
+				'path' => '.github/workflows/check-' . $index . '.yml',
+				'type' => 'blob',
+				'mode' => '100644',
+				'sha'  => sha1( 'workflow-' . $index ),
+				'size' => 1,
+			);
+		}
+		$workflow_transport = new D23GitHubTransport(
+			array(
+				$this->response(
+					200,
+					array(
+						'truncated' => false,
+						'tree'      => $workflow_tree,
+					)
+				),
+			)
+		);
+		$workflow_result    = ( new GitHubRepositoryClient( $workflow_transport ) )->snapshot( self::REPOSITORY, '101', 'main', self::SHA );
+
+		self::assertSame( 'ok', $workflow_result['code'] );
+		self::assertCount( 1, $workflow_transport->requests );
+		self::assertSame( array(), $workflow_result['snapshot']->document_paths() );
+	}
+
+	public function test_snapshot_enforces_total_http_time_budget_and_clamps_request_timeout(): void {
+		$content = '<?php';
+		$tree    = array();
+		for ( $index = 0; $index < 4; ++$index ) {
+			$tree[] = array(
+				'path' => 'file-' . $index . '.php',
+				'type' => 'blob',
+				'mode' => '100644',
+				'sha'  => sha1( 'file-' . $index ),
+				'size' => strlen( $content ),
+			);
+		}
+		$blob_response = $this->response(
+			200,
+			array(
+				'encoding' => 'base64',
+				'size'     => strlen( $content ),
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- GitHub blob fixture encoding.
+				'content'  => base64_encode( $content ),
+			)
+		);
+		$now           = 100.0;
+		$responses     = array(
+			$this->response(
+				200,
+				array(
+					'truncated' => false,
+					'tree'      => $tree,
+				)
+			),
+			$blob_response,
+			$blob_response,
+			$blob_response,
+			$blob_response,
+		);
+		$requests      = array();
+		$client        = new GitHubRepositoryClient(
+			static function ( string $method, string $url, array $args ) use ( &$responses, &$requests, &$now ): array {
+				$requests[] = array(
+					'method'  => $method,
+					'url'     => $url,
+					'timeout' => $args['timeout'],
+				);
+				$now       += 11.0;
+				$response   = array_shift( $responses );
+				self::assertNotNull( $response );
+				return $response;
+			},
+			null,
+			static function () use ( &$now ): float {
+				return $now;
+			}
+		);
+
+		$result = $client->snapshot( self::REPOSITORY, '101', 'main', self::SHA, 'token' );
+
+		self::assertSame( 'remote_unavailable', $result['code'] );
+		self::assertCount( 3, $requests );
+		self::assertSame( 12, $requests[0]['timeout'] );
+		self::assertSame( 12, $requests[1]['timeout'] );
+		self::assertSame( 8, $requests[2]['timeout'] );
 	}
 
 	public function test_anonymous_snapshot_requires_credential_before_exceeding_its_request_budget(): void {
@@ -557,13 +649,17 @@ final class GitHubRepositoryClientTest extends TestCase {
 		$transport = new D23GitHubTransport(
 			array(
 				$this->response( 403, array(), array( 'x-ratelimit-remaining' => '0' ) ),
+				$this->response( 403, array(), array( 'retry-after' => '60' ) ),
+				$this->response( 403, array(), array( 'Retry-After' => 'Wed, 21 Oct 2026 07:28:00 GMT' ) ),
+				$this->response( 403, array(), array( 'retry-after' => 'soon' ) ),
 				$this->response( 403, array(), array( 'x-ratelimit-remaining' => '1' ) ),
 				$this->response( 401, array(), array( 'x-ratelimit-remaining' => '0' ) ),
+				$this->response( 401, array(), array( 'retry-after' => '60' ) ),
 				$this->response( 429, array() ),
 			)
 		);
 		$client    = new GitHubRepositoryClient( $transport );
-		foreach ( array( 'rate_limited', 'unauthorised', 'unauthorised', 'rate_limited' ) as $expected ) {
+		foreach ( array( 'rate_limited', 'rate_limited', 'rate_limited', 'unauthorised', 'unauthorised', 'unauthorised', 'unauthorised', 'rate_limited' ) as $expected ) {
 			self::assertSame( $expected, $client->repository( self::REPOSITORY )['code'] );
 		}
 	}

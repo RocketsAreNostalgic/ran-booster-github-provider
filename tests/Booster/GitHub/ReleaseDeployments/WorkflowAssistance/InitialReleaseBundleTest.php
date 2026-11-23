@@ -110,6 +110,52 @@ final class InitialReleaseBundleTest extends TestCase {
 		}
 	}
 
+	public function test_starter_origin_accepts_trailing_spaces_and_inline_comments_on_jobs_and_release(): void {
+		$path     = 'templates/shared/release-please.yml.tmpl';
+		$original = TemplatePackApi3Fixture::templates()[ $path ];
+		foreach ( array(
+			array( "jobs:   \n", "  release:   \n" ),
+			array( "jobs: # release jobs\n", "  release: # reusable call\n" ),
+			array( "jobs:\t# tabbed comment\n", "  release:\t# tabbed comment\n" ),
+		) as list( $jobs_line, $release_line ) ) {
+			$template = str_replace( array( "jobs:\n", "  release:\n" ), array( $jobs_line, $release_line ), $original );
+			$manifest = TemplatePackApi3Fixture::manifest();
+			foreach ( $manifest['profiles'] as &$profile ) {
+				$profile['entries']['release-workflow']['sha256'] = hash( 'sha256', $template );
+				$profile['entries']['release-workflow']['size']   = strlen( $template );
+			}
+			unset( $profile );
+			$archive = TemplatePackApi3Fixture::archive( $manifest, array( $path => $template ) );
+			$pack    = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+			self::assertSame( 'ok', $pack['code'] );
+			$snapshot = $this->snapshot();
+			$bundle   = InitialReleaseBundle::bootstrap( $pack['pack'], $this->assessment( $snapshot ), $snapshot, 'https://github.com/owner/example-plugin' );
+			self::assertSame( 'ok', $bundle['code'] );
+			$origin = StarterOrigin::decode( $bundle['bundle']->files()[ InitialReleaseBundle::ORIGIN_PATH ]['content'] );
+			self::assertNotNull( $origin );
+			self::assertSame( StarterOrigin::SHARED_COMMIT, $origin['shared_profile_b']['commit'] );
+		}
+
+		foreach ( array(
+			str_replace( "jobs:\n", "jobs:#not-a-comment\n", $original ),
+			str_replace( "jobs:\n", "jobs: |\n", $original ),
+			str_replace( "  release:\n", "  release:#not-a-comment\n", $original ),
+			str_replace( "  release:\n", "  release: {}\n", $original ),
+		) as $invalid ) {
+			$manifest = TemplatePackApi3Fixture::manifest();
+			foreach ( $manifest['profiles'] as &$profile ) {
+				$profile['entries']['release-workflow']['sha256'] = hash( 'sha256', $invalid );
+				$profile['entries']['release-workflow']['size']   = strlen( $invalid );
+			}
+			unset( $profile );
+			$archive = TemplatePackApi3Fixture::archive( $manifest, array( $path => $invalid ) );
+			$pack    = TemplatePack::from_archive( $archive, TemplatePackApi3Fixture::identity( $archive ) );
+			self::assertSame( 'ok', $pack['code'] );
+			$snapshot = $this->snapshot();
+			self::assertSame( 'invalid_bundle', InitialReleaseBundle::bootstrap( $pack['pack'], $this->assessment( $snapshot ), $snapshot, 'https://github.com/owner/example-plugin' )['code'] );
+		}
+	}
+
 	public function test_block_scalar_pin_decoy_cannot_become_origin_provenance(): void {
 		$path     = 'templates/shared/release-please.yml.tmpl';
 		$original = TemplatePackApi3Fixture::templates()[ $path ];

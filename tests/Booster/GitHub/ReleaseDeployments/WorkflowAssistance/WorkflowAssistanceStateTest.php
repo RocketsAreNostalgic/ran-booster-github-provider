@@ -272,6 +272,30 @@ final class WorkflowAssistanceStateTest extends TestCase {
 		self::assertTrue( $state->remove_ephemeral_state() );
 	}
 
+	public function test_consume_preview_removes_key_from_preview_keys_index_and_deletes_empty_index(): void {
+		$state        = new WorkflowAssistanceState( 'consume_index' );
+		$index_option = 'ran_booster_gh_wf_consume_index_preview_keys';
+		$first_key    = str_repeat( 'a', 32 );
+		$second_key   = str_repeat( 'b', 32 );
+		self::assertTrue( $state->store_preview( $first_key, array( 'id' => 1 ), 900 ) );
+		self::assertTrue( $state->store_preview( $second_key, array( 'id' => 2 ), 900 ) );
+		self::assertSame( array( $first_key, $second_key ), array_keys( $GLOBALS['ran_booster_release_deployments_test_options'][ $index_option ] ) );
+
+		// Failed transient delete keeps the index entry intact for later cleanup.
+		$GLOBALS['ran_booster_github_provider_test_transient_delete_failure'] = $state->preview_prefix() . $first_key;
+		self::assertFalse( $state->consume_preview( $first_key ) );
+		self::assertArrayHasKey( $first_key, $GLOBALS['ran_booster_release_deployments_test_options'][ $index_option ] );
+		unset( $GLOBALS['ran_booster_github_provider_test_transient_delete_failure'] );
+
+		self::assertTrue( $state->consume_preview( $first_key ) );
+		self::assertFalse( $state->read_preview( $first_key ) );
+		self::assertSame( array( $second_key ), array_keys( $GLOBALS['ran_booster_release_deployments_test_options'][ $index_option ] ) );
+
+		self::assertTrue( $state->consume_preview( $second_key ) );
+		self::assertFalse( $state->read_preview( $second_key ) );
+		self::assertArrayNotHasKey( $index_option, $GLOBALS['ran_booster_release_deployments_test_options'] );
+	}
+
 	public function test_expired_preview_index_entries_are_deleted_without_foreign_cleanup(): void {
 		$state = new WorkflowAssistanceState( 'github-example' );
 		$key   = str_repeat( 'a', 32 );
