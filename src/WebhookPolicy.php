@@ -27,8 +27,10 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 	public function normalize_webhook( array $metadata, #[\SensitiveParameter] mixed $secret ): array {
 		$label        = $this->required_string( $metadata['label'] ?? null, 'Webhook secret label' );
 		$scope        = $this->required_string( $metadata['scope'] ?? null, 'Webhook secret scope' );
-		$target       = isset( $metadata['target'] ) && is_string( $metadata['target'] )
-			? trim( $metadata['target'], " \t\n\r\0\x0B/" )
+		$raw_target   = $metadata['target'] ?? null;
+		$has_control  = is_string( $raw_target ) && 1 === preg_match( '/[\x00-\x1F\x7F]/', $raw_target );
+		$target       = is_string( $raw_target ) && ! $has_control
+			? trim( $raw_target, ' /' )
 			: '';
 		$secret       = $this->required_secret( $secret );
 		$authority_id = isset( $metadata['authority_id'] ) && is_string( $metadata['authority_id'] )
@@ -127,7 +129,7 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 	}
 
 	private function is_owner( string $owner ): bool {
-		return 1 === preg_match( '/^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?$/', $owner );
+		return 1 === preg_match( '/\A[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?\z/D', $owner );
 	}
 
 	private function is_repository( string $repository ): bool {
@@ -137,6 +139,9 @@ final readonly class WebhookPolicy implements ProviderWebhookPolicy {
 
 		list($owner, $name) = explode( '/', $repository, 2 );
 
-		return $this->is_owner( $owner ) && 1 === preg_match( '/^[A-Za-z0-9_.-]{1,100}$/', $name );
+		return $this->is_owner( $owner )
+			&& '.' !== $name
+			&& '..' !== $name
+			&& 1 === preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $name );
 	}
 }

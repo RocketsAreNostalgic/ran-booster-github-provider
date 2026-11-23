@@ -19,7 +19,7 @@ final class GitHubRepositoryClient {
 	private Closure $send;
 	public function __construct( ?callable $send = null, private ?Closure $assert_operation = null ) {
 		$this->send = null === $send
-			? static fn ( string $method, string $url, array $args ): mixed => wp_safe_remote_request(
+			? static fn ( string $method, string $url, #[\SensitiveParameter] array $args ): mixed => wp_safe_remote_request(
 				$url,
 				array_merge( $args, array( 'method' => $method ) )
 			)
@@ -547,7 +547,7 @@ final class GitHubRepositoryClient {
 	private function valid_sha( mixed $value ): bool {
 		return is_string( $value ) && 1 === preg_match( '/\A[a-f0-9]{40}\z/D', $value );
 	}
-	private function valid_token( string $value ): bool {
+	private function valid_token( #[\SensitiveParameter] string $value ): bool {
 		return strlen( $value ) <= 255 && 0 === preg_match( '/[\x00-\x20\x7F]/', $value );
 	}
 	private function numeric_string( mixed $value ): ?string {

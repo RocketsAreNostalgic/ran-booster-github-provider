@@ -387,7 +387,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			$historical_verifier();
 			$ref = $selected;
 		} elseif ( null !== $expected_branch ) {
-			if ( 1 !== preg_match( '/^[0-9a-f]{40}$/i', $ref ) ) {
+			if ( 1 !== preg_match( '/\A[0-9a-f]{40}\z/iD', $ref ) ) {
 				throw new RuntimeException( 'The GitHub deployment event does not contain a valid commit.', 400 );
 			}
 			$ref  = strtolower( $ref );
@@ -464,7 +464,7 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 	}
 
 	public function expected_update_uri( RepositoryReference $repository ): string {
-		if ( 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}\z/D', $repository->locator ) ) {
+		if ( ! $this->is_valid_repository_locator( $repository->locator ) ) {
 			return '';
 		}
 
@@ -859,12 +859,23 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 		}
 	}
 
-	private function encode_repository_name( string $full_name ): string {
-		$parts = explode( '/', $full_name );
+	private function is_valid_repository_locator( string $locator ): bool {
+		$parts = explode( '/', $locator );
 
-		if ( 2 !== count( $parts ) || '' === $parts[0] || '' === $parts[1] ) {
+		return 2 === count( $parts )
+			&& 1 === preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] )
+			&& 1 === preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] )
+			&& '.' !== $parts[0]
+			&& '..' !== $parts[0]
+			&& '.' !== $parts[1]
+			&& '..' !== $parts[1];
+	}
+
+	private function encode_repository_name( string $full_name ): string {
+		if ( ! $this->is_valid_repository_locator( $full_name ) ) {
 			throw new RuntimeException( 'GitHub repository names must use the owner/repository form.' );
 		}
+		$parts = explode( '/', $full_name );
 
 		return rawurlencode( $parts[0] ) . '/' . rawurlencode( $parts[1] );
 	}
@@ -888,17 +899,22 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			throw new RuntimeException( 'RAN_BOOSTER_GITHUB_TOKEN or the Booster secrets file is not configured.' );
 		}
 
-		$authorization = 'Bearer ' . trim( $token );
-		$resolved_id   = $credential['id'] ?? null;
-		if ( null !== $this->assert_operation && ( ! is_string( $resolved_id ) || '' === $resolved_id ) ) {
-			throw new RuntimeException( 'The selected GitHub credential identity is unavailable.' );
+		$resolved_id = $credential['id'] ?? null;
+		if ( null !== $this->assert_operation ) {
+			if ( ! is_string( $resolved_id ) || '' === $resolved_id ) {
+				throw new RuntimeException( 'The selected GitHub credential identity is unavailable.' );
+			}
+
+			return function ( array $arguments ) use ( $resolved_id ): array {
+				$this->assert_operation?->__invoke();
+				$arguments['headers']['Authorization'] = 'Bearer ' . $this->credential( $resolved_id );
+
+				return $arguments;
+			};
 		}
 
-		return function ( array $arguments ) use ( $authorization, $resolved_id ): array {
-			$this->assert_operation?->__invoke();
-			if ( null !== $this->assert_operation ) {
-				$authorization = 'Bearer ' . $this->credential( is_string( $resolved_id ) ? $resolved_id : null );
-			}
+		$authorization = 'Bearer ' . trim( $token );
+		return static function ( array $arguments ) use ( $authorization ): array {
 			$arguments['headers']['Authorization'] = $authorization;
 
 			return $arguments;

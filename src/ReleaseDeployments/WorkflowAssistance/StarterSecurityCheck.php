@@ -13,7 +13,7 @@ final class StarterSecurityCheck {
 
 	public function __construct( ?callable $send = null ) {
 		$this->send = null === $send
-			? static fn ( string $url, array $args ): mixed => wp_safe_remote_get( $url, $args )
+			? static fn ( string $url, #[\SensitiveParameter] array $args ): mixed => wp_safe_remote_get( $url, $args )
 			: Closure::fromCallable( $send );
 	}
 

@@ -213,7 +213,7 @@ class RepositoryBrowser {
 		}
 
 		$sha = trim( wp_remote_retrieve_body( $response ) );
-		if ( 1 !== preg_match( '/^[0-9a-f]{40}$/i', $sha ) ) {
+		if ( 1 !== preg_match( '/\A[0-9a-f]{40}\z/iD', $sha ) ) {
 			$this->fail_request( 'response_invalid', 'GitHub returned an invalid revision-resolution response.', 502 );
 		}
 
@@ -307,7 +307,7 @@ class RepositoryBrowser {
 			|| ! is_string( $data['name'] ?? null )
 			|| ! hash_equals( $branch, $data['name'] )
 			|| ! is_string( $sha )
-			|| 1 !== preg_match( '/^[0-9a-f]{40}$/i', $sha )
+			|| 1 !== preg_match( '/\A[0-9a-f]{40}\z/iD', $sha )
 		) {
 			$this->fail_request( 'response_invalid', 'GitHub returned an invalid branch-resolution response.', 502 );
 		}
@@ -324,7 +324,7 @@ class RepositoryBrowser {
 			// Chained for developers and never rendered.
 			throw new RuntimeException( 'The GitHub repository path check is invalid.', 400, $exception );
 		}
-		if ( 1 !== preg_match( '/^[0-9a-f]{40}$/i', $ref ) ) {
+		if ( 1 !== preg_match( '/\A[0-9a-f]{40}\z/iD', $ref ) ) {
 			throw new RuntimeException( 'The GitHub repository path check is invalid.', 400 );
 		}
 
@@ -752,7 +752,7 @@ class RepositoryBrowser {
 				&& $ref !== $branches[0]->name
 				&& ( $branches[0]->commit ?? null ) instanceof \stdClass
 				&& is_string( $branches[0]->commit->sha ?? null )
-				&& 1 === preg_match( '/^[0-9a-f]{40}$/i', $branches[0]->commit->sha ) ) );
+				&& 1 === preg_match( '/\A[0-9a-f]{40}\z/iD', $branches[0]->commit->sha ) ) );
 	}
 
 	/** Throw the optional request carrier while preserving an older host's exception. */
@@ -866,7 +866,7 @@ class RepositoryBrowser {
 	}
 
 	/** @param array<string,mixed> $arguments */
-	private function guarded_get( string $url, array $arguments ): mixed {
+	private function guarded_get( string $url, #[\SensitiveParameter] array $arguments ): mixed {
 		$this->assert_operation?->__invoke();
 		$response = wp_remote_get( $url, $arguments );
 		$this->assert_operation?->__invoke();

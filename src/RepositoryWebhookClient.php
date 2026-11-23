@@ -230,7 +230,7 @@ final class RepositoryWebhookClient {
 	 * @return array{status:int,body:string,response:mixed}
 	 * @param array<string,mixed>|null $body
 	 */
-	private function request( string $method, string $path, #[\SensitiveParameter] string $token, ?array $body, int $limit, float $deadline ): array {
+	private function request( string $method, string $path, #[\SensitiveParameter] string $token, #[\SensitiveParameter] ?array $body, int $limit, float $deadline ): array {
 		$remaining = $deadline - microtime( true );
 		if ( $remaining <= 0 ) {
 			return array(
@@ -283,8 +283,18 @@ final class RepositoryWebhookClient {
 		return $this->hooks_path( $repository ) . '/' . rawurlencode( $hook_id );
 	}
 	private function repository_path( string $repository ): string {
-		$parts = explode( '/', trim( $repository ) );
-		if ( 2 !== count( $parts ) || 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] ) || 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] ) ) {
+		if ( 1 === preg_match( '/[\x00-\x1F\x7F]/', $repository ) ) {
+			throw new RuntimeException( 'The GitHub repository identity is invalid.', 400 );
+		}
+		$parts = explode( '/', trim( $repository, ' ' ) );
+		if ( 2 !== count( $parts )
+			|| 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] )
+			|| 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] )
+			|| '.' === $parts[0]
+			|| '..' === $parts[0]
+			|| '.' === $parts[1]
+			|| '..' === $parts[1]
+		) {
 			throw new RuntimeException( 'The GitHub repository identity is invalid.', 400 );
 		}
 		return '/repos/' . rawurlencode( $parts[0] ) . '/' . rawurlencode( $parts[1] );
