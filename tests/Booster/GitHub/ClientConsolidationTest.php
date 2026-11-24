@@ -17,6 +17,7 @@ use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\StarterOr
 use RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance\TemplatePack;
 use RAN\BoosterGitHubProvider\V1\RepositoryBrowser;
 use RAN\BoosterGitHubProvider\V1\RepositoryWebhookClient;
+use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\ReleaseDeployments\WorkflowAssistance\Support\TemplatePackApi3Fixture;
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\RepositoryResolverSecretsStub;
 use RAN\BoosterGitHubProvider\V1\WebhookPolicy;
@@ -148,6 +149,48 @@ final class ClientConsolidationTest extends TestCase {
 			array( 'objects.githubusercontent.com' )
 		);
 		self::assertTrue( $blocked['redirect_rejected'] );
+
+		$exhausted_hops = 0;
+		$exhausted      = GitHubHttpClient::send(
+			'GET',
+			'https://api.github.com/repos/owner/example/releases/assets/1',
+			$args,
+			static function ( string $method, string $url, #[\SensitiveParameter] array $request_args ) use ( &$exhausted_hops ): array {
+				unset( $method, $url, $request_args );
+				++$exhausted_hops;
+				return array(
+					'response' => array( 'code' => 302 ),
+					'headers'  => array( 'Location' => 'https://objects.githubusercontent.com/releases/hop-' . $exhausted_hops . '.zip' ),
+					'body'     => '',
+				);
+			},
+			null,
+			2,
+			array( 'objects.githubusercontent.com' )
+		);
+		self::assertSame( 3, $exhausted_hops );
+		self::assertSame( 302, $exhausted['status'] );
+		self::assertTrue( $exhausted['redirect_rejected'] );
+		self::assertFalse( $exhausted['has_authorization'] );
+
+		$no_redirects = GitHubHttpClient::send(
+			'GET',
+			'https://api.github.com/repos/owner/example/releases/assets/1',
+			$args,
+			static function ( string $method, string $url, #[\SensitiveParameter] array $request_args ): array {
+				unset( $method, $url, $request_args );
+				return array(
+					'response' => array( 'code' => 302 ),
+					'headers'  => array( 'Location' => 'https://objects.githubusercontent.com/releases/pack.zip' ),
+					'body'     => '',
+				);
+			},
+			null,
+			0,
+			array()
+		);
+		self::assertSame( 302, $no_redirects['status'] );
+		self::assertFalse( $no_redirects['redirect_rejected'] );
 	}
 
 	public function test_canonical_repository_identity_validator_is_shared_across_layers(): void {
@@ -306,6 +349,63 @@ final class ClientConsolidationTest extends TestCase {
 		self::assertTrue( StarterOrigin::has_unique_object_keys( '{"a":1,"b":{"c":"x:y"}}' ) );
 		self::assertFalse( StarterOrigin::has_unique_object_keys( '{"a":1,"a":2}' ) );
 		self::assertFalse( StarterOrigin::has_unique_object_keys( '{"a":1,"\u0061":2}' ) );
+		self::assertTrue( StarterOrigin::has_unique_object_keys( '{"0":1,"00":2,"1":3}' ) );
+		self::assertFalse( StarterOrigin::has_unique_object_keys( '{"0":1,"\u0030":2}' ) );
+
+		$padded_16k           = str_repeat( 'x', 16384 );
+		$padded_duplicate     = '{"pad":"' . $padded_16k . '","k":1,"k":2}';
+		$padded_unique_60k    = '{"pad":"' . str_repeat( 'y', 61440 ) . '","k":1,"m":2}';
+		$escaped_quotes_large = '{"esc":"' . str_repeat( '\\"', 16384 ) . '","k":1}';
+		$escaped_quotes_dup   = '{"esc":"' . str_repeat( '\\"', 16384 ) . '","k":1,"k":2}';
+		self::assertFalse( StarterOrigin::has_unique_object_keys( $padded_duplicate ) );
+		self::assertNull( StarterOrigin::json( $padded_duplicate, 65536 ) );
+		self::assertTrue( StarterOrigin::has_unique_object_keys( $padded_unique_60k ) );
+		self::assertSame( 1, StarterOrigin::json( $padded_unique_60k, 65536 )['k'] ?? null );
+		self::assertTrue( StarterOrigin::has_unique_object_keys( $escaped_quotes_large ) );
+		self::assertSame( 1, StarterOrigin::json( $escaped_quotes_large, 65536 )['k'] ?? null );
+		self::assertFalse( StarterOrigin::has_unique_object_keys( $escaped_quotes_dup ) );
+		self::assertNull( StarterOrigin::json( $escaped_quotes_dup, 65536 ) );
+
+		foreach (
+			array(
+				'{"\uZZZZ":1}',
+				'{"a":1',
+				'{"a":1}{"a":1}',
+				'{"]:1,"a":1,"a":2}',
+				'{\"]:1,"a":1,"a":2}',
+				'not-json',
+				"{\"a\":1}\0",
+			) as $malformed
+		) {
+			self::assertFalse( StarterOrigin::has_unique_object_keys( $malformed ), $malformed );
+		}
+
+		// End-to-end TemplatePack::decode_manifest() regression: a >= 16 KB string value before a shadowed duplicate key must fail closed.
+		$incompressible_16k = '';
+		for ( $block = 0; $block < 256; ++$block ) {
+			$incompressible_16k .= hash( 'sha256', 'manifest-pad-' . $block );
+		}
+		self::assertSame( 16384, strlen( $incompressible_16k ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Exact manifest fixture encoding.
+		$valid_manifest_json = (string) json_encode( TemplatePackApi3Fixture::manifest(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR );
+		$shadowed_manifest   = str_replace(
+			'"pack_version":"1.2.3"',
+			'"pack_version":"' . $incompressible_16k . '","pack_version":"1.2.3"',
+			$valid_manifest_json
+		);
+		self::assertNotSame( $valid_manifest_json, $shadowed_manifest );
+
+		$valid_archive = TemplatePackApi3Fixture::archive(
+			null,
+			array( TemplatePack::MANIFEST_PATH => $valid_manifest_json )
+		);
+		self::assertSame( 'ok', TemplatePack::from_archive( $valid_archive, TemplatePackApi3Fixture::identity( $valid_archive ) )['code'] );
+
+		$shadowed_archive = TemplatePackApi3Fixture::archive(
+			null,
+			array( TemplatePack::MANIFEST_PATH => $shadowed_manifest )
+		);
+		self::assertSame( 'template_pack_invalid', TemplatePack::from_archive( $shadowed_archive, TemplatePackApi3Fixture::identity( $shadowed_archive ) )['code'] );
 
 		$archive  = 'archive-fixture-bytes';
 		$sha256   = hash( 'sha256', $archive );

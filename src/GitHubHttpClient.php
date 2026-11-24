@@ -158,7 +158,7 @@ final class GitHubHttpClient {
 				'status'            => $status,
 				'body'              => self::response_body( $response ),
 				'has_authorization' => $has_authorization,
-				'redirect_rejected' => false,
+				'redirect_rejected' => $max_redirects > 0 && self::is_redirect_status( $status ),
 				'wp_error'          => false,
 			);
 		}

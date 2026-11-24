@@ -125,7 +125,7 @@ final class StarterOrigin {
 		}
 		try {
 			$data = json_decode( $bytes, true, $depth, JSON_THROW_ON_ERROR | $flags );
-			if ( ! is_array( $data ) || ! self::has_unique_object_keys( $bytes ) ) {
+			if ( ! is_array( $data ) || ! self::has_unique_object_keys_after_decode( $bytes ) ) {
 				return null;
 			}
 			return $data;
@@ -134,9 +134,25 @@ final class StarterOrigin {
 		}
 	}
 
-	/** Reject duplicate JSON keys, including equivalent escaped spellings, after syntax validation. */
+	/** Reject duplicate JSON keys, including equivalent escaped spellings, failing closed on malformed JSON. */
 	public static function has_unique_object_keys( string $bytes ): bool {
-		preg_match_all( '/"(?:[^"\\\\]|\\\\.)*"|[{}\[\]:]/s', $bytes, $matches );
+		if ( str_contains( $bytes, "\0" ) ) {
+			return false;
+		}
+		try {
+			json_decode( $bytes, true, 512, JSON_THROW_ON_ERROR );
+		} catch ( Throwable ) {
+			return false;
+		}
+
+		return self::has_unique_object_keys_after_decode( $bytes );
+	}
+
+	/** Reject duplicate JSON keys after syntax validation without re-decoding the full document. */
+	private static function has_unique_object_keys_after_decode( string $bytes ): bool {
+		if ( false === preg_match_all( '/"(?:[^"\\\\]++|\\\\.)*+"|[{}\[\]:]/s', $bytes, $matches ) ) {
+			return false;
+		}
 		$stack  = array();
 		$tokens = $matches[0];
 		foreach ( $tokens as $index => $token ) {
@@ -145,12 +161,20 @@ final class StarterOrigin {
 			} elseif ( '}' === $token || ']' === $token ) {
 				array_pop( $stack );
 			} elseif ( str_starts_with( $token, '"' ) && ':' === ( $tokens[ $index + 1 ] ?? '' ) ) {
-				$key   = json_decode( $token, true, 2, JSON_THROW_ON_ERROR );
-				$level = count( $stack ) - 1;
-				if ( $level < 0 || isset( $stack[ $level ][ $key ] ) ) {
+				try {
+					$key = json_decode( $token, true, 2, JSON_THROW_ON_ERROR );
+				} catch ( Throwable ) {
 					return false;
 				}
-				$stack[ $level ][ $key ] = true;
+				if ( ! is_string( $key ) ) {
+					return false;
+				}
+				$level    = count( $stack ) - 1;
+				$seen_key = "\0" . $key;
+				if ( $level < 0 || isset( $stack[ $level ][ $seen_key ] ) ) {
+					return false;
+				}
+				$stack[ $level ][ $seen_key ] = true;
 			}
 		}
 
