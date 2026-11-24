@@ -70,15 +70,7 @@ class RepositoryBrowser {
 			$headers['Authorization'] = 'Bearer ' . $token;
 		}
 
-		$arguments = array(
-			'timeout'            => $timeout,
-			'redirection'        => 0,
-			'reject_unsafe_urls' => true,
-			'headers'            => $headers,
-		);
-		if ( null !== $response_size ) {
-			$arguments['limit_response_size'] = $response_size;
-		}
+		$arguments = GitHubHttpClient::build_request_args( $timeout, $headers, $response_size );
 
 		$response = $this->guarded_get(
 			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ),
@@ -86,28 +78,29 @@ class RepositoryBrowser {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached. Please try again.', 502, source_code: $this->http_source_code( $response ) );
+			$this->fail_request( GitHubHttpClient::transport_reason( $response ), 'GitHub could not be reached. Please try again.', 502, source_code: GitHubHttpClient::http_source_code( $response ) );
 		}
 
-		$status = (int) wp_remote_retrieve_response_code( $response );
-		if ( 401 === $status ) {
+		$status         = (int) wp_remote_retrieve_response_code( $response );
+		$classification = GitHubHttpClient::classify_status( $status, $response );
+		if ( 'credential_rejected' === $classification ) {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential.', 401, $status );
 		}
 
-		if ( self::is_rate_limited_response( $response, $status ) ) {
+		if ( 'rate_limited' === $classification ) {
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
 
-		if ( 403 === $status ) {
+		if ( 'permission_denied' === $classification ) {
 			$this->fail_request( 'permission_denied', 'GitHub denied the repository request. Check repository access.', 403, $status );
 		}
 
-		if ( 404 === $status ) {
+		if ( 'not_found' === $classification ) {
 			$this->fail_request( 'repository_not_found_or_no_access', 'GitHub could not find that repository, or the selected credential cannot access it.', 404, $status );
 		}
 
-		if ( $status < 200 || $status >= 300 ) {
-			$this->fail_request( $this->http_failure_reason( $status ), 'GitHub could not resolve that repository. Please try again.', 502, $status >= 400 && $status <= 599 ? $status : null );
+		if ( 'ok' !== $classification ) {
+			$this->fail_request( GitHubHttpClient::http_failure_reason( $status ), 'GitHub could not resolve that repository. Please try again.', 502, $status >= 400 && $status <= 599 ? $status : null );
 		}
 
 		$item       = json_decode( wp_remote_retrieve_body( $response ), true, 512, JSON_BIGINT_AS_STRING );
@@ -173,46 +166,41 @@ class RepositoryBrowser {
 				. $this->encode_repository_name( $full_name )
 				. '/commits/'
 				. rawurlencode( $ref ),
-			array(
-				'timeout'             => 15,
-				'redirection'         => 0,
-				'limit_response_size' => 128,
-				'reject_unsafe_urls'  => true,
-				'headers'             => $headers,
-			)
+			GitHubHttpClient::build_request_args( 15, $headers, 128 )
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached to resolve the repository revision.', 502, source_code: $this->http_source_code( $response ) );
+			$this->fail_request( GitHubHttpClient::transport_reason( $response ), 'GitHub could not be reached to resolve the repository revision.', 502, source_code: GitHubHttpClient::http_source_code( $response ) );
 		}
 
-		$status = (int) wp_remote_retrieve_response_code( $response );
-		if ( 400 === $status ) {
+		$status         = (int) wp_remote_retrieve_response_code( $response );
+		$classification = GitHubHttpClient::classify_status( $status, $response );
+		if ( 'bad_request' === $classification ) {
 			$this->fail_request( 'http_4xx_other', 'GitHub rejected the repository revision.', 400, $status );
 		}
-		if ( 401 === $status ) {
+		if ( 'credential_rejected' === $classification ) {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential while resolving the repository revision.', 401, $status );
 		}
-		if ( self::is_rate_limited_response( $response, $status ) ) {
+		if ( 'rate_limited' === $classification ) {
 			// The retry type stores only a normalized integer delay and fixed message.
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
-		if ( 403 === $status ) {
+		if ( 'permission_denied' === $classification ) {
 			$this->fail_request( 'permission_denied', 'GitHub denied access while resolving the repository revision.', 403, $status );
 		}
-		if ( 404 === $status ) {
-			$reason = class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class )
+		if ( 'not_found' === $classification ) {
+			$reason = CoreContractBridge::supports_failure_carrier()
 				&& $this->repository_contents_readable( $full_name, $ref, $probe_headers ) ? 'ref_not_found' : 'repository_not_found_or_no_access';
 			$this->fail_request( $reason, 'GitHub could not find that repository revision, or the selected credential cannot access it.', 404, $status );
 		}
-		if ( 410 === $status ) {
+		if ( 'gone' === $classification ) {
 			$this->fail_request( 'ref_not_found', 'The requested GitHub repository revision is no longer available.', 410, $status );
 		}
-		if ( 422 === $status ) {
+		if ( 'unprocessable' === $classification ) {
 			$this->fail_request( 'ref_not_found', 'GitHub could not find that repository revision.', 404, $status );
 		}
-		if ( $status < 200 || $status >= 300 ) {
-			$this->fail_request( $this->http_failure_reason( $status ), 'GitHub could not resolve the repository revision.', 502, $status >= 400 && $status <= 599 ? $status : null );
+		if ( 'ok' !== $classification ) {
+			$this->fail_request( GitHubHttpClient::http_failure_reason( $status ), 'GitHub could not resolve the repository revision.', 502, $status >= 400 && $status <= 599 ? $status : null );
 		}
 
 		$sha = trim( wp_remote_retrieve_body( $response ) );
@@ -243,62 +231,61 @@ class RepositoryBrowser {
 				. $this->encode_repository_name( $full_name )
 				. '/branches/'
 				. rawurlencode( $branch ),
-			array(
-				'timeout'             => 15,
-				'redirection'         => 0,
-				'limit_response_size' => 65536,
-				'reject_unsafe_urls'  => true,
-				'headers'             => $headers,
-			)
+			GitHubHttpClient::build_request_args( 15, $headers, 65536 )
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached to resolve the repository branch.', 502, source_code: $this->http_source_code( $response ) );
+			$this->fail_request( GitHubHttpClient::transport_reason( $response ), 'GitHub could not be reached to resolve the repository branch.', 502, source_code: GitHubHttpClient::http_source_code( $response ) );
 		}
 
-		$status = (int) wp_remote_retrieve_response_code( $response );
-		if ( 400 === $status ) {
+		$status         = (int) wp_remote_retrieve_response_code( $response );
+		$classification = GitHubHttpClient::classify_status( $status, $response );
+		if ( 'bad_request' === $classification ) {
 			$this->fail_request( 'http_4xx_other', 'GitHub rejected the repository branch.', 400, $status );
 		}
 
-		if ( 401 === $status ) {
+		if ( 'credential_rejected' === $classification ) {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential while resolving the repository branch.', 401, $status );
 		}
 
-		if ( self::is_rate_limited_response( $response, $status ) ) {
+		if ( 'rate_limited' === $classification ) {
 			// The retry type stores only a normalized integer delay and fixed message.
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
 
-		if ( 403 === $status ) {
+		if ( 'permission_denied' === $classification ) {
 			$this->fail_request( 'permission_denied', 'GitHub denied access while resolving the repository branch.', 403, $status );
 		}
 
-		if ( 404 === $status ) {
-			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
+		if ( 'not_found' === $classification ) {
+			if ( CoreContractBridge::supports_failure_carrier() ) {
 				$readable = $this->repository_contents_readable( $full_name, $branch, $headers );
-				throw new \RAN\RepositoryProvider\ProviderRequestFailed(
-					new \RAN\RepositoryProvider\ProviderFailure( $readable ? 'ref_not_found' : 'repository_not_found_or_no_access', 404 )
-				);
+				$failure  = CoreContractBridge::request_failed( $readable ? 'ref_not_found' : 'repository_not_found_or_no_access', 404 );
+				if ( null !== $failure ) {
+					throw $failure;
+				}
 			}
 			throw new RuntimeException( 'GitHub could not find that repository branch, or the selected credential cannot access it.', 404 );
 		}
 
-		if ( 410 === $status ) {
-			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
-				throw new \RAN\RepositoryProvider\ProviderRequestFailed( new \RAN\RepositoryProvider\ProviderFailure( 'ref_not_found', 410 ) );
+		if ( 'gone' === $classification ) {
+			$failure = CoreContractBridge::request_failed( 'ref_not_found', 410 );
+			if ( null !== $failure ) {
+				throw $failure;
 			}
 			throw new RuntimeException( 'The requested GitHub repository branch is no longer available.', 410 );
 		}
 
-		if ( in_array( $status, array( 301, 302, 303, 307, 308 ), true )
-			&& class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
+		if ( 'redirect_blocked' === $classification ) {
 			// A redirect is refused, not evidence of a branch rename or its destination.
-			throw new \RAN\RepositoryProvider\ProviderRequestFailed( new \RAN\RepositoryProvider\ProviderFailure( 'redirect_blocked' ) );
+			$failure = CoreContractBridge::request_failed( 'redirect_blocked' );
+			if ( null !== $failure ) {
+				throw $failure;
+			}
 		}
 
-		if ( $status < 200 || $status >= 300 ) {
-			$this->fail_request( $this->http_failure_reason( $status ), 'GitHub could not resolve the repository branch.', 502, $status >= 400 && $status <= 599 ? $status : null );
+		if ( 'ok' !== $classification ) {
+			$this->fail_request( GitHubHttpClient::http_failure_reason( $status ), 'GitHub could not resolve the repository branch.', 502, $status >= 400 && $status <= 599 ? $status : null );
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
@@ -334,19 +321,14 @@ class RepositoryBrowser {
 		$headers  = $this->authenticated_request_headers( $credential_id, $is_private );
 		$response = $this->guarded_get(
 			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ) . '/contents/' . implode( '/', array_map( 'rawurlencode', explode( '/', $path ) ) ) . '?ref=' . rawurlencode( strtolower( $ref ) ),
-			array(
-				'timeout'             => 15,
-				'redirection'         => 0,
-				'limit_response_size' => 1024,
-				'reject_unsafe_urls'  => true,
-				'headers'             => $headers,
-			)
+			GitHubHttpClient::build_request_args( 15, $headers, 1024 )
 		);
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached to check the repository path.', 502, source_code: $this->http_source_code( $response ) );
+			$this->fail_request( GitHubHttpClient::transport_reason( $response ), 'GitHub could not be reached to check the repository path.', 502, source_code: GitHubHttpClient::http_source_code( $response ) );
 		}
-		$status = (int) wp_remote_retrieve_response_code( $response );
-		if ( 404 === $status ) {
+		$status         = (int) wp_remote_retrieve_response_code( $response );
+		$classification = GitHubHttpClient::classify_status( $status, $response );
+		if ( 'not_found' === $classification ) {
 			// A credentialed 404 also means the credential cannot read the repository, so absence needs proof of access.
 			if ( ! $is_private && null === $credential_id ) {
 				return false;
@@ -356,17 +338,17 @@ class RepositoryBrowser {
 			}
 			$this->fail_request( 'repository_not_found_or_no_access', 'GitHub could not find the repository path, or the selected credential cannot access it.', 404, $status );
 		}
-		if ( 401 === $status ) {
+		if ( 'credential_rejected' === $classification ) {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential while checking the repository path.', 401, $status );
 		}
-		if ( self::is_rate_limited_response( $response, $status ) ) {
+		if ( 'rate_limited' === $classification ) {
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
-		if ( 403 === $status ) {
+		if ( 'permission_denied' === $classification ) {
 			$this->fail_request( 'permission_denied', 'GitHub denied access while checking the repository path.', 403, $status );
 		}
-		if ( $status < 200 || $status >= 300 ) {
-			$this->fail_request( $this->http_failure_reason( $status ), 'GitHub could not check the repository path.', 502, $status >= 400 && $status <= 599 ? $status : null );
+		if ( 'ok' !== $classification ) {
+			$this->fail_request( GitHubHttpClient::http_failure_reason( $status ), 'GitHub could not check the repository path.', 502, $status >= 400 && $status <= 599 ? $status : null );
 		}
 
 		// GitHub returns a JSON list for a directory and an object for a file,
@@ -402,39 +384,38 @@ class RepositoryBrowser {
 
 		$response = $this->guarded_get(
 			self::PUBLIC_API_BASE . '/user',
-			array(
-				'timeout'             => $timeout,
-				'redirection'         => 0,
-				'limit_response_size' => 65536,
-				'reject_unsafe_urls'  => true,
-				'headers'             => array_merge(
+			GitHubHttpClient::build_request_args(
+				$timeout,
+				array_merge(
 					$this->request_headers(),
 					array( 'Authorization' => 'Bearer ' . $token )
 				),
+				65536
 			)
 		);
 
 		if ( is_wp_error( $response ) ) {
-			return $this->validation_failure( 'unavailable', $this->transport_reason( $response ), source_code: $this->http_source_code( $response ) );
+			return $this->validation_failure( 'unavailable', GitHubHttpClient::transport_reason( $response ), source_code: GitHubHttpClient::http_source_code( $response ) );
 		}
 
-		$status = (int) wp_remote_retrieve_response_code( $response );
-		if ( 401 === $status ) {
+		$status         = (int) wp_remote_retrieve_response_code( $response );
+		$classification = GitHubHttpClient::classify_status( $status, $response );
+		if ( 'credential_rejected' === $classification ) {
 			$expires_at = $this->credential_expiry_report( $response )->expires_at;
 			$expired    = null !== $expires_at && new DateTimeImmutable( $expires_at ) <= new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 			return $this->validation_failure( 'invalid', $expired ? 'credential_expired' : 'credential_rejected', 401, null, $expired ? $expires_at : null );
 		}
 
-		if ( self::is_rate_limited_response( $response, $status ) ) {
+		if ( 'rate_limited' === $classification ) {
 			return $this->validation_failure( 'rate_limited', 'rate_limited', $status, $response );
 		}
 
-		if ( 403 === $status ) {
+		if ( 'permission_denied' === $classification ) {
 			return $this->validation_failure( 'invalid', 'permission_denied', 403 );
 		}
 
-		if ( $status < 200 || $status >= 300 ) {
-			return $this->validation_failure( 'unavailable', $this->http_failure_reason( $status ), $status >= 400 && $status <= 599 ? $status : null );
+		if ( 'ok' !== $classification ) {
+			return $this->validation_failure( 'unavailable', GitHubHttpClient::http_failure_reason( $status ), $status >= 400 && $status <= 599 ? $status : null );
 		}
 
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
@@ -516,7 +497,7 @@ class RepositoryBrowser {
 
 	private function browse_public( RepositoryBrowseRequest $request ): RepositoryBrowseResult {
 		$owner = trim( (string) $request->get_owner() );
-		if ( ! preg_match( '/\A(?=.{1,39}\z)(?!-)(?!.*--)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\z/', $owner ) ) {
+		if ( ! GitHubRepositoryIdentity::is_valid_owner( $owner ) ) {
 			throw new RuntimeException( 'Enter a valid GitHub user or organisation name.', 400 );
 		}
 
@@ -617,17 +598,15 @@ class RepositoryBrowser {
 	private function browse_request( string $url, #[\SensitiveParameter] array $headers, RepositoryBrowseRequest $request, bool $expect_list = false ): array {
 		$response = $this->guarded_get(
 			$url,
-			array(
-				'timeout'             => $request->claim_remote_call(),
-				'redirection'         => 0,
-				'limit_response_size' => $request->get_response_size_limit(),
-				'reject_unsafe_urls'  => true,
-				'headers'             => $headers,
+			GitHubHttpClient::build_request_args(
+				$request->claim_remote_call(),
+				$headers,
+				$request->get_response_size_limit()
 			)
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->fail_request( $this->transport_reason( $response ), 'GitHub could not be reached. Please try again.', 504, source_code: $this->http_source_code( $response ) );
+			$this->fail_request( GitHubHttpClient::transport_reason( $response ), 'GitHub could not be reached. Please try again.', 504, source_code: GitHubHttpClient::http_source_code( $response ) );
 		}
 
 		$body   = wp_remote_retrieve_body( $response );
@@ -635,26 +614,27 @@ class RepositoryBrowser {
 		try {
 			$request->accept_response_body( $body );
 		} catch ( RuntimeException $exception ) {
-			if ( 413 === $exception->getCode() && class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
+			if ( 413 === $exception->getCode() && CoreContractBridge::supports_failure_carrier() ) {
 				$this->fail_request( 'response_too_large', 'GitHub repository response exceeded the safe size limit.', 413 );
 			}
 			throw $exception;
 		}
 
-		if ( 401 === $status ) {
+		$classification = GitHubHttpClient::classify_status( $status, $response );
+		if ( 'credential_rejected' === $classification ) {
 			$this->fail_request( 'credential_rejected', 'GitHub rejected the selected credential.', 401, $status );
 		}
-		if ( self::is_rate_limited_response( $response, $status ) ) {
+		if ( 'rate_limited' === $classification ) {
 			$this->fail_request( 'rate_limited', 'GitHub API rate limit has been reached. Try again later.', 429, $status, $response );
 		}
-		if ( 403 === $status ) {
+		if ( 'permission_denied' === $classification ) {
 			$this->fail_request( 'permission_denied', 'GitHub denied repository access. Check credential permissions.', 403, $status );
 		}
-		if ( 404 === $status ) {
+		if ( 'not_found' === $classification ) {
 			$this->fail_request( 'repository_not_found_or_no_access', 'GitHub could not find that user or organisation.', 404, $status );
 		}
-		if ( $status < 200 || $status >= 300 ) {
-			$this->fail_request( $this->http_failure_reason( $status ), 'GitHub could not list repositories. Please try again.', 502, $status >= 400 && $status <= 599 ? $status : null );
+		if ( 'ok' !== $classification ) {
+			$this->fail_request( GitHubHttpClient::http_failure_reason( $status ), 'GitHub could not list repositories. Please try again.', 502, $status >= 400 && $status <= 599 ? $status : null );
 		}
 
 		$data = json_decode( $body, true, 512, JSON_BIGINT_AS_STRING );
@@ -700,30 +680,13 @@ class RepositoryBrowser {
 		return new RepositoryBrowseResult( $repositories, $reason );
 	}
 
-	private function rate_limit_integer( mixed $value, int $maximum ): ?int {
-		if ( ! is_string( $value ) || ! preg_match( '/\A[0-9]+\z/', $value ) ) {
-			return null;
-		}
-		$number = filter_var(
-			$value,
-			FILTER_VALIDATE_INT,
-			array(
-				'options' => array(
-					'min_range' => 1,
-					'max_range' => $maximum,
-				),
-			)
-		);
-		return false === $number ? null : $number;
-	}
-
 	/** @return array<string, mixed>|null */
 	private function read_credential_material( ?string $credential_id ): ?array {
 		$this->assert_operation?->__invoke();
 		try {
 			$credential = $this->credentials->credential_material( $credential_id );
 		} catch ( \Throwable $exception ) {
-			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
+			if ( CoreContractBridge::supports_failure_carrier() ) {
 				$this->fail_request( 'credential_store_unavailable', 'The saved GitHub credential could not be read.', 503 );
 			}
 			throw $exception;
@@ -737,13 +700,7 @@ class RepositoryBrowser {
 		// Metadata access alone does not prove Contents permission on a private repository.
 		$probe    = $this->guarded_get(
 			self::PUBLIC_API_BASE . '/repos/' . $this->encode_repository_name( $full_name ) . '/branches?per_page=1',
-			array(
-				'timeout'             => 15,
-				'redirection'         => 0,
-				'limit_response_size' => 65536,
-				'reject_unsafe_urls'  => true,
-				'headers'             => $headers,
-			)
+			GitHubHttpClient::build_request_args( 15, $headers, 65536 )
 		);
 		$branches = ! is_wp_error( $probe ) && 200 === (int) wp_remote_retrieve_response_code( $probe )
 			? json_decode( wp_remote_retrieve_body( $probe ) )
@@ -760,131 +717,48 @@ class RepositoryBrowser {
 
 	/** Throw the optional request carrier while preserving an older host's exception. */
 	private function fail_request( string $reason, string $message, int $legacy_code, ?int $http_status = null, #[\SensitiveParameter] mixed $response = null, ?string $expires_at = null, #[\SensitiveParameter] ?string $source_code = null ): never {
-		if ( ! class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) || ! class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
-			throw new RuntimeException( $message, $legacy_code );
+		$retry   = 'rate_limited' === $reason ? GitHubHttpClient::rate_limit_retry_after( $response ) : null;
+		$reset   = 'rate_limited' === $reason ? GitHubHttpClient::rate_limit_reset_at( $response ) : null;
+		$failure = CoreContractBridge::request_failed( $reason, $http_status, $retry, $reset, $expires_at, $source_code );
+		if ( null !== $failure ) {
+			throw $failure;
 		}
-		$retry = null;
-		$reset = null;
-		if ( 'rate_limited' === $reason && is_array( $response ) ) {
-			$retry = $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'retry-after' ), 86400 );
-			$reset = $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'x-ratelimit-reset' ), PHP_INT_MAX );
-		}
-		$failure = property_exists( \RAN\RepositoryProvider\ProviderFailure::class, 'source_code' )
-			? ( new \ReflectionClass( \RAN\RepositoryProvider\ProviderFailure::class ) )->newInstanceArgs(
-				array(
-					'reason'                => $reason,
-					'http_status'           => $http_status,
-					'retry_after'           => $retry,
-					'reset_at'              => $reset,
-					'credential_expires_at' => $expires_at,
-					'source_code'           => $source_code,
-				)
-			)
-			: new \RAN\RepositoryProvider\ProviderFailure( $reason, $http_status, $retry, $reset, $expires_at );
-		throw new \RAN\RepositoryProvider\ProviderRequestFailed( $failure );
+		throw new RuntimeException( $message, $legacy_code );
 	}
 
 	/** @param 'invalid'|'unavailable'|'rate_limited'|'invalid_response' $factory */
 	private function validation_failure( string $factory, string $reason, ?int $http_status = null, #[\SensitiveParameter] mixed $response = null, ?string $expires_at = null, #[\SensitiveParameter] ?string $source_code = null ): CredentialValidationResult {
-		if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) && class_exists( \RAN\RepositoryProvider\ProviderRequestFailed::class ) ) {
-			$retry   = 'rate_limited' === $reason && is_array( $response ) ? $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'retry-after' ), 86400 ) : null;
-			$reset   = 'rate_limited' === $reason && is_array( $response ) ? $this->rate_limit_integer( wp_remote_retrieve_header( $response, 'x-ratelimit-reset' ), PHP_INT_MAX ) : null;
-			$failure = property_exists( \RAN\RepositoryProvider\ProviderFailure::class, 'source_code' )
-				? ( new \ReflectionClass( \RAN\RepositoryProvider\ProviderFailure::class ) )->newInstanceArgs(
-					array(
-						'reason'                => $reason,
-						'http_status'           => $http_status,
-						'retry_after'           => $retry,
-						'reset_at'              => $reset,
-						'credential_expires_at' => $expires_at,
-						'source_code'           => $source_code,
-					)
-				)
-				: new \RAN\RepositoryProvider\ProviderFailure( $reason, $http_status, $retry, $reset, $expires_at );
-			// The certified legacy host predates this optional public factory argument.
-			$result = ( new \ReflectionMethod( CredentialValidationResult::class, $factory ) )->invoke( null, $failure );
-			if ( ! $result instanceof CredentialValidationResult ) {
-				throw new \LogicException( 'The credential-validation factory is incompatible.' );
-			}
-			return $result;
-		}
-		return CredentialValidationResult::$factory();
-	}
+		$retry = 'rate_limited' === $reason ? GitHubHttpClient::rate_limit_retry_after( $response ) : null;
+		$reset = 'rate_limited' === $reason ? GitHubHttpClient::rate_limit_reset_at( $response ) : null;
 
-	private function http_failure_reason( int $status ): string {
-		return match ( true ) {
-			in_array( $status, array( 301, 302, 303, 307, 308 ), true ) => 'redirect_blocked',
-			$status >= 400 && $status < 500 => 'http_4xx_other',
-			$status >= 500 && $status <= 599 => 'http_5xx',
-			default => 'response_invalid',
-		};
-	}
-
-	private function http_source_code( #[\SensitiveParameter] mixed $error ): ?string {
-		$code = is_object( $error ) && is_callable( array( $error, 'get_error_code' ) ) ? $error->get_error_code() : null;
-		return is_string( $code ) ? 'wp_http.' . $code : null;
-	}
-
-	private function transport_reason( #[\SensitiveParameter] mixed $error ): string {
-		return is_object( $error ) && is_callable( array( $error, 'get_error_code' ) ) && 'http_request_not_executed' === $error->get_error_code()
-			? 'blocked_by_site'
-			: 'transport_other';
+		return CoreContractBridge::credential_validation_failure( $factory, $reason, $http_status, $retry, $reset, $expires_at, $source_code );
 	}
 
 	public static function is_rate_limited_response( mixed $response, int $status ): bool {
-		if ( 429 === $status ) {
-			return true;
-		}
-
-		if ( 403 !== $status ) {
-			return false;
-		}
-
-		$remaining = wp_remote_retrieve_header( $response, 'x-ratelimit-remaining' );
-		if ( is_string( $remaining ) && '0' === trim( $remaining ) ) {
-			return true;
-		}
-
-		$retry_after = wp_remote_retrieve_header( $response, 'retry-after' );
-		if ( ! is_string( $retry_after ) ) {
-			return false;
-		}
-
-		$retry_after = trim( $retry_after );
-		if ( '' === $retry_after ) {
-			return false;
-		}
-
-		if ( preg_match( '/\A\d+\z/', $retry_after ) ) {
-			return true;
-		}
-
-		$retry_at = DateTimeImmutable::createFromFormat(
-			'!' . self::HTTP_DATE_FORMAT,
-			$retry_after,
-			new DateTimeZone( 'GMT' )
-		);
-
-		return false !== $retry_at && $retry_at->format( self::HTTP_DATE_FORMAT ) === $retry_after;
+		return GitHubHttpClient::is_rate_limited_response( $response, $status );
 	}
 
 	/** @param array<string,mixed> $arguments */
 	private function guarded_get( string $url, #[\SensitiveParameter] array $arguments ): mixed {
-		$this->assert_operation?->__invoke();
-		$response = wp_remote_get( $url, $arguments );
-		$this->assert_operation?->__invoke();
-		return $response;
+		$result = GitHubHttpClient::send(
+			'GET',
+			$url,
+			$arguments,
+			static function ( string $method, string $request_url, #[\SensitiveParameter] array $request_args ): mixed {
+				unset( $method );
+				return wp_remote_get( $request_url, $request_args );
+			},
+			$this->assert_operation
+		);
+
+		return $result['response'];
 	}
 
 	/**
 	 * @return array<string, string>
 	 */
 	private function request_headers(): array {
-		return array(
-			'Accept'               => 'application/vnd.github+json',
-			'X-GitHub-Api-Version' => self::API_VERSION,
-			'User-Agent'           => 'RAN-Booster',
-		);
+		return GitHubHttpClient::build_headers( api_version: self::API_VERSION );
 	}
 
 	/** @return array<string, string> */
@@ -911,13 +785,8 @@ class RepositoryBrowser {
 
 	private function validate_repository_name( string $full_name ): string {
 		$full_name = trim( $full_name );
-		$parts     = explode( '/', $full_name );
 
-		if ( 2 !== count( $parts )
-			|| ! preg_match( '/\A(?=.{1,39}\z)(?!-)(?!.*--)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\z/', $parts[0] )
-			|| ! preg_match( '/\A(?=.{1,100}\z)[A-Za-z0-9._-]+\z/', $parts[1] )
-			|| '.' === $parts[1]
-			|| '..' === $parts[1] ) {
+		if ( ! GitHubRepositoryIdentity::is_valid_repository( $full_name ) ) {
 			throw new RuntimeException( 'Enter a valid GitHub repository in owner/repository form.', 400 );
 		}
 
@@ -941,9 +810,12 @@ class RepositoryBrowser {
 	}
 
 	private function encode_repository_name( string $full_name ): string {
-		$parts = explode( '/', $full_name );
+		$encoded = GitHubRepositoryIdentity::encode_repository( $full_name );
+		if ( null === $encoded ) {
+			throw new RuntimeException( 'Enter a valid GitHub repository in owner/repository form.', 400 );
+		}
 
-		return rawurlencode( $parts[0] ) . '/' . rawurlencode( $parts[1] );
+		return $encoded;
 	}
 
 	private function descriptor_from_item( mixed $item, ?string $credential_id = null ): ?RepositoryDescriptor {

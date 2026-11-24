@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 use Closure;
+use RAN\BoosterGitHubProvider\V1\GitHubHttpClient;
+use RAN\BoosterGitHubProvider\V1\GitHubRepositoryIdentity;
 use Throwable;
 /** Fixed-scope GitHub operations for assisted workflow setup. */
 final class GitHubRepositoryClient {
@@ -455,50 +457,55 @@ final class GitHubRepositoryClient {
 		if ( ! $this->valid_token( $token ) || ! str_starts_with( $path, '/repos/' ) ) {
 			return $this->error( 'invalid_request' );
 		}
-		$headers = array(
-			'Accept'               => $raw_prefix ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
-			'X-GitHub-Api-Version' => '2026-03-10',
-			'User-Agent'           => 'RAN-Booster-Release-Deployments',
-		);
-		if ( '' !== $token ) {
-			$headers['Authorization'] = 'Bearer ' . $token;
-		}
-		$args = array(
-			'headers'             => $headers,
-			'timeout'             => max( 1, min( self::REQUEST_TIMEOUT_SECONDS, $timeout ) ),
-			'redirection'         => 0,
-			'reject_unsafe_urls'  => true,
-			'limit_response_size' => $raw_prefix ? 43 : self::MAX_BODY,
-		);
+		$encoded_body = null;
 		if ( null !== $body ) {
-			$args['headers']['Content-Type'] = 'application/json';
-			$args['body']                    = wp_json_encode( $body );
-			if ( ! is_string( $args['body'] ) ) {
+			$encoded = wp_json_encode( $body );
+			if ( ! is_string( $encoded ) ) {
 				return $this->error( 'invalid_request' );
 			}
+			$encoded_body = $encoded;
 		}
+		$headers = GitHubHttpClient::build_headers(
+			$raw_prefix ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
+			GitHubHttpClient::WORKFLOW_API_VERSION,
+			'RAN-Booster-Release-Deployments',
+			$token,
+			null !== $body ? 'application/json' : null
+		);
+		$args    = GitHubHttpClient::build_request_args(
+			max( 1, min( self::REQUEST_TIMEOUT_SECONDS, $timeout ) ),
+			$headers,
+			$raw_prefix ? 43 : self::MAX_BODY,
+			body: $encoded_body
+		);
 		try {
-			$this->assert_operation?->__invoke();
-			$response = ( $this->send )( $method, self::API_ROOT . $path, $args );
-			$this->assert_operation?->__invoke();
+			$result = GitHubHttpClient::send(
+				$method,
+				self::API_ROOT . $path,
+				$args,
+				$this->send,
+				$this->assert_operation
+			);
 		} catch ( Throwable ) {
 			return $this->error( 'remote_unavailable' );
 		}
-		if ( ! is_array( $response ) ) {
+		$response = $result['response'];
+		if ( ! is_array( $response ) || $result['wp_error'] ) {
 			return $this->error( 'remote_unavailable' );
 		}
-		$status = wp_remote_retrieve_response_code( $response );
-		$raw    = wp_remote_retrieve_body( $response );
+		$status = $result['status'];
+		$raw    = $result['body'];
 		if ( isset( $special[ $status ] ) ) {
 			return $this->error( $special[ $status ] );
 		}
-		if ( $this->is_rate_limited( $status, $response ) ) {
+		$classification = GitHubHttpClient::classify_status( $status, $response );
+		if ( 'rate_limited' === $classification ) {
 			return $this->error( 'rate_limited' );
 		}
-		if ( in_array( $status, array( 401, 403 ), true ) ) {
+		if ( 'credential_rejected' === $classification || 'permission_denied' === $classification ) {
 			return $this->error( 'unauthorised' );
 		}
-		if ( $status < 200 || $status >= 300 || ! is_string( $response['body'] ?? '' ) || strlen( $raw ) > self::MAX_BODY ) {
+		if ( 'ok' !== $classification || ! is_string( $response['body'] ?? '' ) || strlen( $raw ) > self::MAX_BODY ) {
 			return $this->error( 'remote_unavailable' );
 		}
 		if ( $raw_prefix ) {
@@ -531,7 +538,7 @@ final class GitHubRepositoryClient {
 			&& $this->valid_branch( $default_branch ) && ! hash_equals( $default_branch, $branch );
 	}
 	private function valid_repository( mixed $value ): bool {
-		return is_string( $value ) && 1 === preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z/D', $value );
+		return GitHubRepositoryIdentity::is_valid_repository( $value );
 	}
 	private function valid_branch( mixed $value ): bool {
 		return is_string( $value ) && strlen( $value ) <= 191
@@ -543,30 +550,6 @@ final class GitHubRepositoryClient {
 		return is_string( $value ) && '' !== $value && strlen( $value ) <= 512
 			&& ! str_starts_with( $value, '/' ) && ! str_contains( $value, '\\' ) && ! str_contains( $value, "\0" )
 			&& 1 !== preg_match( '#(?:\A|/)\.\.?(/|\z)#', $value ) && 1 === preg_match( '//u', $value );
-	}
-	/** @param array<string,mixed> $response */
-	private function is_rate_limited( int $status, array $response ): bool {
-		if ( 429 === $status ) {
-			return true;
-		}
-		if ( 403 !== $status ) {
-			return false;
-		}
-		if ( '0' === $this->header_string( wp_remote_retrieve_header( $response, 'x-ratelimit-remaining' ) ) ) {
-			return true;
-		}
-		$retry_after = $this->header_string( wp_remote_retrieve_header( $response, 'retry-after' ) );
-		if ( '' === $retry_after ) {
-			return false;
-		}
-		if ( 1 === preg_match( '/\A\d+\z/', $retry_after ) ) {
-			return true;
-		}
-		$retry_at = \DateTimeImmutable::createFromFormat( '!D, d M Y H:i:s \G\M\T', $retry_after, new \DateTimeZone( 'GMT' ) );
-		return false !== $retry_at && $retry_at->format( 'D, d M Y H:i:s \G\M\T' ) === $retry_after;
-	}
-	private function header_string( mixed $value ): string {
-		return is_string( $value ) ? trim( $value ) : '';
 	}
 	private function remaining_timeout( float $deadline ): ?int {
 		$remaining = $deadline - ( $this->clock )();

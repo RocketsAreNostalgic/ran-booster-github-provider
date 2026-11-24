@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
+use RAN\BoosterGitHubProvider\V1\GitHubRepositoryIdentity;
+
 /** Stores exact, bounded, non-secret setup pull-request evidence. */
 final class SetupRecordStore {
 	private const MAX_RECORDS     = 100;
@@ -333,7 +335,7 @@ final class SetupRecordStore {
 	}
 
 	private function repository( mixed $value ): bool {
-		return is_string( $value ) && 1 === preg_match( '#\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z#D', $value );
+		return GitHubRepositoryIdentity::is_valid_repository( $value );
 	}
 	private function branch( mixed $value ): bool {
 		return $this->text_value( $value, 191 ) && ! str_contains( $value, '..' ) && ! str_contains( $value, '@{' )

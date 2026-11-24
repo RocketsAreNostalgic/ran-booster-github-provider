@@ -126,14 +126,14 @@ use RAN\RepositoryProvider\RepositoryProvider;
 
 $factory = static function (
     ProviderCredentialStore $credentials,
-    AuthenticatedWebhookDeliveryEvidenceReader $deliveryEvidence,
-    ProviderRegistrationContext $registrationContext
+    AuthenticatedWebhookDeliveryEvidenceReader $delivery_evidence,
+    ProviderRegistrationContext $registration_context
 ) use ( $registrar ): RepositoryProvider {
     return GitHubProvider::create(
         $credentials,
-        $deliveryEvidence,
+        $delivery_evidence,
         $registrar,
-        static fn (): int => $registrationContext->maximumArtifactBytes()
+        static fn (): int => $registration_context->maximum_artifact_bytes()
     );
 };
 ```
@@ -151,7 +151,7 @@ The host supplies these capabilities deliberately:
   `releases()`. It is not the Provider registry or the whole Booster container.
 
 Booster registers the returned aggregate as `gh` with
-`ProviderRegistry::registerWithCredentialStore( 'gh', $factory )` before firing
+`ProviderRegistry::register_with_credential_store( 'gh', $factory )` before firing
 `ran_booster_register_providers`, then seals the registry. An external
 composition must check the exact API-15 marker and supported runtime mode before
 loading the implementation. Ordinary Booster already owns `gh`: trying to

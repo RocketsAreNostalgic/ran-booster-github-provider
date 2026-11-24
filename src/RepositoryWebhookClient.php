@@ -243,38 +243,44 @@ final class RepositoryWebhookClient {
 				'response' => array(),
 			);
 		}
-		$arguments = array(
-			'method'              => $method,
-			'timeout'             => min( self::CALL_TIMEOUT, $remaining ),
-			'redirection'         => 0,
-			'limit_response_size' => $limit,
-			'reject_unsafe_urls'  => true,
-			'headers'             => array(
-				'Accept'               => 'application/vnd.github+json',
-				'Authorization'        => 'Bearer ' . $token,
-				'X-GitHub-Api-Version' => RepositoryBrowser::API_VERSION,
-				'User-Agent'           => 'RAN-Booster',
-			),
-		);
+		$encoded_body = null;
 		if ( null !== $body ) {
-			$arguments['headers']['Content-Type'] = 'application/json';
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Fixed bounded provider payload; JSON exceptions fail closed.
-			$arguments['body'] = json_encode( $body, JSON_THROW_ON_ERROR );
+			$encoded_body = json_encode( $body, JSON_THROW_ON_ERROR );
 		}
-		$this->assert_operation?->__invoke();
-		$response = wp_remote_request( self::ORIGIN . $path, $arguments );
-		$this->assert_operation?->__invoke();
-		if ( is_wp_error( $response ) ) {
+		$headers   = GitHubHttpClient::build_headers(
+			api_version: RepositoryBrowser::API_VERSION,
+			token: $token,
+			content_type: null !== $body ? 'application/json' : null
+		);
+		$arguments = GitHubHttpClient::build_request_args(
+			min( self::CALL_TIMEOUT, $remaining ),
+			$headers,
+			$limit,
+			$method,
+			$encoded_body
+		);
+		$result    = GitHubHttpClient::send(
+			$method,
+			self::ORIGIN . $path,
+			$arguments,
+			static function ( string $request_method, string $request_url, #[\SensitiveParameter] array $request_args ): mixed {
+				$request_args['method'] = $request_method;
+				return wp_remote_request( $request_url, $request_args );
+			},
+			$this->assert_operation
+		);
+		if ( $result['wp_error'] ) {
 			return array(
 				'status'   => 599,
 				'body'     => '',
-				'response' => $response,
+				'response' => $result['response'],
 			);
 		}
 		return array(
-			'status'   => (int) wp_remote_retrieve_response_code( $response ),
-			'body'     => (string) wp_remote_retrieve_body( $response ),
-			'response' => $response,
+			'status'   => $result['status'],
+			'body'     => $result['body'],
+			'response' => $result['response'],
 		);
 	}
 	private function hooks_path( string $repository ): string {
@@ -290,18 +296,11 @@ final class RepositoryWebhookClient {
 		if ( 1 === preg_match( '/[\x00-\x1F\x7F]/', $repository ) ) {
 			throw new RuntimeException( 'The GitHub repository identity is invalid.', 400 );
 		}
-		$parts = explode( '/', trim( $repository, ' ' ) );
-		if ( 2 !== count( $parts )
-			|| 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[0] )
-			|| 1 !== preg_match( '/\A[A-Za-z0-9_.-]{1,100}\z/D', $parts[1] )
-			|| '.' === $parts[0]
-			|| '..' === $parts[0]
-			|| '.' === $parts[1]
-			|| '..' === $parts[1]
-		) {
+		$encoded = GitHubRepositoryIdentity::encode_repository( trim( $repository, ' ' ) );
+		if ( null === $encoded ) {
 			throw new RuntimeException( 'The GitHub repository identity is invalid.', 400 );
 		}
-		return '/repos/' . rawurlencode( $parts[0] ) . '/' . rawurlencode( $parts[1] );
+		return '/repos/' . $encoded;
 	}
 	/** @return array<string,mixed>|null */
 	private function decode_hook( string $body ): ?array {
@@ -390,16 +389,17 @@ final class RepositoryWebhookClient {
 				? $this->result( 'failed', 'transport_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not be reached. Nothing was changed on GitHub.' )
 				: $this->result( 'ambiguous', 'transport_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not be reached; the outcome is unknown.' );
 		}
-		if ( RepositoryBrowser::is_rate_limited_response( $response['response'], $status ) ) {
+		$classification = GitHubHttpClient::classify_status( $status, $response['response'] );
+		if ( 'rate_limited' === $classification ) {
 			return $nothing_changed
 				? $this->result( 'failed', 'rate_limited', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rate limited the request. Nothing was changed on GitHub.' )
 				: $this->result( 'ambiguous', 'rate_limited', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rate limited the request. Wait, then validate; the outcome was not confirmed.' );
 		}
-		return match ( $status ) {
-			401 => $this->result( 'failed', 'credential_rejected', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the selected credential. Choose a valid credential and try again.' . $access_suffix ),
-			403 => $this->result( 'failed', 'permission_denied', $hook_id, $this->unknown_configuration(), 'unknown', 'The selected credential cannot manage webhooks on this repository.' . $access_suffix ),
-			404 => $this->result( 'failed', 'repository_not_found_or_no_access', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not find the repository, or the credential cannot manage its webhooks.' . $access_suffix ),
-			400, 422 => $this->result( 'failed', 'http_4xx_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the fixed webhook inputs.' ),
+		return match ( $classification ) {
+			'credential_rejected' => $this->result( 'failed', 'credential_rejected', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the selected credential. Choose a valid credential and try again.' . $access_suffix ),
+			'permission_denied' => $this->result( 'failed', 'permission_denied', $hook_id, $this->unknown_configuration(), 'unknown', 'The selected credential cannot manage webhooks on this repository.' . $access_suffix ),
+			'not_found' => $this->result( 'failed', 'repository_not_found_or_no_access', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub could not find the repository, or the credential cannot manage its webhooks.' . $access_suffix ),
+			'bad_request', 'unprocessable' => $this->result( 'failed', 'http_4xx_other', $hook_id, $this->unknown_configuration(), 'unknown', 'GitHub rejected the fixed webhook inputs.' ),
 			default => $nothing_changed ? $this->refused_before_create( $fallback_code ) : $this->uncertain( $fallback_code, $hook_id ),
 		};
 	}

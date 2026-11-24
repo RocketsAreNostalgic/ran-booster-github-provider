@@ -116,32 +116,69 @@ final class StarterOrigin {
 	/**
 	 * Bounded metadata JSON with duplicate/escaped-equivalent key rejection.
 	 *
+	 * @param int<1,max> $depth
 	 * @return array<array-key,mixed>|null
 	 */
-	public static function json( string $bytes, int $limit ): ?array {
+	public static function json( string $bytes, int $limit, int $depth = 24, int $flags = 0 ): ?array {
 		if ( strlen( $bytes ) > $limit || str_contains( $bytes, "\0" ) ) {
 			return null;
 		}
 		try {
-			$data = json_decode( $bytes, true, 24, JSON_THROW_ON_ERROR );
-			preg_match_all( '/"(?:[^"\\\\]|\\\\.)*"|[{}\[\]:]/s', $bytes, $matches );
-			$stack = array();
-			foreach ( $matches[0] as $index => $token ) {
-				if ( '{' === $token || '[' === $token ) {
-					$stack[] = array(); } elseif ( '}' === $token || ']' === $token ) {
-					array_pop( $stack ); } elseif ( str_starts_with( $token, '"' ) && ':' === ( $matches[0][ $index + 1 ] ?? '' ) ) {
-										$key = json_decode( $token, true, 2, JSON_THROW_ON_ERROR );
-						$level               = count( $stack ) - 1;
-						if ( $level < 0 || isset( $stack[ $level ][ $key ] ) ) {
-							return null;
-						}
-						$stack[ $level ][ $key ] = true;
-					}
+			$data = json_decode( $bytes, true, $depth, JSON_THROW_ON_ERROR | $flags );
+			if ( ! is_array( $data ) || ! self::has_unique_object_keys_after_decode( $bytes ) ) {
+				return null;
 			}
-			return is_array( $data ) ? $data : null;
+			return $data;
 		} catch ( Throwable ) {
 			return null;
 		}
+	}
+
+	/** Reject duplicate JSON keys, including equivalent escaped spellings, failing closed on malformed JSON. */
+	public static function has_unique_object_keys( string $bytes ): bool {
+		if ( str_contains( $bytes, "\0" ) ) {
+			return false;
+		}
+		try {
+			json_decode( $bytes, true, 512, JSON_THROW_ON_ERROR );
+		} catch ( Throwable ) {
+			return false;
+		}
+
+		return self::has_unique_object_keys_after_decode( $bytes );
+	}
+
+	/** Reject duplicate JSON keys after syntax validation without re-decoding the full document. */
+	private static function has_unique_object_keys_after_decode( string $bytes ): bool {
+		if ( false === preg_match_all( '/"(?:[^"\\\\]++|\\\\.)*+"|[{}\[\]:]/s', $bytes, $matches ) ) {
+			return false;
+		}
+		$stack  = array();
+		$tokens = $matches[0];
+		foreach ( $tokens as $index => $token ) {
+			if ( '{' === $token || '[' === $token ) {
+				$stack[] = array();
+			} elseif ( '}' === $token || ']' === $token ) {
+				array_pop( $stack );
+			} elseif ( str_starts_with( $token, '"' ) && ':' === ( $tokens[ $index + 1 ] ?? '' ) ) {
+				try {
+					$key = json_decode( $token, true, 2, JSON_THROW_ON_ERROR );
+				} catch ( Throwable ) {
+					return false;
+				}
+				if ( ! is_string( $key ) ) {
+					return false;
+				}
+				$level    = count( $stack ) - 1;
+				$seen_key = "\0" . $key;
+				if ( $level < 0 || isset( $stack[ $level ][ $seen_key ] ) ) {
+					return false;
+				}
+				$stack[ $level ][ $seen_key ] = true;
+			}
+		}
+
+		return true;
 	}
 	public static function version( mixed $value ): bool {
 		return is_string( $value ) && strlen( $value ) <= 63 && 1 === preg_match( '/\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/D', $value );

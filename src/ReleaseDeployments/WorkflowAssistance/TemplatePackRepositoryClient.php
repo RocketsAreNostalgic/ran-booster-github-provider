@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 use Closure;
+use RAN\BoosterGitHubProvider\V1\GitHubHttpClient;
 use Throwable;
 
 /** Fixed-purpose reader for the canonical public template-pack repository. */
@@ -273,62 +274,39 @@ final class TemplatePackRepositoryClient {
 		if ( ! str_starts_with( $path, '/repos/' ) || $limit < 1 || $limit > self::ASSET_BODY_LIMIT ) {
 			return $this->error( 'template_pack_invalid' );
 		}
-		$args = array(
-			'headers'             => array(
-				'Accept'               => $accept,
-				'X-GitHub-Api-Version' => '2026-03-10',
-				'User-Agent'           => 'RAN-Booster-Release-Deployments',
-			),
-			'timeout'             => 15,
-			'redirection'         => 0,
-			'reject_unsafe_urls'  => true,
-			'limit_response_size' => $limit,
+		$headers = GitHubHttpClient::build_headers(
+			$accept,
+			GitHubHttpClient::WORKFLOW_API_VERSION,
+			'RAN-Booster-Release-Deployments',
+			$token
 		);
-		if ( '' !== $token ) {
-			$args['headers']['Authorization'] = 'Bearer ' . $token;
-		}
-		$current_url = self::API_ROOT . $path;
-		$response    = null;
-		$status      = 0;
-		for ( $hop = 0; $hop <= $redirects; ++$hop ) {
-			try {
-				$this->assert_operation?->__invoke();
-				$response = ( $this->send )( 'GET', $current_url, $args );
-				$this->assert_operation?->__invoke();
-			} catch ( Throwable ) {
-				return $this->error( 'template_pack_unavailable' );
-			}
-			if ( ! is_array( $response ) ) {
-				return $this->error( 'template_pack_unavailable' );
-			}
-			$status = wp_remote_retrieve_response_code( $response );
-			if ( $hop < $redirects && in_array( $status, array( 301, 302, 303, 307, 308 ), true ) ) {
-				$location = wp_remote_retrieve_header( $response, 'location' );
-				$next_url = $this->resolve_and_validate_redirect_location( $current_url, $location );
-				if ( null === $next_url ) {
-					return $this->error( 'template_pack_unavailable' );
-				}
-				foreach ( array_keys( $args['headers'] ) as $name ) {
-					if ( 'authorization' === strtolower( (string) $name ) ) {
-						unset( $args['headers'][ $name ] );
-					}
-				}
-				$current_url = $next_url;
-				continue;
-			}
-			break;
-		}
-		if ( ! is_array( $response ) ) {
+		$args    = GitHubHttpClient::build_request_args( 15, $headers, $limit );
+		try {
+			$result = GitHubHttpClient::send(
+				'GET',
+				self::API_ROOT . $path,
+				$args,
+				$this->send,
+				$this->assert_operation,
+				$redirects,
+				self::ALLOWED_REDIRECT_HOSTS
+			);
+		} catch ( Throwable ) {
 			return $this->error( 'template_pack_unavailable' );
 		}
-		$body = wp_remote_retrieve_body( $response );
-		if ( 401 === $status && array_key_exists( 'Authorization', $args['headers'] ) ) {
+		if ( ! is_array( $result['response'] ) || $result['wp_error'] || $result['redirect_rejected'] ) {
+			return $this->error( 'template_pack_unavailable' );
+		}
+		$status         = $result['status'];
+		$body           = $result['body'];
+		$classification = GitHubHttpClient::classify_status( $status, $result['response'] );
+		if ( 'credential_rejected' === $classification && $result['has_authorization'] ) {
 			return $this->error( 'unauthorised' );
 		}
-		if ( 404 === $status ) {
+		if ( 'not_found' === $classification ) {
 			return $this->error( 'template_pack_changed' );
 		}
-		if ( 429 === $status || 403 === $status || $status < 200 || $status >= 300 || strlen( $body ) > $limit ) {
+		if ( 'ok' !== $classification || strlen( $body ) > $limit ) {
 			return $this->error( 'template_pack_unavailable' );
 		}
 
@@ -336,107 +314,6 @@ final class TemplatePackRepositoryClient {
 			'code' => 'ok',
 			'body' => $body,
 		);
-	}
-
-	private function resolve_and_validate_redirect_location( string $base_url, mixed $location ): ?string {
-		if (
-			! is_string( $location )
-			|| '' === $location
-			|| strlen( $location ) > 4096
-			|| str_contains( $location, '\\' )
-			|| 1 === preg_match( '/[\x00-\x1F\x7F]/', $location )
-		) {
-			return null;
-		}
-		if ( str_starts_with( $location, '//' ) ) {
-			$candidate = 'https:' . $location;
-		} elseif ( 1 === preg_match( '/\A[A-Za-z][A-Za-z0-9+.-]*:/', $location ) ) {
-			$candidate = $location;
-		} else {
-			$base = wp_parse_url( $base_url );
-			if ( ! is_array( $base ) || ! is_string( $base['host'] ?? null ) || '' === $base['host'] ) {
-				return null;
-			}
-			$base_host = strtolower( $base['host'] );
-			$base_path = is_string( $base['path'] ?? null ) && '' !== $base['path'] ? $base['path'] : '/';
-			if ( str_starts_with( $location, '/' ) ) {
-				$resolved_relative = $location;
-			} elseif ( str_starts_with( $location, '?' ) ) {
-				$resolved_relative = $base_path . $location;
-			} else {
-				$last_slash        = strrpos( $base_path, '/' );
-				$base_dir          = false === $last_slash ? '/' : substr( $base_path, 0, $last_slash + 1 );
-				$resolved_relative = $base_dir . $location;
-			}
-			$candidate = 'https://' . $base_host . $resolved_relative;
-		}
-		if ( strlen( $candidate ) > 4096 ) {
-			return null;
-		}
-		$parts = wp_parse_url( $candidate );
-		if (
-			! is_array( $parts )
-			|| 'https' !== strtolower( (string) ( $parts['scheme'] ?? '' ) )
-			|| ! is_string( $parts['host'] ?? null )
-			|| '' === $parts['host']
-			|| isset( $parts['user'] )
-			|| isset( $parts['pass'] )
-			|| ( isset( $parts['port'] ) && 443 !== $parts['port'] )
-			|| isset( $parts['fragment'] )
-		) {
-			return null;
-		}
-		$host = strtolower( $parts['host'] );
-		if (
-			false !== filter_var( $host, FILTER_VALIDATE_IP )
-			|| ! in_array( $host, self::ALLOWED_REDIRECT_HOSTS, true )
-		) {
-			return null;
-		}
-		$normalized_path = $this->normalize_redirect_path( is_string( $parts['path'] ?? null ) ? $parts['path'] : '/' );
-		$query           = isset( $parts['query'] ) && is_string( $parts['query'] ) ? '?' . $parts['query'] : '';
-
-		return 'https://' . $host . $normalized_path . $query;
-	}
-
-	private function normalize_redirect_path( string $path ): string {
-		if ( '' === $path ) {
-			return '/';
-		}
-		$input  = str_starts_with( $path, '/' ) ? $path : '/' . $path;
-		$output = '';
-		while ( '' !== $input ) {
-			if ( str_starts_with( $input, '../' ) ) {
-				$input = substr( $input, 3 );
-			} elseif ( str_starts_with( $input, './' ) ) {
-				$input = substr( $input, 2 );
-			} elseif ( str_starts_with( $input, '/./' ) ) {
-				$input = '/' . substr( $input, 3 );
-			} elseif ( '/.' === $input ) {
-				$input = '/';
-			} elseif ( str_starts_with( $input, '/../' ) ) {
-				$input      = '/' . substr( $input, 4 );
-				$last_slash = strrpos( $output, '/' );
-				$output     = false === $last_slash ? '' : substr( $output, 0, $last_slash );
-			} elseif ( '/..' === $input ) {
-				$input      = '/';
-				$last_slash = strrpos( $output, '/' );
-				$output     = false === $last_slash ? '' : substr( $output, 0, $last_slash );
-			} elseif ( '.' === $input || '..' === $input ) {
-				$input = '';
-			} else {
-				$next_slash = strpos( $input, '/', 1 );
-				if ( false === $next_slash ) {
-					$output .= $input;
-					$input   = '';
-				} else {
-					$output .= substr( $input, 0, $next_slash );
-					$input   = substr( $input, $next_slash );
-				}
-			}
-		}
-
-		return '' === $output ? '/' : $output;
 	}
 
 	private function positive_int( mixed $value ): ?int {

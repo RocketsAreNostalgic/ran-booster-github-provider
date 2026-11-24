@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RAN\BoosterGitHubProvider\V1\ReleaseDeployments\WorkflowAssistance;
 
 use RAN\Activity\ActivityProgress;
+use RAN\BoosterGitHubProvider\V1\GitHubRepositoryIdentity;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowPreflight;
 use RAN\RepositoryProvider\RepositoryReleaseWorkflowTarget;
 use Throwable;
@@ -12,7 +13,6 @@ use Throwable;
 /** GitHub initial-only API 3 assessment, preview, mutation, readback and outcome owner. */
 final class WorkflowApplicationCoordinator {
 	private const PREVIEW_FIELDS         = array( 'schema_version', 'kind', 'user_id', 'type', 'identifier', 'revision', 'repo_id', 'repository', 'default_branch', 'base_sha', 'preflight_channel', 'profile_id', 'pack_version', 'manifest_hash', 'template_identity', 'bundle_hash', 'changed_path_hash', 'allowlist_hash', 'changes' );
-	private const IDENTITY_FIELDS        = array( 'repository_name', 'repository_id', 'release_id', 'release_tag', 'release_commit', 'release_target', 'tag_target', 'release_draft', 'release_prerelease', 'release_immutable', 'asset_count', 'asset_id', 'asset_name', 'asset_state', 'asset_content_type', 'asset_size', 'asset_digest', 'asset_sha256' );
 	private const PREFLIGHT_REASON_CODES = array( 'provider_unavailable', 'no_releases', 'invalid_release', 'release_identity_mismatch', 'release_incompatible', 'package_asset_missing', 'package_asset_ambiguous', 'release_version_mismatch', 'package_header_missing', 'package_header_invalid', 'package_archive_unreadable', 'package_zip_extension_unavailable', 'package_archive_size_invalid', 'package_archive_too_large', 'package_archive_path_unsafe', 'package_archive_path_duplicate', 'package_archive_root_invalid', 'package_archive_entry_duplicate', 'package_archive_entry_limit', 'release_version_invalid', 'package_update_uri_missing', 'package_update_uri_invalid', 'package_compatibility_missing', 'package_compatibility_invalid', 'package_header_ambiguous' );
 
 	public function __construct(
@@ -157,24 +157,7 @@ final class WorkflowApplicationCoordinator {
 	 * @return array<array-key,mixed>|null
 	 */
 	public function preview( string $key, RepositoryReleaseWorkflowTarget $status ): ?array {
-		$preview        = $this->records->workflow_state()->read_preview( $key );
-		$valid_identity = static function ( mixed $identity ): bool {
-			if ( ! is_array( $identity ) || array_keys( $identity ) !== self::IDENTITY_FIELDS
-				|| 'RocketsAreNostalgic/ran-booster-release-bootstrap-templates' !== $identity['repository_name']
-				|| '1322743261' !== $identity['repository_id'] || ! is_int( $identity['release_id'] ) || $identity['release_id'] < 1
-				|| ! is_string( $identity['release_tag'] ) || 1 !== preg_match( '/\Av[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\z/D', $identity['release_tag'] )
-				|| ! is_string( $identity['release_commit'] ) || 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $identity['release_commit'] )
-				|| ! hash_equals( $identity['release_commit'], (string) $identity['release_target'] ) || ! hash_equals( $identity['release_commit'], (string) $identity['tag_target'] )
-				|| false !== $identity['release_draft'] || false !== $identity['release_prerelease'] || true !== $identity['release_immutable']
-				|| 1 !== $identity['asset_count'] || ! is_int( $identity['asset_id'] ) || $identity['asset_id'] < 1
-				|| 'ran-booster-release-bootstrap-templates.zip' !== $identity['asset_name'] || 'uploaded' !== $identity['asset_state']
-				|| ! in_array( $identity['asset_content_type'], array( 'application/zip', 'application/octet-stream' ), true ) || ! is_int( $identity['asset_size'] ) || $identity['asset_size'] < 1 || $identity['asset_size'] > 2097152
-				|| ! is_string( $identity['asset_sha256'] ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $identity['asset_sha256'] )
-				|| ! hash_equals( 'sha256:' . $identity['asset_sha256'], (string) $identity['asset_digest'] ) ) {
-				return false;
-			}
-			return true;
-		};
+		$preview = $this->records->workflow_state()->read_preview( $key );
 		if ( 1 !== preg_match( '/\A[a-f0-9]{32}\z/D', $key ) || ! is_array( $preview ) || array_keys( $preview ) !== self::PREVIEW_FIELDS || 3 !== $preview['schema_version']
 			|| ! is_int( $preview['user_id'] ) || $preview['user_id'] < 1 || get_current_user_id() !== $preview['user_id']
 			|| ! is_int( $preview['revision'] ) || $preview['revision'] < 1 || $status->source_revision() !== $preview['revision']
@@ -183,19 +166,19 @@ final class WorkflowApplicationCoordinator {
 			|| ! is_string( $preview['identifier'] ) || '' === trim( $preview['identifier'] ) || strlen( $preview['identifier'] ) > 255
 			|| 1 !== preg_match( '//u', $preview['identifier'] ) || 1 === preg_match( '/[\x00-\x1F\x7F]/', $preview['identifier'] )
 			|| ! hash_equals( $status->identifier(), $preview['identifier'] ) || 'bootstrap' !== $preview['kind']
-			|| ! is_string( $preview['repository'] ) || 1 !== preg_match( '#\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\z#D', $preview['repository'] )
+			|| ! GitHubRepositoryIdentity::is_valid_repository( $preview['repository'] )
 			|| ! is_string( $preview['default_branch'] ) || 1 !== preg_match( '/\A[A-Za-z0-9](?:[A-Za-z0-9._\/-]*[A-Za-z0-9_-])?\z/D', $preview['default_branch'] )
 			|| str_contains( $preview['default_branch'], '..' ) || str_contains( $preview['default_branch'], '//' ) || str_contains( $preview['default_branch'], '@{' )
 			|| ! is_string( $preview['base_sha'] ) || 1 !== preg_match( '/\A[a-f0-9]{40}\z/D', $preview['base_sha'] )
 			|| 'stable' !== $preview['preflight_channel']
 			|| ! in_array( $preview['profile_id'], array( 'source-ready-wordpress-plugin/3', 'source-ready-wordpress-theme/3' ), true )
 			|| ! hash_equals( 'source-ready-wordpress-' . $preview['type'] . '/3', $preview['profile_id'] )
-			|| ! is_string( $preview['pack_version'] ) || 1 !== preg_match( '/\A[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\z/D', $preview['pack_version'] )
+			|| ! is_string( $preview['pack_version'] ) || ! StarterOrigin::version( $preview['pack_version'] )
 			|| ! is_string( $preview['manifest_hash'] ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $preview['manifest_hash'] )
 			|| ! is_string( $preview['bundle_hash'] ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $preview['bundle_hash'] )
 			|| ! is_string( $preview['changed_path_hash'] ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $preview['changed_path_hash'] )
 			|| ! is_string( $preview['allowlist_hash'] ) || 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $preview['allowlist_hash'] )
-			|| ! $valid_identity( $preview['template_identity'] ) || ! hash_equals( 'v' . $preview['pack_version'], $preview['template_identity']['release_tag'] )
+			|| ! TemplatePack::is_valid_identity( $preview['template_identity'] ) || ! hash_equals( 'v' . $preview['pack_version'], $preview['template_identity']['release_tag'] )
 			|| ! is_array( $preview['changes'] ) || array() === $preview['changes'] || count( $preview['changes'] ) > 32 ) {
 			return null;
 		}
@@ -253,12 +236,12 @@ final class WorkflowApplicationCoordinator {
 	 * @return array<array-key,mixed>
 	 */
 	private function target( RepositoryReleaseWorkflowTarget $status, #[\SensitiveParameter] string $token ): array {
-		$url = $status->expected_update_uri();
-		if ( 1 !== preg_match( '#\Ahttps://github\.com/([A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99})/?\z#D', $url, $match ) ) {
+		$repository = GitHubRepositoryIdentity::parse_github_url( $status->expected_update_uri(), true );
+		if ( null === $repository ) {
 			return array( 'code' => 'invalid_request' );
 		}
-		$repo = $this->github->repository( $match[1], $token );
-		if ( 'ok' !== $repo['code'] || ! hash_equals( $status->provider_repository_id(), (string) ( $repo['repository_id'] ?? '' ) ) || 0 !== strcasecmp( $match[1], (string) ( $repo['full_name'] ?? '' ) ) ) {
+		$repo = $this->github->repository( $repository, $token );
+		if ( 'ok' !== $repo['code'] || ! hash_equals( $status->provider_repository_id(), (string) ( $repo['repository_id'] ?? '' ) ) || 0 !== strcasecmp( $repository, (string) ( $repo['full_name'] ?? '' ) ) ) {
 			return array( 'code' => 'ok' === $repo['code'] ? 'target_changed' : $repo['code'] );
 		}
 		$base   = $this->github->branch_ref( $repo['full_name'], $repo['default_branch'], $token );
