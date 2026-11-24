@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0-beta.28](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.27...v1.0.0-beta.28) (2026-11-24)
+
+
+### Bug Fixes
+
+* **client:** consolidate GitHub HTTP, identity, and host shims ([#151](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/151)) ([2ba58fb](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/2ba58fb19ed7f3ed555a23de7e0955e7824370b7))
+* harden sensitive params, redirects, and input validation ([#145](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/145)) ([ef76131](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/ef761314fa8d2a7d0ef196a9831f6f441cf1a42d))
+* harden webhook rate-limit reuse and release error mapping ([#150](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/150)) ([584265b](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/584265bde75507ebabf46389661d934b0c0b90c6))
+* **webhooks:** verify absence before reporting hook 404s ([#148](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/148)) ([953eca3](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/953eca392f1695ee526f129a070b58a33c797b1a))
+* **workflow:** harden workflow assistance reliability and tests ([#149](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/149)) ([39d9079](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/39d9079a2943ab8cef8d48752520ddda4549733f))
+
 ## [1.0.0-beta.27](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.26...v1.0.0-beta.27) (2026-11-19)
 
 
