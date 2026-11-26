@@ -68,39 +68,7 @@ final class NativeTargetsTest extends TestCase {
 		$target = $this->target( null );
 		( new \ReflectionProperty( GitHubReleaseNativeTarget::class, 'updater' ) )->setValue(
 			$target,
-			new class( $patch, $missing_key ) {
-				/** @param array<string, mixed> $patch */
-				public function __construct( private array $patch, private ?string $missing_key ) {
-				}
-
-				/** @return array<string, mixed> */
-				public function status(): array {
-					$outer           = array(
-						'state'                => 'active',
-						'declaration_accepted' => true,
-						'hooks_registered'     => true,
-						'code'                 => 'target_active',
-						'native'               => array(
-							'candidate_header_version'  => '1.2.0',
-							'candidate_tag'             => 'v1.2.0',
-							'candidate_validation_code' => 'archive_identity_verified',
-							'candidate_version'         => '1.2.0',
-							'failure_code'              => null,
-							'installed_version'         => '1.0.0',
-							'last_check'                => 1_700_000_000,
-							'last_native_outcome'       => null,
-							'offered_release_identity'  => 'provider-release-42',
-							'offered_version'           => '1.2.0',
-							'relationship'              => 'newer',
-						),
-					);
-					$outer['native'] = array_replace( $outer['native'], $this->patch );
-					if ( null !== $this->missing_key ) {
-						unset( $outer['native'][ $this->missing_key ] );
-					}
-					return $outer;
-				}
-			}
+			$this->native_handle( $patch, $missing_key )
 		);
 
 		$status = $target->status();
@@ -156,44 +124,37 @@ final class NativeTargetsTest extends TestCase {
 
 	public function test_uninspected_native_offer_remains_active_without_claiming_proof(): void {
 		foreach ( array( 'plugin', 'theme' ) as $type ) {
-			$registrar = new class() {
-				/** @param array<int|string, mixed> $arguments */
-				public function __call( string $name, array $arguments ): object {
-					return new class() {
-						public function register(): bool {
-							return true;
-						}
-						/** @return array<string, mixed> */
-						public function status(): array {
-							return array(
-								'state'                => 'active',
-								'declaration_accepted' => true,
-								'hooks_registered'     => true,
-								'code'                 => 'target_active',
-								'native'               => array(
-									'candidate_header_version' => null,
-									'candidate_tag'     => 'v1.2.0',
-									'candidate_validation_code' => null,
-									'candidate_version' => '1.2.0',
-									'failure_code'      => null,
-									'installed_version' => '1.0.0',
-									'last_check'        => 1700000000,
-									'offered_release_identity' => '42',
-									'offered_version'   => '1.2.0',
-									'relationship'      => 'newer',
-								),
-							);
-						}
-					};
+			$handle    = $this->native_handle(
+				array(
+					'candidate_validation_code' => null,
+					'candidate_header_version'  => null,
+				)
+			);
+			$registrar = new class( $handle ) {
+				public string $called = '';
+				public function __construct( private object $handle ) {}
+
+				public function plugin(): object {
+					$this->called = __FUNCTION__;
+					return $this->handle;
+				}
+
+				public function theme(): object {
+					$this->called = __FUNCTION__;
+					return $this->handle;
 				}
 			};
 			$target    = new GitHubReleaseNativeTarget( $registrar, $type, 'package/file.php', 'owner/repo', '123', null, 'stable', 'manual' );
 			self::assertTrue( $target->register() );
+			self::assertSame( $type, $registrar->called );
 			$status = $target->status();
 			self::assertTrue( $status->active );
 			self::assertSame( '1.2.0', $status->offered_version );
 			self::assertSame( 'newer', $status->version_relationship );
 			self::assertSame( '', $status->candidate_code );
+			self::assertSame( '', $status->candidate_release_tag );
+			self::assertSame( '', $status->candidate_release_version );
+			self::assertSame( '', $status->candidate_package_header_version );
 			self::assertSame( '', $status->candidate_provider_release_id );
 		}
 	}
@@ -488,6 +449,47 @@ final class NativeTargetsTest extends TestCase {
 		$target    = $this->target( null, $registrar );
 		self::assertFalse( $target->register() );
 		self::assertFalse( $target->register() );
+	}
+
+	/** @param array<string, mixed> $patch */
+	private function native_handle( array $patch, ?string $missing_key = null ): object {
+		return new class( $patch, $missing_key ) {
+			/** @param array<string, mixed> $patch */
+			public function __construct( private array $patch, private ?string $missing_key ) {
+			}
+
+			public function register(): bool {
+				return true;
+			}
+
+			/** @return array<string, mixed> */
+			public function status(): array {
+				$outer           = array(
+					'state'                => 'active',
+					'declaration_accepted' => true,
+					'hooks_registered'     => true,
+					'code'                 => 'target_active',
+					'native'               => array(
+						'candidate_header_version'  => '1.2.0',
+						'candidate_tag'             => 'v1.2.0',
+						'candidate_validation_code' => 'archive_identity_verified',
+						'candidate_version'         => '1.2.0',
+						'failure_code'              => null,
+						'installed_version'         => '1.0.0',
+						'last_check'                => 1_700_000_000,
+						'last_native_outcome'       => null,
+						'offered_release_identity'  => 'provider-release-42',
+						'offered_version'           => '1.2.0',
+						'relationship'              => 'newer',
+					),
+				);
+				$outer['native'] = array_replace( $outer['native'], $this->patch );
+				if ( null !== $this->missing_key ) {
+					unset( $outer['native'][ $this->missing_key ] );
+				}
+				return $outer;
+			}
+		};
 	}
 
 	private function target( string|callable|null $access_token, ?object $registrar = null ): GitHubReleaseNativeTarget {
