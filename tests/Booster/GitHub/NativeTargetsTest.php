@@ -124,7 +124,7 @@ final class NativeTargetsTest extends TestCase {
 
 	/** @return array<string, array{array<string, mixed>, ?string, bool}> */
 	public static function native_status_shapes(): array {
-		$cases = array(
+		$cases       = array(
 			'null outcome'          => array( array(), null, true ),
 			'empty array outcome'   => array( array( 'last_native_outcome' => array() ), null, true ),
 			'opaque array outcome'  => array( array( 'last_native_outcome' => array( 'unconsumed' => new \stdClass() ) ), null, true ),
@@ -132,6 +132,18 @@ final class NativeTargetsTest extends TestCase {
 			'unknown extra key'     => array( array( 'unknown' => null ), null, false ),
 			'replaced required key' => array( array( 'unknown' => null ), 'last_check', false ),
 		);
+		$uninspected = array(
+			'candidate_header_version'  => null,
+			'candidate_validation_code' => null,
+		);
+		foreach ( array(
+			'missing advisory tag'          => array( 'candidate_tag' => null ),
+			'mismatched advisory version'   => array( 'candidate_version' => '1.1.0' ),
+			'unverified header on advisory' => array( 'candidate_header_version' => '1.2.0' ),
+			'non-newer advisory'            => array( 'relationship' => 'older' ),
+		) as $label => $invalid ) {
+			$cases[ $label ] = array( array_replace( $uninspected, $invalid ), null, false );
+		}
 		foreach ( array( false, 1, 'outcome', new \stdClass() ) as $index => $outcome ) {
 			$cases[ 'invalid outcome ' . $index ] = array( array( 'last_native_outcome' => $outcome ), null, false );
 		}
@@ -140,6 +152,50 @@ final class NativeTargetsTest extends TestCase {
 			$cases[ 'invalid ' . $key ] = array( array( $key => false ), null, false );
 		}
 		return $cases;
+	}
+
+	public function test_uninspected_native_offer_remains_active_without_claiming_proof(): void {
+		foreach ( array( 'plugin', 'theme' ) as $type ) {
+			$registrar = new class() {
+				/** @param array<int|string, mixed> $arguments */
+				public function __call( string $name, array $arguments ): object {
+					return new class() {
+						public function register(): bool {
+							return true;
+						}
+						/** @return array<string, mixed> */
+						public function status(): array {
+							return array(
+								'state'                => 'active',
+								'declaration_accepted' => true,
+								'hooks_registered'     => true,
+								'code'                 => 'target_active',
+								'native'               => array(
+									'candidate_header_version' => null,
+									'candidate_tag'     => 'v1.2.0',
+									'candidate_validation_code' => null,
+									'candidate_version' => '1.2.0',
+									'failure_code'      => null,
+									'installed_version' => '1.0.0',
+									'last_check'        => 1700000000,
+									'offered_release_identity' => '42',
+									'offered_version'   => '1.2.0',
+									'relationship'      => 'newer',
+								),
+							);
+						}
+					};
+				}
+			};
+			$target    = new GitHubReleaseNativeTarget( $registrar, $type, 'package/file.php', 'owner/repo', '123', null, 'stable', 'manual' );
+			self::assertTrue( $target->register() );
+			$status = $target->status();
+			self::assertTrue( $status->active );
+			self::assertSame( '1.2.0', $status->offered_version );
+			self::assertSame( 'newer', $status->version_relationship );
+			self::assertSame( '', $status->candidate_code );
+			self::assertSame( '', $status->candidate_provider_release_id );
+		}
 	}
 
 	public function test_registered_neutral_updater_projects_a_reordered_outer_status(): void {
