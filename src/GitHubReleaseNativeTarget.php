@@ -132,6 +132,15 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 			$candidate_tag            = $this->status_text( $status['candidate_tag'], 100 );
 			$candidate_version        = $this->status_version( $status['candidate_version'] );
 			$candidate_header_version = $this->status_version( $status['candidate_header_version'] );
+			$release_id               = $this->status_text( $status['offered_release_identity'], 191 );
+			if ( '' !== $release_id && null === $status['candidate_validation_code'] ) {
+				if ( '' === $candidate_tag || $candidate_version !== $status['offered_version']
+					|| null !== $status['candidate_header_version'] || 'newer' !== $status['relationship'] ) {
+					throw new LogicException( 'The advisory release offer is inconsistent.' );
+				}
+				// The host reserves this field for the identity of an inspected archive.
+				$release_id = '';
+			}
 			if ( '' === $candidate_code || '' === $candidate_tag || '' === $candidate_version ) {
 				$candidate_code           = '';
 				$candidate_tag            = '';
@@ -150,7 +159,7 @@ final class GitHubReleaseNativeTarget implements RepositoryReleaseNativeTarget {
 				$candidate_tag,
 				$candidate_version,
 				$candidate_header_version,
-				$this->status_text( $status['offered_release_identity'], 191 )
+				$release_id
 			);
 		} catch ( \Throwable ) {
 			return new RepositoryReleaseNativeTargetStatus( false, failure_code: 'github_updater_status_unavailable' );
