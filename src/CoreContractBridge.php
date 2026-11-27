@@ -97,6 +97,26 @@ final class CoreContractBridge {
 	}
 
 	/**
+	 * @param class-string            $dto
+	 * @param array<array-key, mixed> $facts
+	 * @return list<string>
+	 */
+	public static function artifact_arguments( string $dto, array $facts ): array {
+		if ( ! property_exists( $dto, 'artifact_identity' ) || ! property_exists( $dto, 'artifact_sha256' ) ) {
+			return array();
+		}
+
+		$identity = $facts['artifact_identity'] ?? '';
+		$sha256   = $facts['artifact_sha256'] ?? '';
+		if ( ! is_string( $identity ) || ! is_string( $sha256 )
+			|| ( '' !== $sha256 && 1 !== preg_match( '/\A[a-f0-9]{64}\z/D', $sha256 ) ) ) {
+			throw new RuntimeException( 'GitHub returned invalid release artifact evidence.', 502 );
+		}
+
+		return array( $identity, $sha256 );
+	}
+
+	/**
 	 * @param list<RepositoryReleaseCandidate> $candidates
 	 */
 	public static function release_candidate_list(
