@@ -11,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 use RAN\BoosterGitHubProvider\V1\GitHubProvider;
 use RAN\RepositoryProvider\RepositoryReference;
 use RAN\RepositoryProvider\RepositoryReleaseAcquisitionRejected;
+use RAN\RepositoryProvider\RepositoryReleaseCandidate;
+use RAN\RepositoryProvider\RepositoryReleaseInspection;
 use RAN\RepositoryProvider\RepositoryReleaseInspectionRejected;
 use RAN\RepositoryProvider\RepositoryReleaseReadUnavailable;
 use RAN\BoosterGitHubProvider\V1\Tests\Booster\GitHub\Support\EmptyAuthenticatedWebhookDeliveryEvidenceReader;
@@ -85,6 +87,60 @@ final class PublicReleaseResultMappingTest extends TestCase {
 			$provider = $this->provider( new PublicReleaseSourceFixture( $listing, array(), array() ) );
 			$result   = $provider->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
 			self::assertSame( $names, $result->candidates[0]->expected_asset_names );
+		}
+	}
+
+	public function test_listing_maps_artifact_facts_from_each_candidate_without_inspection(): void {
+		$listing                         = $this->listing();
+		$historical                      = $listing['value']['candidates'][0];
+		$sha256                          = hash( 'sha256', 'historical asset' );
+		$latest                          = array_replace(
+			$historical,
+			array(
+				'release_identity' => '43',
+				'tag'              => 'v1.2.4',
+				'version'          => '1.2.4',
+				'details_url'      => 'https://github.com/owner/example/releases/tag/v1.2.4',
+			)
+		);
+		$latest['expected_asset_names']  = array();
+		$historical['artifact_identity'] = '810';
+		$historical['artifact_sha256']   = $sha256;
+		$listing['value']['candidates']  = array( $latest, $historical );
+		$source                          = new PublicReleaseSourceFixture( $listing, array(), array() );
+		$result                          = $this->provider( $source )->list_release_candidates( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), 'stable' );
+
+		self::assertCount( 2, $result->candidates );
+		self::assertSame( '43', $result->candidates[0]->provider_release_id );
+		self::assertSame( '42', $result->candidates[1]->provider_release_id );
+		if ( property_exists( RepositoryReleaseCandidate::class, 'artifact_identity' ) ) {
+			$missing = get_object_vars( $result->candidates[0] );
+			$found   = get_object_vars( $result->candidates[1] );
+			self::assertSame( '', $missing['artifact_identity'] );
+			self::assertSame( '', $missing['artifact_sha256'] );
+			self::assertSame( '810', $found['artifact_identity'] );
+			self::assertSame( $sha256, $found['artifact_sha256'] );
+		}
+		self::assertSame( 1, $source->list_calls );
+		self::assertSame( 0, $source->inspect_calls );
+		self::assertSame( 0, $source->acquire_calls );
+	}
+
+	public function test_inspection_forwards_only_supplied_artifact_facts(): void {
+		$repository = new RepositoryReference( 'owner/example', '123456789', false, null );
+		$facts      = $this->facts();
+		foreach ( array( array( 'artifact_identity' => '810' ), array() ) as $extra ) {
+			$source = new PublicReleaseSourceFixture( array(), $this->envelope( true, 'release_inspected', $extra + $facts, 'complete' ), array() );
+			$result = $this->provider( $source )->inspect_release( 'plugin', $repository, '42', 'v1.2.3', 'stable' );
+			self::assertSame( $facts['fingerprint'], $result->fingerprint );
+			if ( property_exists( RepositoryReleaseInspection::class, 'artifact_identity' ) ) {
+				$fields = get_object_vars( $result );
+				self::assertSame( $extra['artifact_identity'] ?? '', $fields['artifact_identity'] );
+				self::assertSame( $facts['artifact_sha256'], $fields['artifact_sha256'] );
+			}
+			self::assertSame( 0, $source->list_calls );
+			self::assertSame( 1, $source->inspect_calls );
+			self::assertSame( 0, $source->acquire_calls );
 		}
 	}
 
@@ -443,6 +499,24 @@ final class PublicReleaseResultMappingTest extends TestCase {
 		}
 	}
 
+	public function test_inspection_preserves_the_updater_rate_limit(): void {
+		$result                = $this->envelope( false, 'rate_limited', null, 'complete' );
+		$result['retry_after'] = 60;
+		$provider              = $this->provider( new PublicReleaseSourceFixture( array(), $result, array() ) );
+		try {
+			$provider->inspect_release( 'plugin', new RepositoryReference( 'owner/example', '123456789', false, null ), '42', 'v1.2.3', 'stable' );
+			self::fail( 'The rate-limited inspection must stop.' );
+		} catch ( RepositoryReleaseReadUnavailable $failure ) {
+			self::assertSame( 'GitHub release inspection is rate limited.', $failure->getMessage() );
+			if ( class_exists( \RAN\RepositoryProvider\ProviderFailure::class ) ) {
+				$carried = \RAN\RepositoryProvider\ProviderFailure::carried( $failure );
+				self::assertNotNull( $carried );
+				self::assertSame( 'rate_limited', $carried->reason );
+				self::assertSame( 60, $carried->retry_after );
+			}
+		}
+	}
+
 	public function test_listing_retry_clamp_does_not_change_inspection_or_acquisition(): void {
 		$result                = $this->envelope( false, 'rate_limited', null );
 		$result['retry_after'] = 86401;
@@ -668,6 +742,7 @@ final class PublicReleaseRegistrarFixture {
 }
 // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- This concrete public-artifact test double belongs beside the custody or mapping contract it exercises.
 final class PublicReleaseSourceFixture {
+	public int $list_calls    = 0;
 	public int $inspect_calls = 0;
 	public int $acquire_calls = 0;
 	/**
@@ -680,6 +755,7 @@ final class PublicReleaseSourceFixture {
 	 * @return array<array-key,mixed>
 	 */
 	public function list(): array {
+		++$this->list_calls;
 		return $this->release_list;
 	}
 	/**

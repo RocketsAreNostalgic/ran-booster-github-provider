@@ -580,7 +580,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				$release['version'],
 				$release['prerelease'],
 				$release['published_at'],
-				$release['expected_asset_names']
+				$release['expected_asset_names'],
+				...CoreContractBridge::artifact_arguments( RepositoryReleaseCandidate::class, $release )
 			);
 		}
 
@@ -628,6 +629,9 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 			$this->filesystem_unsupported( 'inspection' );
 		}
 		[ $result, $rejection ] = $this->without_rejection( $result );
+		if ( $this->failure( $result, 'inspect', 'rate_limited' ) ) {
+			throw CoreContractBridge::release_read_unavailable( 'GitHub release inspection is rate limited.', 502, 'rate_limited', $result['retry_after'], 'release_updater.rate_limited' );
+		}
 		if ( $this->read_unavailable( $result, 'inspect' ) ) {
 			throw new RepositoryReleaseReadUnavailable( 'GitHub release inspection access is unavailable.', 502 );
 		}
@@ -667,7 +671,8 @@ final class GitHubProvider implements RepositoryProvider, RepositoryPathInspecto
 				$facts['commit_identity'],
 				$facts['package_root'],
 				$facts['main_file'],
-				$facts['fingerprint']
+				$facts['fingerprint'],
+				...CoreContractBridge::artifact_arguments( RepositoryReleaseInspection::class, $facts )
 			);
 		} catch ( \Throwable ) {
 			throw new RuntimeException( 'GitHub returned invalid release inspection evidence.', 502 );
