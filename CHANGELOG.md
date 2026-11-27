@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.30](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.29...v1.0.0-beta.30) (2026-11-27)
+
+
+### Bug Fixes
+
+* **releases:** preserve artifact evidence and rate limits ([#159](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/issues/159)) ([2c99461](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/commit/2c994611ee899b89c30d6c7a3f92bff4eaf26664))
+
 ## [1.0.0-beta.29](https://github.com/RocketsAreNostalgic/ran-booster-github-provider/compare/v1.0.0-beta.28...v1.0.0-beta.29) (2026-11-26)
 
 
